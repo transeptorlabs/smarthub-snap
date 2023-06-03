@@ -99,6 +99,15 @@ const ErrorMessage = styled.div`
   }
 `;
 
+const LineBreak = styled.hr`
+  color: black;
+  border: solid;
+  width: 60%;
+  ${({ theme }) => theme.mediaQueries.small} {
+    width: 80%;
+  }
+`;
+
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
 
@@ -111,6 +120,7 @@ const Index = () => {
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
+
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -129,11 +139,44 @@ const Index = () => {
   return (
     <Container>
       <Heading>
-        Welcome to <Span>ERC-4337 Snap</Span>
+        Welcome to <Span>ERC-4337 Relayer</Span>
       </Heading>
+      <LineBreak></LineBreak>
       <Subtitle>
         Unlock the Full Potential of Account Abstraction
       </Subtitle>
+      <CardContainer>
+        <Card
+          content={{
+            title: 'Why',
+            description:
+              `Interacting with ERC-4337: Account abstraction requires understanding all its core components. While account abstraction can simplify the user experience, it can be complex for developers and users. A solution is needed to abstract this complexity, enabling developers to concentrate on building their dapps and users to use Account abstraction without installing a new wallet.`,
+            }}
+          fullWidth
+          />
+        <Card
+          content={{
+            title: 'What',
+            description:
+              `ERC-4337 Relayer is a snap that allows developers and MetaMask wallet users to interact with ERC-4337 without worrying about the technology's complexity.`,
+          }}
+          fullWidth
+        />
+        <Card
+          content={{
+            title: 'How',
+            description:
+              'The snap extends the existing functionalities of MetaMask by providing additional RPC methods that wrap around ERC-4337 core functionality.',
+          }}
+          fullWidth
+        />
+      </CardContainer>
+
+      <LineBreak></LineBreak>
+      <Subtitle>
+        Install
+      </Subtitle>
+
       <CardContainer>
         {state.error && (
           <ErrorMessage>
@@ -154,9 +197,15 @@ const Index = () => {
         {!state.installedSnap && (
           <Card
             content={{
-              title: 'Connect',
+              title: 'Enable ERC-4337: Account Abstraction capabilities',
               description:
-                'Get started by connecting to and installing the example snap.',
+                'Features include:',
+              listItems: [
+                'Relay user operations inside of MetaMask',
+                'Manage ERC-4337 accounts(create, sign, send, transfer funds)',
+                'Wraps all eth ERC-4337 namespace rpc methods',
+                'Manage stake an depoists with supported entrypoint contracts'
+              ],
               button: (
                 <ConnectButton
                   onClick={handleConnectClick}
@@ -165,7 +214,19 @@ const Index = () => {
               ),
             }}
             disabled={!state.isFlask}
+            fullWidth
           />
+        )}
+        {state.installedSnap && (
+             <Card
+             content={{
+               title: 'ERC-4337 Relayer is installed and ready to use',
+               description:
+                 `Installed with v${state.installedSnap.version}. Use MetaMask settings page, to see the more details on the installed snap.`,
+             }}
+             disabled={!state.isFlask}
+             fullWidth
+           />
         )}
         {shouldDisplayReconnectButton(state.installedSnap) && (
           <Card
@@ -204,7 +265,7 @@ const Index = () => {
         />
         <Notice>
           <p>
-            Please note that the this snap is only available in MetaMask Flask, and is actively being developed by <a href='https://github.com/transeptorlabs'>Transeptor Labs</a>
+            Please note that the this snap is only available in MetaMask Flask, and is actively being developed by <a href='https://github.com/transeptorlabs' target="_blank">Transeptor Labs</a>
           </p>
         </Notice>
       </CardContainer>

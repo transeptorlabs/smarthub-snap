@@ -10,9 +10,9 @@ const config: GatsbyConfig = {
     {
       resolve: 'gatsby-plugin-manifest',
       options: {
-        name: 'Template Snap',
+        name: 'ERC-4337 Relayer',
         icon: 'src/assets/logo.svg',
-        theme_color: '#6F4CFF',
+        theme_color: '#3245ae',
         background_color: '#FFFFFF',
         display: 'standalone',
       },

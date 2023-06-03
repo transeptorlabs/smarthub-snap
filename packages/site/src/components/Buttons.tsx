@@ -80,7 +80,7 @@ export const ConnectButton = (props: ComponentProps<typeof Button>) => {
   return (
     <Button {...props}>
       <FlaskFox />
-      <ButtonText>Connect</ButtonText>
+      <ButtonText>Install ERC-4337 Relayer</ButtonText>
     </Button>
   );
 };

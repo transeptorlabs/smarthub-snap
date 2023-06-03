@@ -37,6 +37,30 @@ const RightContainer = styled.div`
   align-items: center;
 `;
 
+const Link = styled.a`
+  display: flex;
+  align-self: flex-start;
+  align-items: center;
+  justify-content: center;
+  font-size: ${(props) => props.theme.fontSizes.large};
+  color: ${(props) => props.theme.colors.text.default};
+  text-decoration: none;
+  font-weight: bold;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    background-color: transparent;
+    color: ${(props) => props.theme.colors.primary.default};
+  }
+
+  ${({ theme }) => theme.mediaQueries.small} {
+    width: 100%;
+    box-sizing: border-box;
+  }
+`;
+
 export const Header = ({
   handleToggleClick,
 }: {
@@ -63,13 +87,19 @@ export const Header = ({
     <HeaderWrapper>
       <LogoWrapper>
         <SnapLogo color={theme.colors.icon.default} size={36} />
-        <Title>Transeptor ERC-4337 Snap</Title>
+        <Title>ERC-4337 Relayer</Title>
       </LogoWrapper>
       <RightContainer>
-        <Toggle
-          onToggle={handleToggleClick}
-          defaultChecked={getThemePreference()}
-        />
+        
+        <LogoWrapper>
+          <Link href="https://github.com/transeptorlabs/erc-4337-snap" target="_blank">
+            Github
+          </Link>
+          <Toggle
+            onToggle={handleToggleClick}
+            defaultChecked={getThemePreference()}
+          />
+        </LogoWrapper>
         <HeaderButtons state={state} onConnectClick={handleConnectClick} />
       </RightContainer>
     </HeaderWrapper>

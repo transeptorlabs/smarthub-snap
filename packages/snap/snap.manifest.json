@@ -1,18 +1,18 @@
 {
   "version": "0.1.0",
   "description": "A MetaMask snap the wraps ERC-4337 eth namespace methods.",
-  "proposedName": "ERC-4337 Snap",
+  "proposedName": "ERC-4337 Relayer",
   "repository": {
     "type": "git",
     "url": "https://github.com/transeptorlabs/erc-4337-snap.git"
   },
   "source": {
-    "shasum": "9O0W6cFStcMIzum+FAvWN8RQtL7JV1VSSj1jUxEQE0I=",
+    "shasum": "8ZtMY0u26KxX5Njbwm4a+jiRft3ZFjAgxiBObs7/qHY=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
         "iconPath": "images/icon.svg",
-        "packageName": "@transeptor/erc-4337-snap",
+        "packageName": "@transeptor/erc-4337-relayer",
         "registry": "https://registry.npmjs.org/"
       }
     }

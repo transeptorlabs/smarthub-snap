@@ -4,15 +4,15 @@
   "proposedName": "ERC-4337 Snap",
   "repository": {
     "type": "git",
-    "url": "https://github.com/transeptorlabs/smart-snap.git"
+    "url": "https://github.com/transeptorlabs/erc-4337-snap.git"
   },
   "source": {
-    "shasum": "g/7Jf9Qgtl2bwumBA8zE8lGTQr2jS61sSChnbGAsUaU=",
+    "shasum": "9O0W6cFStcMIzum+FAvWN8RQtL7JV1VSSj1jUxEQE0I=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
         "iconPath": "images/icon.svg",
-        "packageName": "@transeptor/smart-snap",
+        "packageName": "@transeptor/erc-4337-snap",
         "registry": "https://registry.npmjs.org/"
       }
     }

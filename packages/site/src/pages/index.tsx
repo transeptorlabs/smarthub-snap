@@ -129,10 +129,10 @@ const Index = () => {
   return (
     <Container>
       <Heading>
-        Welcome to <Span>Smart Snap</Span>
+        Welcome to <Span>ERC-4337 Snap</Span>
       </Heading>
       <Subtitle>
-        Get started by editing <code>src/index.ts</code>
+        Unlock the Full Potential of Account Abstraction
       </Subtitle>
       <CardContainer>
         {state.error && (
@@ -204,10 +204,7 @@ const Index = () => {
         />
         <Notice>
           <p>
-            Please note that the <b>snap.manifest.json</b> and{' '}
-            <b>package.json</b> must be located in the server root directory and
-            the bundle must be hosted at the location specified by the location
-            field.
+            Please note that the this snap is only available in MetaMask Flask, and is actively being developed by <a href='https://github.com/transeptorlabs'>Transeptor Labs</a>
           </p>
         </Notice>
       </CardContainer>

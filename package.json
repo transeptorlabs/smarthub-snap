@@ -1,15 +1,15 @@
 {
-  "name": "smart-snap",
+  "name": "erc-4337-snap",
   "version": "0.1.0",
   "private": true,
   "description": "A MetaMask snap the wraps ERC-4337 eth namespace methods.",
-  "homepage": "https://github.com/transeptorlabs/smart-snap#readme",
+  "homepage": "https://github.com/transeptorlabs/erc-4337-snap#readme",
   "bugs": {
-    "url": "https://github.com/transeptorlabs/smart-snap/issues"
+    "url": "https://github.com/transeptorlabs/erc-4337-snap/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/transeptorlabs/smart-snap.git"
+    "url": "git+https://github.com/transeptorlabs/erc-4337-snap.git"
   },
   "license": "(MIT-0 OR Apache-2.0)",
   "author": {

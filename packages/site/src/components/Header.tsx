@@ -63,7 +63,7 @@ export const Header = ({
     <HeaderWrapper>
       <LogoWrapper>
         <SnapLogo color={theme.colors.icon.default} size={36} />
-        <Title>Transeptor Smart Snap</Title>
+        <Title>Transeptor ERC-4337 Snap</Title>
       </LogoWrapper>
       <RightContainer>
         <Toggle

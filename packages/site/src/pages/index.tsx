@@ -150,15 +150,15 @@ const Index = () => {
           content={{
             title: 'Why',
             description:
-              `Interacting with ERC-4337: Account abstraction requires understanding all its core components. While account abstraction can simplify the user experience, it can be complex for developers and users. A solution is needed to abstract this complexity, enabling developers to concentrate on building their dapps and users to use Account abstraction without installing a new wallet.`,
-            }}
+            `ERC-4337: Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.`            
+          }}
           fullWidth
           />
         <Card
           content={{
             title: 'What',
             description:
-              `ERC-4337 Relayer is a snap that allows developers and MetaMask wallet users to interact with ERC-4337 without worrying about the technology's complexity.`,
+              `ERC-4337 Relayer is a tool that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.`,
           }}
           fullWidth
         />
@@ -166,7 +166,7 @@ const Index = () => {
           content={{
             title: 'How',
             description:
-              'The snap extends the existing functionalities of MetaMask by providing additional RPC methods that wrap around ERC-4337 core functionality.',
+              'The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components.',
           }}
           fullWidth
         />

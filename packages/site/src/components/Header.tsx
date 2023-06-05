@@ -5,6 +5,7 @@ import { connectSnap, getThemePreference, getSnap } from '../utils';
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
+import { connectWallet } from '../utils/eth';
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -71,6 +72,7 @@ export const Header = ({
 
   const handleConnectClick = async () => {
     try {
+      // const account = await connectWallet();
       await connectSnap();
       const installedSnap = await getSnap();
 
@@ -78,6 +80,11 @@ export const Header = ({
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
+
+      // dispatch({
+      //   type: MetamaskActions.SetConnectedAccount,
+      //   payload: account,
+      // });
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -90,17 +97,23 @@ export const Header = ({
         <Title>ERC-4337 Relayer</Title>
       </LogoWrapper>
       <RightContainer>
-        
         <LogoWrapper>
-          <Link href="https://github.com/transeptorlabs/erc-4337-snap" target="_blank">
+          <Link
+            href="https://github.com/transeptorlabs/erc-4337-snap"
+            target="_blank"
+          >
             Github
           </Link>
+
           <Toggle
             onToggle={handleToggleClick}
             defaultChecked={getThemePreference()}
           />
         </LogoWrapper>
-        <HeaderButtons state={state} onConnectClick={handleConnectClick} />
+        <LogoWrapper>
+          {/* <p>{state.connectedAccount}</p> */}
+          <HeaderButtons state={state} onConnectClick={handleConnectClick} />
+        </LogoWrapper>
       </RightContainer>
     </HeaderWrapper>
   );

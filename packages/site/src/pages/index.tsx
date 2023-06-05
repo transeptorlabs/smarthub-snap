@@ -8,7 +8,7 @@ import {
   shouldDisplayReconnectButton,
 } from '../utils';
 import {
-  ConnectButton,
+  ConnectSnapButton,
   InstallFlaskButton,
   ReconnectButton,
   SendHelloButton,
@@ -111,7 +111,7 @@ const LineBreak = styled.hr`
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
 
-  const handleConnectClick = async () => {
+  const handleConnectSnapClick = async () => {
     try {
       await connectSnap();
       const installedSnap = await getSnap();
@@ -120,7 +120,6 @@ const Index = () => {
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
-
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -142,23 +141,19 @@ const Index = () => {
         Welcome to <Span>ERC-4337 Relayer</Span>
       </Heading>
       <LineBreak></LineBreak>
-      <Subtitle>
-        Unlock the Full Potential of Account Abstraction
-      </Subtitle>
+      <Subtitle>Unlock the Full Potential of Account Abstraction</Subtitle>
       <CardContainer>
         <Card
           content={{
             title: 'Why',
-            description:
-            `ERC-4337: Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.`            
+            description: `ERC-4337: Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.`,
           }}
           fullWidth
-          />
+        />
         <Card
           content={{
             title: 'What',
-            description:
-              `ERC-4337 Relayer is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.`,
+            description: `ERC-4337 Relayer is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.`,
           }}
           fullWidth
         />
@@ -173,9 +168,7 @@ const Index = () => {
       </CardContainer>
 
       <LineBreak></LineBreak>
-      <Subtitle>
-        Install
-      </Subtitle>
+      <Subtitle>Install</Subtitle>
 
       <CardContainer>
         {state.error && (
@@ -198,17 +191,16 @@ const Index = () => {
           <Card
             content={{
               title: 'Enable ERC-4337: Account Abstraction capabilities',
-              description:
-                'Features include:',
+              description: 'Features include:',
               listItems: [
                 'Relay user operations inside of MetaMask',
                 'Manage ERC-4337 accounts(create, sign, send, transfer funds)',
                 'Wraps all eth ERC-4337 namespace rpc methods',
-                'Manage stake an depoists with supported entrypoint contracts'
+                'Manage stake an depoists with supported entrypoint contracts',
               ],
               button: (
-                <ConnectButton
-                  onClick={handleConnectClick}
+                <ConnectSnapButton
+                  onClick={handleConnectSnapClick}
                   disabled={!state.isFlask}
                 />
               ),
@@ -218,25 +210,24 @@ const Index = () => {
           />
         )}
         {state.installedSnap && (
-             <Card
-             content={{
-               title: 'ERC-4337 Relayer is installed and ready to use',
-               description:
-                 `Installed with v${state.installedSnap.version}. Use MetaMask settings page, to see the more details on the installed snap.`,
-             }}
-             disabled={!state.isFlask}
-             fullWidth
-           />
+          <Card
+            content={{
+              title: 'ERC-4337 Relayer is installed and ready to use',
+              description: `Installed with v${state.installedSnap.version}. Use MetaMask settings page, to see the more details on the installed snap.`,
+            }}
+            disabled={!state.isFlask}
+            fullWidth
+          />
         )}
         {shouldDisplayReconnectButton(state.installedSnap) && (
           <Card
             content={{
-              title: 'Reconnect',
+              title: 'Reconnect snap',
               description:
                 'While connected to a local running snap this button will always be displayed in order to update the snap if a change is made.',
               button: (
                 <ReconnectButton
-                  onClick={handleConnectClick}
+                  onClick={handleConnectSnapClick}
                   disabled={!state.installedSnap}
                 />
               ),
@@ -265,7 +256,11 @@ const Index = () => {
         />
         <Notice>
           <p>
-            Please note that the this snap is only available in MetaMask Flask, and is actively being developed by <a href='https://github.com/transeptorlabs' target="_blank">Transeptor Labs</a>
+            Please note that the this snap is only available in MetaMask Flask,
+            and is actively being developed by{' '}
+            <a href="https://github.com/transeptorlabs" target="_blank">
+              Transeptor Labs
+            </a>
           </p>
         </Notice>
       </CardContainer>

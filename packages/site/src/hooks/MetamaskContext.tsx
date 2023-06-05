@@ -13,11 +13,13 @@ export type MetamaskState = {
   isFlask: boolean;
   installedSnap?: Snap;
   error?: Error;
+  connectedAccount: string;
 };
 
 const initialState: MetamaskState = {
   isFlask: false,
   error: undefined,
+  connectedAccount: "",
 };
 
 type MetamaskDispatch = { type: MetamaskActions; payload: any };
@@ -31,10 +33,13 @@ export const MetaMaskContext = createContext<
   },
 ]);
 
+
 export enum MetamaskActions {
   SetInstalled = 'SetInstalled',
   SetFlaskDetected = 'SetFlaskDetected',
   SetError = 'SetError',
+  SetAccount = 'SetAccount',
+  SetConnectedAccount = "SetConnectedAccount"
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -55,6 +60,12 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
       return {
         ...state,
         error: action.payload,
+      };
+
+    case MetamaskActions.SetConnectedAccount:
+      return {
+        ...state,
+        connectedAccount: action.payload,
       };
 
     default:

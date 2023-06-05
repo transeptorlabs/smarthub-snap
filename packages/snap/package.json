@@ -7,12 +7,12 @@
     "type": "git",
     "url": "https://github.com/transeptorlabs/erc-4337-snap.git"
   },
+  "license": "(MIT-0 OR Apache-2.0)",
   "author": {
     "name": "Transeptor Labs",
     "email": "bowmanidris95@gmail.com",
     "url": "https://transeptorlabs.io"
   },
-  "license": "(MIT-0 OR Apache-2.0)",
   "main": "src/index.ts",
   "files": [
     "dist/",
@@ -31,9 +31,12 @@
     "start": "mm-snap watch"
   },
   "dependencies": {
+    "@account-abstraction/contracts": "^0.6.0",
+    "@account-abstraction/sdk": "^0.6.0",
     "@metamask/snaps-types": "^0.32.2",
     "@metamask/snaps-ui": "^0.32.2",
-    "buffer": "^6.0.3"
+    "buffer": "^6.0.3",
+    "ethers": "^5.7.0"
   },
   "devDependencies": {
     "@lavamoat/allow-scripts": "^2.0.3",

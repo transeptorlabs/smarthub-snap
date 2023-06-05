@@ -1,5 +1,8 @@
+// ethers example snap: https://github.com/MetaMask/snaps/tree/main/packages/examples/examples/ethers-js
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
-import { panel, text } from '@metamask/snaps-ui';
+import { heading, panel, text } from '@metamask/snaps-ui';
+import { getAccountOwner, signMessage } from './wallet';
+import { getChainId } from './handlers';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -11,15 +14,27 @@ import { panel, text } from '@metamask/snaps-ui';
  * @returns The result of `snap_dialog`.
  * @throws If the request method is not valid for this snap.
  */
-export const onRpcRequest: OnRpcRequestHandler = ({ origin, request }) => {
+export const onRpcRequest: OnRpcRequestHandler = async ({
+  origin,
+  request,
+}) => {
   switch (request.method) {
+    case 'sc_account_owner':
+      return await getAccountOwner();
     case 'hello':
       return snap.request({
         method: 'snap_dialog',
         params: {
           type: 'confirmation',
           content: panel([
-            text(`Hello, **${origin}**!`),
+            heading('Do you want to send this User Operation'),
+            text(
+              `Hello, **${origin}**!: chainIdHex:${
+                (await getChainId()).chainIdHex
+              }, account:${await getAccountOwner()}, signature:${await signMessage(
+                'hello world',
+              )}`,
+            ),
             text('This custom confirmation is just for display purposes.'),
             text(
               'But you can edit the snap source code to make it do something, if you want to!',

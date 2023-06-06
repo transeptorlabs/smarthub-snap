@@ -2,7 +2,7 @@
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { heading, panel, text } from '@metamask/snaps-ui';
 import { getAccountOwner, signMessage } from './wallet';
-import { getChainId } from './handlers';
+import { HttpRpcClient } from './client';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -18,9 +18,38 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   origin,
   request,
 }) => {
+  const chainId = await ethereum.request({ method: 'eth_chainId' });
+  const rpcClient = new HttpRpcClient({chainId: parseInt(chainId as string, 16)})
+
   switch (request.method) {
     case 'sc_account_owner':
       return await getAccountOwner();
+    case 'eth_chainId':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_supportedEntryPoints':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_sendUserOperation':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_estimateUserOperationGas':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_getUserOperationReceipt':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_getUserOperationByHash':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'web3_clientVersion':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_clearState':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_dumpMempool':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_sendBundleNow':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_setBundlingMode':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_setReputation':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_dumpReputation':
+      return await rpcClient.send(request.method, request.params as any[]);
     case 'hello':
       return snap.request({
         method: 'snap_dialog',
@@ -29,9 +58,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           content: panel([
             heading('Do you want to send this User Operation'),
             text(
-              `Hello, **${origin}**!: chainIdHex:${
-                (await getChainId()).chainIdHex
-              }, account:${await getAccountOwner()}, signature:${await signMessage(
+              `Hello, **${origin}**!: chainIdHex:${chainId as string}, account:${await getAccountOwner()}, signature:${await signMessage(
                 'hello world',
               )}`,
             ),

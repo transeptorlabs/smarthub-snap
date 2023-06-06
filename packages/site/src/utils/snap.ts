@@ -50,10 +50,11 @@ export const getSnap = async (version?: string): Promise<Snap | undefined> => {
   }
 };
 
+export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
+
 /**
  * Invoke the "hello" method from the example snap.
  */
-
 export const sendHello = async () => {
   await window.ethereum.request({
     method: 'wallet_invokeSnap',
@@ -61,4 +62,93 @@ export const sendHello = async () => {
   });
 };
 
-export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
+export const sendScAccountOwner = async (): Promise<string> => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'sc_account_owner' } },
+  }) as string;
+};
+
+export const sendSupportedEntryPoints = async (): Promise<string[]> => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'eth_supportedEntryPoints', params: [] } },
+  }) as string[];
+};
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };
+
+// export const sendHello = async () => {
+//   await window.ethereum.request({
+//     method: 'wallet_invokeSnap',
+//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+//   });
+// };

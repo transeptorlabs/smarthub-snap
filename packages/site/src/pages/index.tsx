@@ -5,6 +5,8 @@ import {
   connectSnap,
   getSnap,
   sendHello,
+  sendScAccountOwner,
+  sendSupportedEntryPoints,
   shouldDisplayReconnectButton,
 } from '../utils';
 import {
@@ -120,15 +122,22 @@ const Index = () => {
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
+      
+      const account = await sendScAccountOwner();
+
+      dispatch({
+        type: MetamaskActions.SetConnectedAccount,
+        payload: account,
+      });
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
 
-  const handleSendHelloClick = async () => {
+  const handleSendSupportedEntryPointsClick = async () => {
     try {
-      await sendHello();
+      console.log(await sendSupportedEntryPoints());
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -235,25 +244,43 @@ const Index = () => {
             disabled={!state.installedSnap}
           />
         )}
-        <Card
-          content={{
-            title: 'Send Hello message',
-            description:
-              'Display a custom message within a confirmation screen in MetaMask.',
-            button: (
-              <SendHelloButton
-                onClick={handleSendHelloClick}
-                disabled={!state.installedSnap}
-              />
-            ),
-          }}
-          disabled={!state.installedSnap}
-          fullWidth={
-            state.isFlask &&
-            Boolean(state.installedSnap) &&
-            !shouldDisplayReconnectButton(state.installedSnap)
-          }
-        />
+      </CardContainer>
+
+      <LineBreak></LineBreak>
+      <Subtitle>Smart contract account</Subtitle>
+      <CardContainer>
+        {state.connectedAccount && state.installedSnap && (
+          <Card
+            content={{
+              title: 'ERC-4337 Owner Account',
+              description: `${state.connectedAccount}`,
+            }}
+            disabled={!state.isFlask}
+            fullWidth
+          />
+        )}
+          
+        {state.connectedAccount && state.installedSnap && (
+          <Card
+            content={{
+              title: 'Supported Entry Point Contracts',
+              description:
+                '',
+              button: (
+                <SendHelloButton
+                  onClick={handleSendSupportedEntryPointsClick}
+                  disabled={!state.installedSnap}
+                />
+              ),
+            }}
+            disabled={!state.installedSnap}
+            fullWidth={
+              state.isFlask &&
+              Boolean(state.installedSnap) &&
+              !shouldDisplayReconnectButton(state.installedSnap)
+            }
+          />
+        )}
         <Notice>
           <p>
             Please note that the this snap is only available in MetaMask Flask,
@@ -264,6 +291,8 @@ const Index = () => {
           </p>
         </Notice>
       </CardContainer>
+
+
     </Container>
   );
 };

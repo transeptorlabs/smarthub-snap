@@ -34,7 +34,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-is": "^18.2.0",
-    "styled-components": "5.3.3"
+    "styled-components": "5.3.3",
+    "ethers": "^5.7.0"
   },
   "devDependencies": {
     "@metamask/eslint-config": "^10.0.0",

@@ -22,6 +22,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   const rpcClient = new HttpRpcClient({chainId: parseInt(chainId as string, 16)})
 
   switch (request.method) {
+    case 'sc_account':
+      return ''
     case 'sc_account_owner':
       return await getAccountOwner();
     case 'eth_chainId':
@@ -51,7 +53,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     case 'debug_bundler_dumpReputation':
       return await rpcClient.send(request.method, request.params as any[]);
     case 'hello':
-      return snap.request({
+      const result = await snap.request({
         method: 'snap_dialog',
         params: {
           type: 'confirmation',
@@ -69,6 +71,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           ]),
         },
       });
+      return result
     default:
       throw new Error('Method not found.');
   }

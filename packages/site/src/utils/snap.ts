@@ -1,5 +1,6 @@
 import { defaultSnapOrigin } from '../config';
 import { GetSnapsResponse, Snap } from '../types';
+import { ReputationEntry, UserOperation } from '../types/erc-4337';
 
 /**
  * Get the installed snaps in MetaMask.
@@ -56,7 +57,7 @@ export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
  * Invoke the "hello" method from the example snap.
  */
 export const sendHello = async () => {
-  await window.ethereum.request({
+  return await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
   });
@@ -69,86 +70,86 @@ export const sendScAccountOwner = async (): Promise<string> => {
   }) as string;
 };
 
+export const sendScAccount = async (): Promise<string> => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'sc_account' } },
+  }) as string;
+};
+
 export const sendSupportedEntryPoints = async (): Promise<string[]> => {
   return await window.ethereum.request({
     method: 'wallet_invokeSnap',
-    params: { snapId: defaultSnapOrigin, request: { method: 'eth_supportedEntryPoints', params: [] } },
+    params: { snapId: defaultSnapOrigin, request: { method: 'eth_supportedEntryPoints' } },
   }) as string[];
 };
 
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
+export const sendUserOperation = async (userOp: UserOperation, supportedEntryPoints: string) => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'eth_sendUserOperation', params: [userOp, supportedEntryPoints]} },
+  });
+};
 
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
+export const sendEstimateUserOperationGas = async () => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'eth_estimateUserOperationGas' } },
+  });
+};
 
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
+export const sendGetUserOperationReceipt = async (userOpHash: string) => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'eth_getUserOperationReceipt', params: [userOpHash] } },
+  });
+};
 
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
+export const sendClientVersion = async () => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'web3_clientVersion' } },
+  });
+};
 
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
+export const sendDebugBundlerClearState = async () => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'debug_bundler_clearState' } },
+  });
+};
 
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
+export const sendDebugBundlerDumpMempool = async () => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'debug_bundler_dumpMempool' } },
+  });
+};
 
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
+export const sendDebugBundlerSendBundleNow = async () => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'debug_bundler_sendBundleNow' } },
+  });
+};
 
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
+export const sendDebugBundlerSetBundlingMode = async (mode: 'auto' | 'manual') => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'debug_bundler_setBundlingMode', params: [mode] } },
+  });
+};
 
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
+export const sednDebugBundlerSetReputation = async (reputations: ReputationEntry[], supportedEntryPoints: string) => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'debug_bundler_setReputation', params: [reputations, supportedEntryPoints ] } },
+  });
+};
 
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
-
-// export const sendHello = async () => {
-//   await window.ethereum.request({
-//     method: 'wallet_invokeSnap',
-//     params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-//   });
-// };
+export const sendDebugBundlerDumpReputation = async () => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'debug_bundler_dumpReputation' } },
+  });
+};

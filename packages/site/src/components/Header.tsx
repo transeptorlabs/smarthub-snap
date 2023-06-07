@@ -5,6 +5,7 @@ import { connectSnap, getThemePreference, getSnap, sendScAccountOwner } from '..
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
+import { trimAccount } from '../utils/eth';
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -111,7 +112,6 @@ export const Header = ({
           />
         </LogoWrapper>
         <LogoWrapper>
-          <p>{state.connectedAccount}</p>
           <HeaderButtons state={state} onConnectClick={handleConnectClick} />
         </LogoWrapper>
       </RightContainer>

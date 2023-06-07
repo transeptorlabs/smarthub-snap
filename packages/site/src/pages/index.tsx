@@ -5,6 +5,7 @@ import {
   connectSnap,
   getSnap,
   sendHello,
+  sendScAccount,
   sendScAccountOwner,
   sendSupportedEntryPoints,
   shouldDisplayReconnectButton,
@@ -13,7 +14,6 @@ import {
   ConnectSnapButton,
   InstallFlaskButton,
   ReconnectButton,
-  SendHelloButton,
   Card,
 } from '../components';
 
@@ -123,11 +123,17 @@ const Index = () => {
         payload: installedSnap,
       });
       
-      const account = await sendScAccountOwner();
+      const scAccountOwner = await sendScAccountOwner();
+      const scAccount = await sendScAccount();
 
       dispatch({
-        type: MetamaskActions.SetConnectedAccount,
-        payload: account,
+        type: MetamaskActions.SetScAccountOwner,
+        payload: scAccountOwner,
+      });
+
+      dispatch({
+        type: MetamaskActions.SetScAccount,
+        payload: scAccount,
       });
     } catch (e) {
       console.error(e);
@@ -137,7 +143,8 @@ const Index = () => {
 
   const handleSendSupportedEntryPointsClick = async () => {
     try {
-      console.log(await sendSupportedEntryPoints());
+      console.log(await sendHello());
+
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -242,6 +249,7 @@ const Index = () => {
               ),
             }}
             disabled={!state.installedSnap}
+            fullWidth
           />
         )}
       </CardContainer>
@@ -249,18 +257,29 @@ const Index = () => {
       <LineBreak></LineBreak>
       <Subtitle>Smart contract account</Subtitle>
       <CardContainer>
-        {state.connectedAccount && state.installedSnap && (
+        {state.scAccountOwner && state.installedSnap && (
           <Card
             content={{
               title: 'ERC-4337 Owner Account',
-              description: `${state.connectedAccount}`,
+              description: `${state.scAccountOwner}`,
+            }}
+            disabled={!state.isFlask}
+            fullWidth
+          />
+        )}
+
+        {state.scAccountOwner && state.installedSnap && (
+          <Card
+            content={{
+              title: 'ERC-4337 Smart Contract Account',
+              description: `${state.scAccount}`,
             }}
             disabled={!state.isFlask}
             fullWidth
           />
         )}
           
-        {state.connectedAccount && state.installedSnap && (
+        {/* {state.scAccountOwner && state.installedSnap && (
           <Card
             content={{
               title: 'Supported Entry Point Contracts',
@@ -280,7 +299,7 @@ const Index = () => {
               !shouldDisplayReconnectButton(state.installedSnap)
             }
           />
-        )}
+        )} */}
         <Notice>
           <p>
             Please note that the this snap is only available in MetaMask Flask,

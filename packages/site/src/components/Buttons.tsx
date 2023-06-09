@@ -61,6 +61,7 @@ const ConnectedContainer = styled.div`
   padding: 1.2rem;
 `;
 
+
 const ConnectedIndicator = styled.div`
   content: ' ';
   width: 10px;
@@ -80,7 +81,7 @@ export const ConnectSnapButton = (props: ComponentProps<typeof Button>) => {
   return (
     <Button {...props}>
       <FlaskFox />
-      <ButtonText>Install ERC-4337 Relayer</ButtonText>
+      <ButtonText>Connect</ButtonText>
     </Button>
   );
 };
@@ -122,5 +123,6 @@ export const HeaderButtons = ({
       <ConnectedIndicator />
       <ButtonText>Connected</ButtonText>
     </ConnectedContainer>
+
   );
 };

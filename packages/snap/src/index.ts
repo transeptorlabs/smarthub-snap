@@ -1,8 +1,8 @@
 // ethers example snap: https://github.com/MetaMask/snaps/tree/main/packages/examples/examples/ethers-js
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { heading, panel, text } from '@metamask/snaps-ui';
-import { getAccountOwner, signMessage } from './wallet';
-import { getChainId } from './handlers';
+import { getAbstractAccount, getAccountOwner, signMessage } from './wallet';
+import { HttpRpcClient } from './client';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -18,11 +18,47 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   origin,
   request,
 }) => {
+  const chainId = await ethereum.request({ method: 'eth_chainId' });
+  const rpcClient = new HttpRpcClient(parseInt(chainId as string, 16));
+  let result;
   switch (request.method) {
+    case 'sc_account':
+      return (
+        await getAbstractAccount(
+          rpcClient.getEntryPointAddr(),
+          rpcClient.getAccountFactoryAddr(),
+        )
+      ).getCounterFactualAddress();
     case 'sc_account_owner':
       return await getAccountOwner();
+    case 'eth_chainId':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_supportedEntryPoints':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_sendUserOperation':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_estimateUserOperationGas':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_getUserOperationReceipt':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_getUserOperationByHash':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'web3_clientVersion':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_clearState':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_dumpMempool':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_sendBundleNow':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_setBundlingMode':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_setReputation':
+      return await rpcClient.send(request.method, request.params as any[]);
+    case 'debug_bundler_dumpReputation':
+      return await rpcClient.send(request.method, request.params as any[]);
     case 'hello':
-      return snap.request({
+      result = await snap.request({
         method: 'snap_dialog',
         params: {
           type: 'confirmation',
@@ -30,18 +66,18 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
             heading('Do you want to send this User Operation'),
             text(
               `Hello, **${origin}**!: chainIdHex:${
-                (await getChainId()).chainIdHex
+                chainId as string
               }, account:${await getAccountOwner()}, signature:${await signMessage(
                 'hello world',
               )}`,
             ),
-            text('This custom confirmation is just for display purposes.'),
             text(
               'But you can edit the snap source code to make it do something, if you want to!',
             ),
           ]),
         },
       });
+      return result;
     default:
       throw new Error('Method not found.');
   }

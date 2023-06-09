@@ -1,4 +1,5 @@
 import { Wallet, ethers } from 'ethers';
+import { SimpleAccountAPI } from '@account-abstraction/sdk';
 
 const getWallet = async (): Promise<Wallet> => {
   const privKey = await snap.request({
@@ -21,4 +22,18 @@ export const signMessage = async (
 ): Promise<string> => {
   const ethWallet = await getWallet();
   return await ethWallet.signMessage(message);
+};
+
+export const getAbstractAccount = async (
+  entryPointAddress: string,
+  factoryAddress: string,
+): Promise<SimpleAccountAPI> => {
+  const provider = new ethers.providers.Web3Provider(ethereum as any);
+  const aa = new SimpleAccountAPI({
+    provider,
+    entryPointAddress,
+    owner: await getWallet(),
+    factoryAddress,
+  });
+  return aa;
 };

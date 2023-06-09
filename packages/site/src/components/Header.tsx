@@ -1,11 +1,11 @@
 import { useContext } from 'react';
 import styled, { useTheme } from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
-import { connectSnap, getThemePreference, getSnap } from '../utils';
+import { connectSnap, getThemePreference, getSnap, sendScAccountOwner } from '../utils';
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
-import { connectWallet } from '../utils/eth';
+import { trimAccount } from '../utils/eth';
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -72,7 +72,6 @@ export const Header = ({
 
   const handleConnectClick = async () => {
     try {
-      // const account = await connectWallet();
       await connectSnap();
       const installedSnap = await getSnap();
 
@@ -81,10 +80,12 @@ export const Header = ({
         payload: installedSnap,
       });
 
-      // dispatch({
-      //   type: MetamaskActions.SetConnectedAccount,
-      //   payload: account,
-      // });
+      const account = await sendScAccountOwner();
+
+      dispatch({
+        type: MetamaskActions.SetConnectedAccount,
+        payload: account,
+      });
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -111,7 +112,6 @@ export const Header = ({
           />
         </LogoWrapper>
         <LogoWrapper>
-          {/* <p>{state.connectedAccount}</p> */}
           <HeaderButtons state={state} onConnectClick={handleConnectClick} />
         </LogoWrapper>
       </RightContainer>

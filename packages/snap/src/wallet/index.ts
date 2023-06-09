@@ -1,1 +1,1 @@
-export { getAccountOwner, signMessage } from './wallet';
+export { getAccountOwner, signMessage, getAbstractAccount } from './wallet';

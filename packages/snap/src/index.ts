@@ -1,7 +1,7 @@
 // ethers example snap: https://github.com/MetaMask/snaps/tree/main/packages/examples/examples/ethers-js
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { heading, panel, text } from '@metamask/snaps-ui';
-import { getAccountOwner, signMessage } from './wallet';
+import { getAbstractAccount, getAccountOwner, signMessage } from './wallet';
 import { HttpRpcClient } from './client';
 
 /**
@@ -19,11 +19,11 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   request,
 }) => {
   const chainId = await ethereum.request({ method: 'eth_chainId' });
-  const rpcClient = new HttpRpcClient({chainId: parseInt(chainId as string, 16)})
+  const rpcClient = new HttpRpcClient(parseInt(chainId as string, 16));
 
   switch (request.method) {
     case 'sc_account':
-      return ''
+      return (await getAbstractAccount(rpcClient.getEntryPointAddr(), rpcClient.getAccountFactoryAddr())).getCounterFactualAddress();
     case 'sc_account_owner':
       return await getAccountOwner();
     case 'eth_chainId':
@@ -64,7 +64,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
                 'hello world',
               )}`,
             ),
-            text('This custom confirmation is just for display purposes.'),
             text(
               'But you can edit the snap source code to make it do something, if you want to!',
             ),

@@ -16,6 +16,7 @@ import {
   ReconnectButton,
   Card,
 } from '../components';
+import { trimAccount } from '../utils/eth';
 
 const Container = styled.div`
   display: flex;
@@ -125,6 +126,7 @@ const Index = () => {
       
       const scAccountOwner = await sendScAccountOwner();
       const scAccount = await sendScAccount();
+      console.log(scAccount);
 
       dispatch({
         type: MetamaskActions.SetScAccountOwner,
@@ -260,22 +262,22 @@ const Index = () => {
         {state.scAccountOwner && state.installedSnap && (
           <Card
             content={{
-              title: 'ERC-4337 Owner Account',
-              description: `${state.scAccountOwner}`,
+              title: 'Sender Account',
+              description: `${trimAccount(state.scAccountOwner)}`,
             }}
             disabled={!state.isFlask}
-            fullWidth
+            
           />
         )}
 
         {state.scAccountOwner && state.installedSnap && (
           <Card
             content={{
-              title: 'ERC-4337 Smart Contract Account',
-              description: `${state.scAccount}`,
+              title: 'Smart Contract Account',
+              description: `${trimAccount(state.scAccount)}`,
             }}
             disabled={!state.isFlask}
-            fullWidth
+            
           />
         )}
           

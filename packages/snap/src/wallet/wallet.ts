@@ -24,14 +24,16 @@ export const signMessage = async (
   return await ethWallet.signMessage(message);
 };
 
-export const getAbstractAccount = async (entryPointAddress: string, factoryAddress: string): Promise<SimpleAccountAPI> => {
+export const getAbstractAccount = async (
+  entryPointAddress: string,
+  factoryAddress: string,
+): Promise<SimpleAccountAPI> => {
   const provider = new ethers.providers.Web3Provider(ethereum as any);
   const aa = new SimpleAccountAPI({
     provider,
     entryPointAddress,
     owner: await getWallet(),
-    factoryAddress
+    factoryAddress,
   });
   return aa;
 };
-

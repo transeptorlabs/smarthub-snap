@@ -20,10 +20,15 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 }) => {
   const chainId = await ethereum.request({ method: 'eth_chainId' });
   const rpcClient = new HttpRpcClient(parseInt(chainId as string, 16));
-
+  let result;
   switch (request.method) {
     case 'sc_account':
-      return (await getAbstractAccount(rpcClient.getEntryPointAddr(), rpcClient.getAccountFactoryAddr())).getCounterFactualAddress();
+      return (
+        await getAbstractAccount(
+          rpcClient.getEntryPointAddr(),
+          rpcClient.getAccountFactoryAddr(),
+        )
+      ).getCounterFactualAddress();
     case 'sc_account_owner':
       return await getAccountOwner();
     case 'eth_chainId':
@@ -53,14 +58,16 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     case 'debug_bundler_dumpReputation':
       return await rpcClient.send(request.method, request.params as any[]);
     case 'hello':
-      const result = await snap.request({
+      result = await snap.request({
         method: 'snap_dialog',
         params: {
           type: 'confirmation',
           content: panel([
             heading('Do you want to send this User Operation'),
             text(
-              `Hello, **${origin}**!: chainIdHex:${chainId as string}, account:${await getAccountOwner()}, signature:${await signMessage(
+              `Hello, **${origin}**!: chainIdHex:${
+                chainId as string
+              }, account:${await getAccountOwner()}, signature:${await signMessage(
                 'hello world',
               )}`,
             ),
@@ -70,7 +77,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           ]),
         },
       });
-      return result
+      return result;
     default:
       throw new Error('Method not found.');
   }

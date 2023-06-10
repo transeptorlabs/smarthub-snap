@@ -13,12 +13,26 @@ export const connectWallet = async (): Promise<string> => {
   return accounts as string[][0];
 };
 
-export const trimAccount = (account: string): string | null => {
+export const trimAccount = (account: string): string => {
   if (!account) {
-    return null;
+    return '';
   }
   const trimmedAddress = `${account.substring(0, 6)}.......${account.substring(
     account.length - 4,
   )}`;
   return trimmedAddress;
 };
+
+
+export const trimAccounts = (accounts: string[]): string[] => {
+  if (!accounts) {
+    return [];
+  }
+
+  const trimmedAccounts = accounts.map((account: string) => {
+    return trimAccount(account);
+  })
+  
+  return trimmedAccounts;
+}
+

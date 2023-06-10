@@ -37,4 +37,5 @@ export type SmartContractAccount = {
   balance: string;
   nonce: string;
   index: string;
+  entryPoint: string;
 };

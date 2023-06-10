@@ -9,6 +9,7 @@ import {
 import { Snap } from '../types';
 import { isFlask, getSnap } from '../utils';
 import { Account, SmartContractAccount } from '../types/erc-4337';
+import { trimAccount } from '../utils/eth';
 
 export type MetamaskState = {
   isFlask: boolean;
@@ -16,7 +17,6 @@ export type MetamaskState = {
   error?: Error;
   scAccountOwner: Account;
   scAccount: SmartContractAccount;
-  supportedEntryPoints: string[]
 };
 
 const initialState: MetamaskState = {
@@ -31,9 +31,9 @@ const initialState: MetamaskState = {
     address: '',
     balance: '',
     nonce: '',
-    initCode: '',
+    index: '',
+    entryPoint: '',
   },
-  supportedEntryPoints: []
 };
 
 type MetamaskDispatch = { type: MetamaskActions; payload: any };
@@ -90,12 +90,6 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         scAccount: action.payload,
       };
 
-    case MetamaskActions.SetSupportedEntryPoints:
-      return {
-        ...state,
-        supportedEntryPoints: action.payload,
-      };
-    
     default:
       return state;
   }

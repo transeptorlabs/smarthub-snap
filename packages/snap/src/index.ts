@@ -77,6 +77,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           balance: await getBalance(address),
           nonce: await scAccount.getNonce(),
           index: scAccount.index,
+          entryPoint: rpcClient.getEntryPointAddr(),
         }
       )
     case 'sc_account_owner':

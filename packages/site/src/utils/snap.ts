@@ -92,6 +92,7 @@ export const sendScAccount = async (): Promise<SmartContractAccount> => {
   return {
     address: parsedResult.address,
     balance: BigNumber.from(parsedResult.balance).toString(),
+    entryPoint: parsedResult.entryPoint,
     nonce: BigNumber.from(parsedResult.nonce).toString(),
     index: BigNumber.from(parsedResult.index).toString(),
   } as SmartContractAccount;

@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
@@ -16,10 +16,10 @@ import {
   InstallFlaskButton,
   ReconnectButton,
   Card,
-  ERC4337Button,
 } from '../components';
-import { trimAccount } from '../utils/eth';
+import { trimAccounts } from '../utils/eth';
 import { BigNumber } from 'ethers';
+import { TokenInputForm } from '../components/Form';
 
 const Container = styled.div`
   display: flex;
@@ -116,6 +116,8 @@ const LineBreak = styled.hr`
 
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [withDrawAddr, setWithDrawAddr] = useState('');
 
   const handleConnectSnapClick = async () => {
     try {
@@ -156,13 +158,38 @@ const Index = () => {
     }
   };
 
-  const handleDepositClick = async () => {
-    await sendDepoist(BigNumber.from(1),state.scAccount.address) 
-  };
+  const handleDepositSubmit = async (e: any) => {
+    e.preventDefault();
 
-  const handleWithdrawClick = async () => {
-    console.log('withdraw clicked')
-  };
+    if (BigNumber.from(state.scAccountOwner.balance).lt(BigNumber.from(depositAmount))) {
+      dispatch({ type: MetamaskActions.SetError, payload: new Error('Owner accout has, insufficient funds') });
+      return;
+    }
+
+    console.log('handleDepositSubmit:', depositAmount)
+  }
+
+  const handleDepositInputChange = async (e: any) => {
+    // Regular expression to match only numbers
+    const inputValue = e.target.value;
+    const numberRegex = /^\d*\.?\d*$/;
+    if (inputValue === '' || numberRegex.test(inputValue)) {
+      setDepositAmount(e.target.value);
+    }
+  }
+
+  const handleWithdrawSubmit = async (e: any) => {
+    e.preventDefault();
+    console.log('handleWithdrawSubmit:', withDrawAddr)
+  }
+
+  const handleWihdrawInputChange = async (e: any) => {
+    const inputValue = e.target.value;
+    const numberRegex = /^\d*\.?\d*$/;
+    if (inputValue === '' || numberRegex.test(inputValue)) {
+      setWithDrawAddr(e.target.value);
+    }
+  }
 
   return (
     <Container>
@@ -201,11 +228,6 @@ const Index = () => {
       <Subtitle>Install</Subtitle>
 
       <CardContainer>
-        {state.error && (
-          <ErrorMessage>
-            <b>An error happened:</b> {state.error.message}
-          </ErrorMessage>
-        )}
         {!state.isFlask && (
           <Card
             content={{
@@ -270,16 +292,22 @@ const Index = () => {
 
       <LineBreak></LineBreak>
       <Subtitle>ERC-4337</Subtitle>
+      {state.error && (
+          <ErrorMessage>
+            <b>An error happened:</b> {state.error.message}
+          </ErrorMessage>
+        )}
       <CardContainer>
         {state.scAccountOwner.address && state.installedSnap && (
           <Card
             content={{
-              title: 'Connection info',
-              description: `Supported Entry Points`,
-              listItems: state.supportedEntryPoints,
+              title: 'Entry Point',
+              description: state.scAccount.entryPoint,
             }}
             disabled={!state.isFlask}
+            copyDescription
             fullWidth
+            isAccount
           />
         )}
 
@@ -287,28 +315,35 @@ const Index = () => {
           <Card
             content={{
               title: 'Owner Account',
-              description: `${trimAccount(state.scAccountOwner.address)}`,
+              description: `${state.scAccountOwner.address}`,
               listItems: [
                 `Balance: ${state.scAccountOwner.balance.toString()} ETH`,
               ],
-              button: (
-                <div>
-                  <ERC4337Button
-                    onClick={handleDepositClick}
-                    disabled={!state.isFlask}
-                    text="Deposit"
-                  />
-
-                  <ERC4337Button
-                    onClick={handleWithdrawClick}
-                    disabled={!state.isFlask}
-                    text="Withdraw"
-
-                  />
-                </div>
-              ),
+              form: [
+                <TokenInputForm
+                  key={"deposit"}
+                  state={state}
+                  onDepositSubmit={handleDepositSubmit}
+                  onInputChange={handleDepositInputChange}
+                  inputValue={depositAmount}
+                  buttonText="Add Deposit"
+                  inputPlaceholder="Enter amount"
+                />,
+                <TokenInputForm
+                  key={"withdraw"}
+                  state={state}
+                  onDepositSubmit={handleWithdrawSubmit}
+                  onInputChange={handleWihdrawInputChange}
+                  inputValue={withDrawAddr}
+                  buttonText="Withdraw Deposit"
+                  inputPlaceholder="Enter address"
+              />
+              ],
             }}
             disabled={!state.isFlask}
+            copyDescription
+            isAccount
+            fullWidth
           />
         )}
 
@@ -316,7 +351,7 @@ const Index = () => {
           <Card
             content={{
               title: 'Smart Contract Account',
-              description: `${trimAccount(state.scAccount.address)}`,
+              description: `${state.scAccount.address}`,
               listItems: [
                 `Balance: ${state.scAccount.balance.toString()} ETH`,
                 `Nonce: ${state.scAccount.nonce}`,
@@ -325,31 +360,11 @@ const Index = () => {
               ],
             }}
             disabled={!state.isFlask}
-            
+            copyDescription
+            isAccount
+            fullWidth
           />
         )}
-          
-        {/* {state.scAccountOwner && state.installedSnap && (
-          <Card
-            content={{
-              title: 'Supported Entry Point Contracts',
-              description:
-                '',
-              button: (
-                <SendHelloButton
-                  onClick={handleSendSupportedEntryPointsClick}
-                  disabled={!state.installedSnap}
-                />
-              ),
-            }}
-            disabled={!state.installedSnap}
-            fullWidth={
-              state.isFlask &&
-              Boolean(state.installedSnap) &&
-              !shouldDisplayReconnectButton(state.installedSnap)
-            }
-          />
-        )} */}
         <Notice>
           <p>
             Please note that the this snap is only available in MetaMask Flask,

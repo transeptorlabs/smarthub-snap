@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import styled, { useTheme } from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
-import { connectSnap, getThemePreference, getSnap, sendScAccountOwner } from '../utils';
+import { connectSnap, getThemePreference, getSnap, sendScAccountOwner, sendScAccount, sendSupportedEntryPoints } from '../utils';
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
@@ -79,12 +79,25 @@ export const Header = ({
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
-
-      const account = await sendScAccountOwner();
+      
+      // get erc4337 account details
+      const scAccountOwner = await sendScAccountOwner();
+      const scAccount = await sendScAccount();
+      const supportedEntryPoints = await sendSupportedEntryPoints();
 
       dispatch({
-        type: MetamaskActions.SetConnectedAccount,
-        payload: account,
+        type: MetamaskActions.SetScAccountOwner,
+        payload: scAccountOwner,
+      });
+
+      dispatch({
+        type: MetamaskActions.SetScAccount,
+        payload: scAccount,
+      });
+
+      dispatch({
+        type: MetamaskActions.SetSupportedEntryPoints,
+        payload: supportedEntryPoints,
       });
     } catch (e) {
       console.error(e);

@@ -43,18 +43,19 @@ const Button = styled.button`
   }
 `;
 
-const Button4337 = styled.button`
+const FormButon = styled.button`
   display: flex;
   align-self: flex-start;
   align-items: center;
   justify-content: center;
   margin-top: auto;
-  width: 50%;
-  margin-top: 1rem;
+  width: 150px;
   ${({ theme }) => theme.mediaQueries.small} {
     width: 100%;
   }
 `;
+
+
 
 const ButtonText = styled.span`
   margin-left: 1rem;
@@ -73,7 +74,6 @@ const ConnectedContainer = styled.div`
   font-weight: bold;
   padding: 1.2rem;
 `;
-
 
 const ConnectedIndicator = styled.div`
   content: ' ';
@@ -99,14 +99,6 @@ export const ConnectSnapButton = (props: ComponentProps<typeof Button>) => {
   );
 };
 
-export const ERC4337Button = (props: ComponentProps<typeof Button>) => {
-  return (
-    <Button4337 {...props}>
-      <ButtonText>{props.text}</ButtonText>
-    </Button4337>
-  );
-};
-
 export const ReconnectButton = (props: ComponentProps<typeof Button>) => {
   return (
     <Button {...props}>
@@ -116,8 +108,12 @@ export const ReconnectButton = (props: ComponentProps<typeof Button>) => {
   );
 };
 
-export const SendHelloButton = (props: ComponentProps<typeof Button>) => {
-  return <Button {...props}>Send message</Button>;
+export const SimpleButton = (props: ComponentProps<typeof Button>) => {
+  return (
+    <FormButon {...props}>
+      {props.text}
+    </FormButon>
+  );
 };
 
 export const HeaderButtons = ({
@@ -144,6 +140,5 @@ export const HeaderButtons = ({
       <ConnectedIndicator />
       <ButtonText>Connected</ButtonText>
     </ConnectedContainer>
-
   );
 };

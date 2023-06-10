@@ -9,6 +9,10 @@ type CardProps = {
     description: string;
     button?: ReactNode;
     listItems?: string[];
+    stats?: {
+      title: string;
+      value: string;
+    }[];
     form?: ReactNode[] ;
   };
   disabled?: boolean;
@@ -82,8 +86,31 @@ const DescriptionCopy = styled.div`
 const FormContainer = styled.div`
 `;
 
+const StatsContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const Stat = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const FlexContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  ${({ theme }) => theme.mediaQueries.small} {
+    flex-direction: column;
+  }
+`;
+
 export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount }: CardProps) => {
-  const { title, description, button, listItems, form } = content;
+  const { title, description, button, listItems, form, stats} = content;
 
   const handleCopyToClipboard = (event: any) => {
     event.preventDefault();
@@ -101,7 +128,6 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
       <DescriptionContainer>
         <Description>{isAccount ? `eth: ${description}` : description }</Description>
         <DescriptionMobile>{isAccount ? `eth: ${trimAccount(description)}` : description }</DescriptionMobile>
-        
         
         {copyDescription && (
           <DescriptionCopy onClick={handleCopyToClipboard}>
@@ -121,13 +147,27 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
       )}
       {button}
 
-      <FormContainer>
-        {form &&
-          form.map((item: ReactNode, ) => (
-            item
-        ))}
-      </FormContainer>
-    
+
+      <FlexContainer>
+        {stats &&
+          <StatsContainer>
+            {
+              stats.map((item: { title: string; value: string; }) => (
+                <Stat>
+                  <p key={item.title}>{item.title}</p>
+                  <p key={item.value}>{item.value}</p>
+                </Stat>
+              ))
+            }
+          </StatsContainer>
+        }
+        <FormContainer>
+          {form &&
+            form.map((item: ReactNode, ) => (
+              item
+          ))}
+        </FormContainer>
+      </FlexContainer>
     </CardWrapper>
   );
 };

@@ -1,3 +1,5 @@
+import { BigNumber, ethers } from "ethers";
+
 export const connectWallet = async (): Promise<string> => {
   const accounts = await window.ethereum
     .request({ method: 'eth_requestAccounts' })
@@ -23,7 +25,6 @@ export const trimAccount = (account: string): string => {
   return trimmedAddress;
 };
 
-
 export const trimAccounts = (accounts: string[]): string[] => {
   if (!accounts) {
     return [];
@@ -36,3 +37,11 @@ export const trimAccounts = (accounts: string[]): string[] => {
   return trimmedAccounts;
 }
 
+export const convertToEth = (amount: string): string => {
+ const ethAmount = BigNumber.from(amount).div(BigNumber.from(10).pow(18))
+ return ethAmount.toString();
+};
+
+export const isValidAddress = (address: string) => {
+  return ethers.utils.isAddress(address)
+}

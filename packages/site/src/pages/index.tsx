@@ -17,7 +17,7 @@ import {
   ReconnectButton,
   Card,
 } from '../components';
-import { trimAccounts } from '../utils/eth';
+import { convertToEth, isValidAddress, trimAccounts } from '../utils/eth';
 import { BigNumber } from 'ethers';
 import { TokenInputForm } from '../components/Form';
 
@@ -160,13 +160,14 @@ const Index = () => {
 
   const handleDepositSubmit = async (e: any) => {
     e.preventDefault();
+    const decimalPlaces = 18; // Number of decimal places in Ethereum
+    const depoistInWei = parseFloat(depositAmount) * (10 ** decimalPlaces)
 
-    if (BigNumber.from(state.scAccountOwner.balance).lt(BigNumber.from(depositAmount))) {
+    if (BigNumber.from(state.scAccountOwner.balance).lt(BigNumber.from(depoistInWei.toString()))) {
       dispatch({ type: MetamaskActions.SetError, payload: new Error('Owner accout has, insufficient funds') });
       return;
     }
-
-    console.log('handleDepositSubmit:', depositAmount)
+    console.log('handleDepositSubmit:', depoistInWei.toString());
   }
 
   const handleDepositInputChange = async (e: any) => {
@@ -180,13 +181,17 @@ const Index = () => {
 
   const handleWithdrawSubmit = async (e: any) => {
     e.preventDefault();
+    if (!isValidAddress(withDrawAddr)) {
+      dispatch({ type: MetamaskActions.SetError, payload: new Error('Invalid address') });
+      return;
+    }
     console.log('handleWithdrawSubmit:', withDrawAddr)
   }
 
   const handleWihdrawInputChange = async (e: any) => {
     const inputValue = e.target.value;
-    const numberRegex = /^\d*\.?\d*$/;
-    if (inputValue === '' || numberRegex.test(inputValue)) {
+    const charRegex = /^[A-Za-z0-9.]*$/;
+    if (inputValue === '' || charRegex.test(inputValue)) {
       setWithDrawAddr(e.target.value);
     }
   }
@@ -291,7 +296,7 @@ const Index = () => {
       </CardContainer>
 
       <LineBreak></LineBreak>
-      <Subtitle>ERC-4337</Subtitle>
+      <Subtitle>Overview</Subtitle>
       {state.error && (
           <ErrorMessage>
             <b>An error happened:</b> {state.error.message}
@@ -316,8 +321,11 @@ const Index = () => {
             content={{
               title: 'Owner Account',
               description: `${state.scAccountOwner.address}`,
-              listItems: [
-                `Balance: ${state.scAccountOwner.balance.toString()} ETH`,
+              stats: [
+                {
+                  title: 'Balance',
+                  value: `${convertToEth(state.scAccountOwner.balance)} ETH`,
+                },
               ],
               form: [
                 <TokenInputForm
@@ -352,11 +360,19 @@ const Index = () => {
             content={{
               title: 'Smart Contract Account',
               description: `${state.scAccount.address}`,
-              listItems: [
-                `Balance: ${state.scAccount.balance.toString()} ETH`,
-                `Nonce: ${state.scAccount.nonce}`,
-                `Index: ${state.scAccount.index}`,
-                // `Deposit Amount: ${state.scAccountOwner.nonce}`,
+              stats: [
+                {
+                  title: 'Index',
+                  value: state.scAccount.index,
+                },
+                {
+                  title: 'Nonce',
+                  value: state.scAccount.nonce,
+                },
+                {
+                  title: 'Balance',
+                  value: `${convertToEth(state.scAccount.balance)} ETH`,
+                },
               ],
             }}
             disabled={!state.isFlask}

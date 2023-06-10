@@ -25,11 +25,11 @@ const initialState: MetamaskState = {
   installedSnap: undefined,
   scAccountOwner: {
     address: '',
-    balance: '',
+    balance: '',  // in wei
   },
   scAccount: {
     address: '',
-    balance: '',
+    balance: '', // in wei
     nonce: '',
     index: '',
     entryPoint: '',

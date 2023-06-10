@@ -1,8 +1,8 @@
 // ethers example snap: https://github.com/MetaMask/snaps/tree/main/packages/examples/examples/ethers-js
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { heading, panel, text } from '@metamask/snaps-ui';
-import { getAbstractAccount, getAccountOwner, signMessage } from './wallet';
-import { HttpRpcClient } from './client';
+import { getAbstractAccount, getOwnerAddr } from './wallet';
+import { HttpRpcClient, getBalance } from './client';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -21,16 +21,72 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   const chainId = await ethereum.request({ method: 'eth_chainId' });
   const rpcClient = new HttpRpcClient(parseInt(chainId as string, 16));
   let result;
+  let scAccount;
+  let ownerAccount;
+  let address;
+
+  if (!request.params) {
+    request.params = []
+  }
+
   switch (request.method) {
+    case 'deposit':
+      result = await snap.request({
+        method: 'snap_dialog',
+        params: {
+          type: 'confirmation',
+          content: panel([
+            heading('Do you want to send a depoist to the entry point contract?'),
+            text(`ETH amount: ${(request.params as any[])[0]}`),
+            text(`Account to receive depoist: ${(request.params as any[])[1]}`),
+            text(`Entry point: ${rpcClient.getEntryPointAddr()}`)
+          ]),
+        },
+      });
+      return true
+    case 'hello':
+      scAccount = await getAbstractAccount(
+        rpcClient.getEntryPointAddr(),
+        rpcClient.getAccountFactoryAddr()
+      )
+      address = await scAccount.getCounterFactualAddress()
+
+      result = await snap.request({
+        method: 'snap_dialog',
+        params: {
+          type: 'confirmation',
+          content: panel([
+            heading('Do you want to send this User Operation'),
+            text(`address: ${address}`),
+            text(`balance: ${await getBalance(address)}`),
+            text(`params: ${request.params}`)
+          ]),
+        },
+      });
+      return result;
     case 'sc_account':
-      return (
-        await getAbstractAccount(
-          rpcClient.getEntryPointAddr(),
-          rpcClient.getAccountFactoryAddr(),
-        )
-      ).getCounterFactualAddress();
+      scAccount = await getAbstractAccount(
+        rpcClient.getEntryPointAddr(),
+        rpcClient.getAccountFactoryAddr()
+      )
+      address = await scAccount.getCounterFactualAddress()
+
+      return JSON.stringify(
+        {
+          address,
+          balance: await getBalance(address),
+          nonce: await scAccount.getNonce(),
+          index: scAccount.index,
+        }
+      )
     case 'sc_account_owner':
-      return await getAccountOwner();
+      address = await getOwnerAddr()
+      return JSON.stringify(
+        {
+          address,
+          balance: await getBalance(address),
+        }
+      )
     case 'eth_chainId':
       return await rpcClient.send(request.method, request.params as any[]);
     case 'eth_supportedEntryPoints':
@@ -57,27 +113,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       return await rpcClient.send(request.method, request.params as any[]);
     case 'debug_bundler_dumpReputation':
       return await rpcClient.send(request.method, request.params as any[]);
-    case 'hello':
-      result = await snap.request({
-        method: 'snap_dialog',
-        params: {
-          type: 'confirmation',
-          content: panel([
-            heading('Do you want to send this User Operation'),
-            text(
-              `Hello, **${origin}**!: chainIdHex:${
-                chainId as string
-              }, account:${await getAccountOwner()}, signature:${await signMessage(
-                'hello world',
-              )}`,
-            ),
-            text(
-              'But you can edit the snap source code to make it do something, if you want to!',
-            ),
-          ]),
-        },
-      });
-      return result;
     default:
       throw new Error('Method not found.');
   }

@@ -4,6 +4,7 @@ import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
   connectSnap,
   getSnap,
+  sendDepoist,
   sendHello,
   sendScAccount,
   sendScAccountOwner,
@@ -15,8 +16,10 @@ import {
   InstallFlaskButton,
   ReconnectButton,
   Card,
+  ERC4337Button,
 } from '../components';
 import { trimAccount } from '../utils/eth';
+import { BigNumber } from 'ethers';
 
 const Container = styled.div`
   display: flex;
@@ -124,9 +127,14 @@ const Index = () => {
         payload: installedSnap,
       });
       
+      // await sendHello()
+      // get erc4337 account details
       const scAccountOwner = await sendScAccountOwner();
       const scAccount = await sendScAccount();
-      console.log(scAccount);
+      const supportedEntryPoints = await sendSupportedEntryPoints();
+      console.log('scAccountOwner:', scAccountOwner);
+      console.log('scAccount:', scAccount);
+      console.log('supportedEntryPoints:', supportedEntryPoints);
 
       dispatch({
         type: MetamaskActions.SetScAccountOwner,
@@ -137,24 +145,28 @@ const Index = () => {
         type: MetamaskActions.SetScAccount,
         payload: scAccount,
       });
+
+      dispatch({
+        type: MetamaskActions.SetSupportedEntryPoints,
+        payload: supportedEntryPoints,
+      });
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
 
-  const handleSendSupportedEntryPointsClick = async () => {
-    try {
-      console.log(await sendHello());
+  const handleDepositClick = async () => {
+    await sendDepoist(BigNumber.from(1),state.scAccount.address) 
+  };
 
-    } catch (e) {
-      console.error(e);
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
+  const handleWithdrawClick = async () => {
+    console.log('withdraw clicked')
   };
 
   return (
     <Container>
+
       <Heading>
         Welcome to <Span>ERC-4337 Relayer</Span>
       </Heading>
@@ -257,24 +269,60 @@ const Index = () => {
       </CardContainer>
 
       <LineBreak></LineBreak>
-      <Subtitle>Smart contract account</Subtitle>
+      <Subtitle>ERC-4337</Subtitle>
       <CardContainer>
-        {state.scAccountOwner && state.installedSnap && (
+        {state.scAccountOwner.address && state.installedSnap && (
           <Card
             content={{
-              title: 'Sender Account',
-              description: `${trimAccount(state.scAccountOwner)}`,
+              title: 'Connection info',
+              description: `Supported Entry Points`,
+              listItems: state.supportedEntryPoints,
             }}
             disabled={!state.isFlask}
-            
+            fullWidth
           />
         )}
 
-        {state.scAccountOwner && state.installedSnap && (
+        {state.scAccountOwner.address && state.installedSnap && (
+          <Card
+            content={{
+              title: 'Owner Account',
+              description: `${trimAccount(state.scAccountOwner.address)}`,
+              listItems: [
+                `Balance: ${state.scAccountOwner.balance.toString()} ETH`,
+              ],
+              button: (
+                <div>
+                  <ERC4337Button
+                    onClick={handleDepositClick}
+                    disabled={!state.isFlask}
+                    text="Deposit"
+                  />
+
+                  <ERC4337Button
+                    onClick={handleWithdrawClick}
+                    disabled={!state.isFlask}
+                    text="Withdraw"
+
+                  />
+                </div>
+              ),
+            }}
+            disabled={!state.isFlask}
+          />
+        )}
+
+        {state.scAccount.address && state.installedSnap && (
           <Card
             content={{
               title: 'Smart Contract Account',
-              description: `${trimAccount(state.scAccount)}`,
+              description: `${trimAccount(state.scAccount.address)}`,
+              listItems: [
+                `Balance: ${state.scAccount.balance.toString()} ETH`,
+                `Nonce: ${state.scAccount.nonce}`,
+                `Index: ${state.scAccount.index}`,
+                // `Deposit Amount: ${state.scAccountOwner.nonce}`,
+              ],
             }}
             disabled={!state.isFlask}
             
@@ -312,7 +360,6 @@ const Index = () => {
           </p>
         </Notice>
       </CardContainer>
-
 
     </Container>
   );

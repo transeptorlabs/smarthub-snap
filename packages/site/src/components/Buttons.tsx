@@ -43,6 +43,19 @@ const Button = styled.button`
   }
 `;
 
+const Button4337 = styled.button`
+  display: flex;
+  align-self: flex-start;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  width: 50%;
+  margin-top: 1rem;
+  ${({ theme }) => theme.mediaQueries.small} {
+    width: 100%;
+  }
+`;
+
 const ButtonText = styled.span`
   margin-left: 1rem;
 `;
@@ -83,6 +96,14 @@ export const ConnectSnapButton = (props: ComponentProps<typeof Button>) => {
       <FlaskFox />
       <ButtonText>Connect</ButtonText>
     </Button>
+  );
+};
+
+export const ERC4337Button = (props: ComponentProps<typeof Button>) => {
+  return (
+    <Button4337 {...props}>
+      <ButtonText>{props.text}</ButtonText>
+    </Button4337>
   );
 };
 

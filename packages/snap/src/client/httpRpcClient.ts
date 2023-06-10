@@ -1,8 +1,7 @@
-import { BigNumber, ethers } from 'ethers';
+import { ethers } from 'ethers';
 
 export class HttpRpcClient {
   private readonly provider: ethers.providers.JsonRpcProvider;
-
   private readonly bundlerUrl: string;
 
   private readonly DEFAULT_ENTRY_POINT =
@@ -38,21 +37,5 @@ export class HttpRpcClient {
   public async send(method: string, params: any[]): Promise<any> {
     const result = await this.provider.send(method, params);
     return result;
-  }
-
-  public async getNetwork(): Promise<string> {
-    const provider = new ethers.providers.Web3Provider(ethereum as any);
-    const chainId = await provider.getNetwork();
-    return chainId.name;
-  }
-
-  public async isDeployed(addr: string): Promise<boolean> {
-    const provider = new ethers.providers.Web3Provider(ethereum as any);
-    return await provider.getCode(addr).then((code) => code !== '0x');
-  }
-
-  public async getBalance(addr: string): Promise<BigNumber> {
-    const provider = new ethers.providers.Web3Provider(ethereum as any);
-    return await provider.getBalance(addr);
   }
 }

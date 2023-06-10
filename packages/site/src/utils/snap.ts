@@ -1,6 +1,7 @@
+import { BigNumber } from 'ethers';
 import { defaultSnapOrigin } from '../config';
 import { GetSnapsResponse, Snap } from '../types';
-import { ReputationEntry, UserOperation } from '../types/erc-4337';
+import { Account, ReputationEntry, SmartContractAccount, UserOperation } from '../types/erc-4337';
 
 /**
  * Get the installed snaps in MetaMask.
@@ -63,29 +64,53 @@ export const sendHello = async () => {
   });
 };
 
-export const sendScAccountOwner = async (): Promise<string> => {
-  return (await window.ethereum.request({
+
+// ERC-4337 account management
+export const sendScAccountOwner = async (): Promise<Account> => {
+  const result = await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
       request: { method: 'sc_account_owner' },
     },
-  })) as string;
+  });
+
+  const parsedResult = JSON.parse(result as string) 
+  return {
+    address: parsedResult.address,
+    balance: BigNumber.from(parsedResult.balance).toString(),
+  } as Account;
 };
 
-export const sendScAccount = async (): Promise<string> => {
-  return (await window.ethereum.request({
+export const sendScAccount = async (): Promise<SmartContractAccount> => {
+  const result = await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: { snapId: defaultSnapOrigin, request: { method: 'sc_account' } },
-  })) as string;
+  });
+
+  const parsedResult = JSON.parse(result as string) 
+  return {
+    address: parsedResult.address,
+    balance: BigNumber.from(parsedResult.balance).toString(),
+    nonce: BigNumber.from(parsedResult.nonce).toString(),
+    index: BigNumber.from(parsedResult.index).toString(),
+  } as SmartContractAccount;
 };
 
+export const sendDepoist = async (amount: BigNumber, receiverAddr: string) => {
+  return await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: { snapId: defaultSnapOrigin, request: { method: 'deposit', params: [amount.toString(), receiverAddr] } },
+  });
+};
+
+// ERC-4337 wrappers
 export const sendSupportedEntryPoints = async (): Promise<string[]> => {
   return (await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'eth_supportedEntryPoints' },
+      request: { method: 'eth_supportedEntryPoints', params: [] },
     },
   })) as string[];
 };

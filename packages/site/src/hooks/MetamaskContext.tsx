@@ -8,21 +8,32 @@ import {
 } from 'react';
 import { Snap } from '../types';
 import { isFlask, getSnap } from '../utils';
+import { Account, SmartContractAccount } from '../types/erc-4337';
 
 export type MetamaskState = {
   isFlask: boolean;
   installedSnap?: Snap;
   error?: Error;
-  scAccountOwner: string;
-  scAccount: string;
+  scAccountOwner: Account;
+  scAccount: SmartContractAccount;
+  supportedEntryPoints: string[]
 };
 
 const initialState: MetamaskState = {
   isFlask: false,
   error: undefined,
   installedSnap: undefined,
-  scAccountOwner: "",
-  scAccount: ""
+  scAccountOwner: {
+    address: '',
+    balance: '',
+  },
+  scAccount: {
+    address: '',
+    balance: '',
+    nonce: '',
+    initCode: '',
+  },
+  supportedEntryPoints: []
 };
 
 type MetamaskDispatch = { type: MetamaskActions; payload: any };
@@ -43,7 +54,8 @@ export enum MetamaskActions {
   SetError = 'SetError',
   SetAccount = 'SetAccount',
   SetScAccountOwner = "SetScAccountOwner",
-  SetScAccount = "SetScAccount"
+  SetScAccount = "SetScAccount",
+  SetSupportedEntryPoints = 'SetSupportedEntryPoints',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -78,6 +90,12 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         scAccount: action.payload,
       };
 
+    case MetamaskActions.SetSupportedEntryPoints:
+      return {
+        ...state,
+        supportedEntryPoints: action.payload,
+      };
+    
     default:
       return state;
   }

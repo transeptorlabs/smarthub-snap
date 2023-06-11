@@ -4,10 +4,10 @@ import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
   connectSnap,
   getSnap,
-  sendDepoist,
+  depositToEntryPoint,
   sendHello,
-  sendScAccount,
-  sendScAccountOwner,
+  getScAccount,
+  getScAccountOwner,
   sendSupportedEntryPoints,
   shouldDisplayReconnectButton,
 } from '../utils';
@@ -17,7 +17,7 @@ import {
   ReconnectButton,
   Card,
 } from '../components';
-import { convertToEth, isValidAddress, trimAccounts } from '../utils/eth';
+import { convertToEth, convertToWei, isValidAddress, trimAccounts } from '../utils/eth';
 import { BigNumber } from 'ethers';
 import { TokenInputForm } from '../components/Form';
 
@@ -131,8 +131,13 @@ const Index = () => {
       
       // await sendHello()
       // get erc4337 account details
-      const scAccountOwner = await sendScAccountOwner();
-      const scAccount = await sendScAccount();
+
+      // const start = BigNumber.from('5000000000000000000');
+      // const end = BigNumber.from('3999909157959365732');
+      // console.log(start.sub(end).toString());
+
+      const scAccountOwner = await getScAccountOwner();
+      const scAccount = await getScAccount();
       const supportedEntryPoints = await sendSupportedEntryPoints();
       console.log('scAccountOwner:', scAccountOwner);
       console.log('scAccount:', scAccount);
@@ -160,14 +165,15 @@ const Index = () => {
 
   const handleDepositSubmit = async (e: any) => {
     e.preventDefault();
-    const decimalPlaces = 18; // Number of decimal places in Ethereum
-    const depoistInWei = parseFloat(depositAmount) * (10 ** decimalPlaces)
+    const depositInWei = convertToWei(depositAmount);
 
-    if (BigNumber.from(state.scAccountOwner.balance).lt(BigNumber.from(depoistInWei.toString()))) {
+    if (BigNumber.from(state.scAccountOwner.balance).lt(depositInWei)) {
       dispatch({ type: MetamaskActions.SetError, payload: new Error('Owner accout has, insufficient funds') });
       return;
     }
-    console.log('handleDepositSubmit:', depoistInWei.toString());
+    console.log('handleDepositSubmit:', depositInWei.toString());
+    const txhash = await depositToEntryPoint(depositInWei.toString(), state.scAccount.address);
+    console.log('txhash:', txhash);
   }
 
   const handleDepositInputChange = async (e: any) => {
@@ -253,7 +259,7 @@ const Index = () => {
                 'Relay user operations inside of MetaMask',
                 'Manage ERC-4337 accounts(create, sign, send, transfer funds)',
                 'Wraps all eth ERC-4337 namespace rpc methods',
-                'Manage stake an depoists with supported entrypoint contracts',
+                'Manage stake an deposit with supported entrypoint contracts',
               ],
               button: (
                 <ConnectSnapButton
@@ -372,6 +378,10 @@ const Index = () => {
                 {
                   title: 'Balance',
                   value: `${convertToEth(state.scAccount.balance)} ETH`,
+                },
+                {
+                  title: 'Deposit',
+                  value: convertToEth(state.scAccount.depoist),
                 },
               ],
             }}

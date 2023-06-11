@@ -1,2 +1,2 @@
 export { HttpRpcClient } from './httpRpcClient';
-export { getNetwork, isDeployed, getBalance } from './mm-provider';
+export { getNetwork, isDeployed, getBalance, getDeposit } from './mm-provider';

@@ -66,7 +66,7 @@ export const sendHello = async () => {
 
 
 // ERC-4337 account management
-export const sendScAccountOwner = async (): Promise<Account> => {
+export const getScAccountOwner = async (): Promise<Account> => {
   const result = await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: {
@@ -82,7 +82,7 @@ export const sendScAccountOwner = async (): Promise<Account> => {
   } as Account;
 };
 
-export const sendScAccount = async (): Promise<SmartContractAccount> => {
+export const getScAccount = async (): Promise<SmartContractAccount> => {
   const result = await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: { snapId: defaultSnapOrigin, request: { method: 'sc_account' } },
@@ -95,14 +95,16 @@ export const sendScAccount = async (): Promise<SmartContractAccount> => {
     entryPoint: parsedResult.entryPoint,
     nonce: BigNumber.from(parsedResult.nonce).toString(),
     index: BigNumber.from(parsedResult.index).toString(),
+    depoist: BigNumber.from(parsedResult.deposit).toString(),
   } as SmartContractAccount;
 };
 
-export const sendDepoist = async (amount: BigNumber, receiverAddr: string) => {
+export const depositToEntryPoint = async (amount: string, receiverAddr: string): Promise<string> => {
+  // always send amount in wei
   return await window.ethereum.request({
     method: 'wallet_invokeSnap',
-    params: { snapId: defaultSnapOrigin, request: { method: 'deposit', params: [amount.toString(), receiverAddr] } },
-  });
+    params: { snapId: defaultSnapOrigin, request: { method: 'deposit', params: [amount, receiverAddr] } },
+  }) as string;
 };
 
 // ERC-4337 wrappers

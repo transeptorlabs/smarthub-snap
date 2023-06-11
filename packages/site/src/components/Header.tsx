@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import styled, { useTheme } from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
-import { connectSnap, getThemePreference, getSnap, sendScAccountOwner, sendScAccount, sendSupportedEntryPoints } from '../utils';
+import { connectSnap, getThemePreference, getSnap, getScAccountOwner, getScAccount, sendSupportedEntryPoints } from '../utils';
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
@@ -81,8 +81,8 @@ export const Header = ({
       });
       
       // get erc4337 account details
-      const scAccountOwner = await sendScAccountOwner();
-      const scAccount = await sendScAccount();
+      const scAccountOwner = await getScAccountOwner();
+      const scAccount = await getScAccount();
       const supportedEntryPoints = await sendSupportedEntryPoints();
 
       dispatch({

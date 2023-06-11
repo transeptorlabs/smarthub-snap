@@ -38,8 +38,11 @@ export const trimAccounts = (accounts: string[]): string[] => {
 }
 
 export const convertToEth = (amount: string): string => {
- const ethAmount = BigNumber.from(amount).div(BigNumber.from(10).pow(18))
- return ethAmount.toString();
+  return ethers.utils.formatEther(amount);  
+};
+
+export const convertToWei = (amount: string): BigNumber => {
+  return ethers.utils.parseUnits(amount);
 };
 
 export const isValidAddress = (address: string) => {

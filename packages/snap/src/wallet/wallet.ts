@@ -1,22 +1,7 @@
 import { BigNumber, Wallet, ethers } from 'ethers';
 import { SimpleAccountAPI } from '@account-abstraction/sdk';
+import { EntryPoint__factory } from '@account-abstraction/contracts'
 import { getBalance } from '../client';
-
-const entryPointABI = [
-  {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "account",
-          "type": "address"
-        }
-      ],
-      "name": "depositTo",
-      "outputs": [],
-      "stateMutability": "payable",
-      "type": "function"
-    }
-];
 
 const getWallet = async (): Promise<Wallet> => {
   const privKey = await snap.request({
@@ -26,7 +11,9 @@ const getWallet = async (): Promise<Wallet> => {
       salt: 'transeptor-ecr4337-wallet',
     },
   });
-  return new Wallet(privKey);
+
+  const provider = new ethers.providers.Web3Provider(ethereum as any);
+  return new Wallet(privKey).connect(provider);
 };
 
 export const getOwnerAddr = async (): Promise<string> => {
@@ -58,21 +45,28 @@ export const getAbstractAccount = async (
   return aa;
 };
 
-export const entryPointDeposit = async (entryPoint: string, amount: string, address: string) => {
+export const depositToEntryPoint = async (entryPoint: string, depositInWei: string, address: string): Promise<string> => {
   const signer = await getWallet()
-
   const signerBalance = await getBalance(signer.address)
-  const funderBalance = await getBalance(address)
-  if (signerBalance.lt(funderBalance)) {
-    throw new Error('Insufficient balance')
+  if (signerBalance.lt(depositInWei)) {
+    throw new Error('Owner account has, insufficient balance')
   }
 
-  const contract = new ethers.Contract(entryPoint, entryPointABI, signer);
-  await signer.sendTransaction({
-    to: entryPoint,
-    value: BigNumber.from(amount),
-    data: contract.interface.encodeFunctionData('depositTo', [address])
-  }).then(async tx => await tx.wait())
+  const contract = new ethers.Contract(entryPoint, EntryPoint__factory.abi, signer);
+  const tx = await contract.functions['depositTo'](address, {value: depositInWei});
+
+  const receipt = await tx.wait()
     
-  return true;
+  return receipt.transactionHash;
+};
+
+export const estimateDepositToEntryPoint = async (entryPoint: string, depositInWei: string, address: string): Promise<BigNumber> => {
+  const signer = await getWallet()
+  const provider = new ethers.providers.Web3Provider(ethereum as any);
+ 
+  const contract = new ethers.Contract(entryPoint, EntryPoint__factory.abi, signer);
+  const estimate = await contract.estimateGas['depositTo'](address, {value: depositInWei});
+  const gasPrice = await provider.getGasPrice();
+
+  return estimate.mul(gasPrice);
 };

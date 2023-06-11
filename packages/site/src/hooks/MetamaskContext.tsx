@@ -9,7 +9,6 @@ import {
 import { Snap } from '../types';
 import { isFlask, getSnap } from '../utils';
 import { Account, SmartContractAccount } from '../types/erc-4337';
-import { trimAccount } from '../utils/eth';
 
 export type MetamaskState = {
   isFlask: boolean;
@@ -33,6 +32,7 @@ const initialState: MetamaskState = {
     nonce: '',
     index: '',
     entryPoint: '',
+    depoist: '',
   },
 };
 

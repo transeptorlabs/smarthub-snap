@@ -1,8 +1,10 @@
 // ethers example snap: https://github.com/MetaMask/snaps/tree/main/packages/examples/examples/ethers-js
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { heading, panel, text } from '@metamask/snaps-ui';
-import { getAbstractAccount, getOwnerAddr } from './wallet';
-import { HttpRpcClient, getBalance } from './client';
+import { depositToEntryPoint, estimateDepositToEntryPoint, getAbstractAccount, getOwnerAddr } from './wallet';
+import { HttpRpcClient, getBalance, getDeposit } from './client';
+import { convertToEth } from './utils';
+import { BigNumber } from 'ethers';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -22,8 +24,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   const rpcClient = new HttpRpcClient(parseInt(chainId as string, 16));
   let result;
   let scAccount;
-  let ownerAccount;
   let address;
+  let gasFee: BigNumber;
+  let totalAmount: BigNumber;
 
   if (!request.params) {
     request.params = []
@@ -31,19 +34,28 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
   switch (request.method) {
     case 'deposit':
-      result = await snap.request({
+      gasFee = await estimateDepositToEntryPoint(rpcClient.getEntryPointAddr(), (request.params as any[])[0], (request.params as any[])[1]);
+      totalAmount = gasFee.add(BigNumber.from((request.params as any[])[0]))
+      
+      if (await snap.request({
         method: 'snap_dialog',
         params: {
           type: 'confirmation',
           content: panel([
             heading('Do you want to send a depoist to the entry point contract?'),
-            text(`ETH amount: ${(request.params as any[])[0]}`),
+            text(`Amount: ${convertToEth((request.params as any[])[0])} ETH`),
             text(`Account to receive depoist: ${(request.params as any[])[1]}`),
-            text(`Entry point: ${rpcClient.getEntryPointAddr()}`)
+            text(`Entry point: ${rpcClient.getEntryPointAddr()}`),
+            text(`Gas(estimated): ${convertToEth(gasFee.toString())} ETH`),
+            text(`Total (amount + gas fee): ${convertToEth(totalAmount.toString())} ETH`)
           ]),
         },
-      });
-      return true
+      })){
+        return await depositToEntryPoint(rpcClient.getEntryPointAddr(), (request.params as any[])[0], (request.params as any[])[1])
+      } else {
+        return ''
+      }
+      
     case 'hello':
       scAccount = await getAbstractAccount(
         rpcClient.getEntryPointAddr(),
@@ -78,6 +90,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           nonce: await scAccount.getNonce(),
           index: scAccount.index,
           entryPoint: rpcClient.getEntryPointAddr(),
+          deposit: await getDeposit(address, rpcClient.getEntryPointAddr())
         }
       )
     case 'sc_account_owner':

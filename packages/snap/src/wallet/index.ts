@@ -1,1 +1,1 @@
-export { getOwnerAddr, signMessage, getAbstractAccount } from './wallet';
+export { getOwnerAddr, signMessage, getAbstractAccount, depositToEntryPoint, estimateDepositToEntryPoint } from './wallet';

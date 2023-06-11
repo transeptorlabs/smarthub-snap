@@ -38,4 +38,5 @@ export type SmartContractAccount = {
   nonce: string;
   index: string;
   entryPoint: string;
+  depoist: string;
 };

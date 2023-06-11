@@ -10,6 +10,7 @@ type CardProps = {
     button?: ReactNode;
     listItems?: string[];
     stats?: {
+      id: string;
       title: string;
       value: string;
     }[];
@@ -152,10 +153,10 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
         {stats &&
           <StatsContainer>
             {
-              stats.map((item: { title: string; value: string; }) => (
-                <Stat>
-                  <p key={item.title}>{item.title}</p>
-                  <p key={item.value}>{item.value}</p>
+              stats.map((item: { id: string, title: string; value: string; }) => (
+                <Stat key={item.id}>
+                  <p>{item.title}</p>
+                  <p>{item.value}</p>
                 </Stat>
               ))
             }
@@ -163,7 +164,7 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
         }
         <FormContainer>
           {form &&
-            form.map((item: ReactNode, ) => (
+            form.map((item: ReactNode) => (
               item
           ))}
         </FormContainer>

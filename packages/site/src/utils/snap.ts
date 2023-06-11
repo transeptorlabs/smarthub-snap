@@ -1,8 +1,14 @@
 import { BigNumber } from 'ethers';
 import { defaultSnapOrigin } from '../config';
 import { GetSnapsResponse, Snap } from '../types';
-import { Account, ReputationEntry, SmartContractAccount, UserOperation } from '../types/erc-4337';
+import {
+  Account,
+  ReputationEntry,
+  SmartContractAccount,
+  UserOperation,
+} from '../types/erc-4337';
 
+// Snap management *****************************************************************
 /**
  * Get the installed snaps in MetaMask.
  *
@@ -54,18 +60,7 @@ export const getSnap = async (version?: string): Promise<Snap | undefined> => {
 
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
 
-/**
- * Invoke the "hello" method from the example snap.
- */
-export const sendHello = async () => {
-  return await window.ethereum.request({
-    method: 'wallet_invokeSnap',
-    params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
-  });
-};
-
-
-// ERC-4337 account management
+// ERC-4337 account management *****************************************************
 export const getScAccountOwner = async (): Promise<Account> => {
   const result = await window.ethereum.request({
     method: 'wallet_invokeSnap',
@@ -75,7 +70,7 @@ export const getScAccountOwner = async (): Promise<Account> => {
     },
   });
 
-  const parsedResult = JSON.parse(result as string) 
+  const parsedResult = JSON.parse(result as string);
   return {
     address: parsedResult.address,
     balance: BigNumber.from(parsedResult.balance).toString(),
@@ -88,7 +83,7 @@ export const getScAccount = async (): Promise<SmartContractAccount> => {
     params: { snapId: defaultSnapOrigin, request: { method: 'sc_account' } },
   });
 
-  const parsedResult = JSON.parse(result as string) 
+  const parsedResult = JSON.parse(result as string);
   return {
     address: parsedResult.address,
     balance: BigNumber.from(parsedResult.balance).toString(),
@@ -99,15 +94,35 @@ export const getScAccount = async (): Promise<SmartContractAccount> => {
   } as SmartContractAccount;
 };
 
-export const depositToEntryPoint = async (amount: string, receiverAddr: string): Promise<string> => {
+export const depositToEntryPoint = async (
+  amount: string,
+  receiverAddr: string,
+): Promise<string> => {
   // always send amount in wei
-  return await window.ethereum.request({
+  return (await window.ethereum.request({
     method: 'wallet_invokeSnap',
-    params: { snapId: defaultSnapOrigin, request: { method: 'deposit', params: [amount, receiverAddr] } },
-  }) as string;
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'deposit', params: [amount, receiverAddr] },
+    },
+  })) as string;
 };
 
-// ERC-4337 wrappers
+export const withdrawFromEntryPoint = async (
+  amount: string,
+  receiverAddr: string,
+): Promise<string> => {
+  // always send amount in wei
+  return (await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'withdraw', params: [amount, receiverAddr] },
+    },
+  })) as string;
+};
+
+// ERC-4337 wrappers ******************************************************
 export const sendSupportedEntryPoints = async (): Promise<string[]> => {
   return (await window.ethereum.request({
     method: 'wallet_invokeSnap',

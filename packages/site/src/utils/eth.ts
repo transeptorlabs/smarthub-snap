@@ -1,4 +1,4 @@
-import { BigNumber, ethers } from "ethers";
+import { BigNumber, ethers } from 'ethers';
 
 export const connectWallet = async (): Promise<string> => {
   const accounts = await window.ethereum
@@ -32,13 +32,13 @@ export const trimAccounts = (accounts: string[]): string[] => {
 
   const trimmedAccounts = accounts.map((account: string) => {
     return trimAccount(account);
-  })
-  
+  });
+
   return trimmedAccounts;
-}
+};
 
 export const convertToEth = (amount: string): string => {
-  return ethers.utils.formatEther(amount);  
+  return ethers.utils.formatEther(amount).substring(0, 6);
 };
 
 export const convertToWei = (amount: string): BigNumber => {
@@ -46,5 +46,5 @@ export const convertToWei = (amount: string): BigNumber => {
 };
 
 export const isValidAddress = (address: string) => {
-  return ethers.utils.isAddress(address)
-}
+  return ethers.utils.isAddress(address);
+};

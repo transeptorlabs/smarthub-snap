@@ -1,7 +1,6 @@
 import { ComponentProps } from 'react';
 import styled from 'styled-components';
 import { SimpleButton } from './Buttons';
-import { MetamaskState } from '../hooks';
 
 const Form = styled.form`
   display: flex;
@@ -30,30 +29,49 @@ const InputField = styled.input`
   }
 `;
 
-export const TokenInputForm = ({
-  state,
-  inputValue,
-  inputPlaceholder,
-  buttonText,
-  onDepositSubmit,
-  onInputChange,
-}: {
-  state: MetamaskState;
-  inputValue: string;
-  inputPlaceholder: string;
+const InputContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  ${({ theme }) => theme.mediaQueries.small} {
+    flex-direction: column;
+    width: 100%;
+  }
+`;
+
+type FormProps = {
   buttonText: string;
-  onDepositSubmit(e: any): unknown;
-  onInputChange(e: any): unknown;
-}) => {
+  inputs: {
+    id: string;
+    inputPlaceholder: string;
+    inputValue: string;
+    onInputChange(e: any): unknown;
+  }[];
+  onSubmitClick(e: any): unknown;
+};
+
+export const TokenInputForm = ({
+  buttonText,
+  inputs,
+  onSubmitClick,
+}: FormProps) => {
   return (
-    <Form onSubmit={onDepositSubmit}>
-      <InputField 
-        type="text" 
-        placeholder={inputPlaceholder}
-        value={inputValue}
-        onChange={onInputChange}
-        required
-      />
+    <Form onSubmit={onSubmitClick}>
+      <InputContainer>
+        {
+          inputs.map((item: {id: string, inputPlaceholder: string, inputValue: string, onInputChange(e: any): unknown }) => (
+            <InputField 
+              key={item.id}
+              type="text" 
+              placeholder={item.inputPlaceholder}
+              value={item.inputValue}
+              onChange={item.onInputChange}
+              required
+            />
+          ))
+        }
+      </InputContainer>
       <SimpleButton type="submit" text={buttonText}></SimpleButton>
     </Form>
   );

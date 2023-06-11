@@ -5,7 +5,6 @@ import { connectSnap, getThemePreference, getSnap, getScAccountOwner, getScAccou
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
-import { trimAccount } from '../utils/eth';
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -80,30 +79,51 @@ export const Header = ({
         payload: installedSnap,
       });
       
-      // get erc4337 account details
-      const scAccountOwner = await getScAccountOwner();
-      const scAccount = await getScAccount();
-      const supportedEntryPoints = await sendSupportedEntryPoints();
+      await refreshERC4337State();
 
-      dispatch({
-        type: MetamaskActions.SetScAccountOwner,
-        payload: scAccountOwner,
-      });
-
-      dispatch({
-        type: MetamaskActions.SetScAccount,
-        payload: scAccount,
-      });
-
-      dispatch({
-        type: MetamaskActions.SetSupportedEntryPoints,
-        payload: supportedEntryPoints,
-      });
+      if (window.ethereum) {
+        if (!state.isChainIdListener) {
+          console.log('creating lisner:', state.isChainIdListener);
+          window.ethereum.on('chainChanged', async (chainId) => {
+            console.log('Network changed:', chainId);
+            await refreshERC4337State();
+          });
+  
+          dispatch({
+            type: MetamaskActions.SetChainIdListener,
+            payload: true,
+          });
+        }
+      }
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
+
+  const refreshERC4337State = async () => {
+    const [scAccountOwner, scAccount, supportedEntryPoints] = await Promise.all([
+      getScAccountOwner(),
+      getScAccount(),
+      sendSupportedEntryPoints(),
+    ]);
+
+    dispatch({
+      type: MetamaskActions.SetScAccountOwner,
+      payload: scAccountOwner,
+    });
+
+    dispatch({
+      type: MetamaskActions.SetScAccount,
+      payload: scAccount,
+    });
+
+    dispatch({
+      type: MetamaskActions.SetSupportedEntryPoints,
+      payload: supportedEntryPoints,
+    });
+  };
+
   return (
     <HeaderWrapper>
       <LogoWrapper>

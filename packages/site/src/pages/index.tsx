@@ -1,25 +1,25 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
   connectSnap,
   getSnap,
   depositToEntryPoint,
-  sendHello,
   getScAccount,
   getScAccountOwner,
   sendSupportedEntryPoints,
   shouldDisplayReconnectButton,
+  withdrawFromEntryPoint,
 } from '../utils';
 import {
   ConnectSnapButton,
   InstallFlaskButton,
   ReconnectButton,
   Card,
+  TokenInputForm,
 } from '../components';
-import { convertToEth, convertToWei, isValidAddress, trimAccounts } from '../utils/eth';
+import { convertToEth, convertToWei, isValidAddress } from '../utils/eth';
 import { BigNumber } from 'ethers';
-import { TokenInputForm } from '../components/Form';
 
 const Container = styled.div`
   display: flex;
@@ -118,6 +118,7 @@ const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const [depositAmount, setDepositAmount] = useState('');
   const [withDrawAddr, setWithDrawAddr] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
 
   const handleConnectSnapClick = async () => {
     try {
@@ -128,40 +129,55 @@ const Index = () => {
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
-      
-      // await sendHello()
-      // get erc4337 account details
 
-      // const start = BigNumber.from('5000000000000000000');
-      // const end = BigNumber.from('3999909157959365732');
-      // console.log(start.sub(end).toString());
+      await refreshERC4337State()
 
-      const scAccountOwner = await getScAccountOwner();
-      const scAccount = await getScAccount();
-      const supportedEntryPoints = await sendSupportedEntryPoints();
-      console.log('scAccountOwner:', scAccountOwner);
-      console.log('scAccount:', scAccount);
-      console.log('supportedEntryPoints:', supportedEntryPoints);
-
-      dispatch({
-        type: MetamaskActions.SetScAccountOwner,
-        payload: scAccountOwner,
-      });
-
-      dispatch({
-        type: MetamaskActions.SetScAccount,
-        payload: scAccount,
-      });
-
-      dispatch({
-        type: MetamaskActions.SetSupportedEntryPoints,
-        payload: supportedEntryPoints,
-      });
+      if (window.ethereum) {
+        if (!state.isChainIdListener) {
+          try {
+            console.log('creating lisner:', state.isChainIdListener);
+            window.ethereum.on('chainChanged', (chainId) => {
+              console.log('Network changed:', chainId, state);
+            });
+    
+            dispatch({
+              type: MetamaskActions.SetChainIdListener,
+              payload: true,
+            });
+          } catch (e) {
+            dispatch({ type: MetamaskActions.SetError, payload: e });
+          }
+        
+        }
+      }
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
+
+  const refreshERC4337State = async () => {
+    const [scAccountOwner, scAccount, supportedEntryPoints] = await Promise.all([
+      getScAccountOwner(),
+      getScAccount(),
+      sendSupportedEntryPoints(),
+    ]);
+
+    dispatch({
+      type: MetamaskActions.SetScAccountOwner,
+      payload: scAccountOwner,
+    });
+
+    dispatch({
+      type: MetamaskActions.SetScAccount,
+      payload: scAccount,
+    });
+
+    dispatch({
+      type: MetamaskActions.SetSupportedEntryPoints,
+      payload: supportedEntryPoints,
+    });
+  }
 
   const handleDepositSubmit = async (e: any) => {
     e.preventDefault();
@@ -171,12 +187,39 @@ const Index = () => {
       dispatch({ type: MetamaskActions.SetError, payload: new Error('Owner accout has, insufficient funds') });
       return;
     }
-    console.log('handleDepositSubmit:', depositInWei.toString());
     const txhash = await depositToEntryPoint(depositInWei.toString(), state.scAccount.address);
-    console.log('txhash:', txhash);
+    console.log('handleDepositSubmit(txhash):', txhash);
+    setDepositAmount('');
+    await refreshERC4337State()
   }
 
-  const handleDepositInputChange = async (e: any) => {
+  const handleWithdrawSubmit = async (e: any) => {
+    e.preventDefault();
+    const withdrawAmountInWei = convertToWei(withdrawAmount);
+    console.log('withdrawAmountInWei:', withdrawAmountInWei.toString());
+
+    if (!isValidAddress(withDrawAddr)) {
+      dispatch({ type: MetamaskActions.SetError, payload: new Error('Invalid address') });
+      return;
+    }
+
+    if (BigNumber.from(state.scAccount.depoist).lt(withdrawAmountInWei)) {
+      dispatch({ type: MetamaskActions.SetError, payload: new Error('Smart contract account, insufficient deposit') });
+      return;
+    }
+
+    try {
+      // TODO: need to create a user operation to withdraw from entry point contract
+      const txhash = await withdrawFromEntryPoint(withdrawAmountInWei.toString(), withDrawAddr);
+      console.log('handleWithdrawSubmit(txhash):', txhash);
+      setWithdrawAmount('');
+      setWithDrawAddr('');
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  }
+
+  const handleDepositAmountChange = async (e: any) => {
     // Regular expression to match only numbers
     const inputValue = e.target.value;
     const numberRegex = /^\d*\.?\d*$/;
@@ -185,16 +228,16 @@ const Index = () => {
     }
   }
 
-  const handleWithdrawSubmit = async (e: any) => {
-    e.preventDefault();
-    if (!isValidAddress(withDrawAddr)) {
-      dispatch({ type: MetamaskActions.SetError, payload: new Error('Invalid address') });
-      return;
+  const handleWithdrawAmountChange = async (e: any) => {
+    // Regular expression to match only numbers
+    const inputValue = e.target.value;
+    const numberRegex = /^\d*\.?\d*$/;
+    if (inputValue === '' || numberRegex.test(inputValue)) {
+      setWithdrawAmount(e.target.value);
     }
-    console.log('handleWithdrawSubmit:', withDrawAddr)
   }
 
-  const handleWihdrawInputChange = async (e: any) => {
+  const handleWithdrawAddrChange = async (e: any) => {
     const inputValue = e.target.value;
     const charRegex = /^[A-Za-z0-9.]*$/;
     if (inputValue === '' || charRegex.test(inputValue)) {
@@ -329,6 +372,7 @@ const Index = () => {
               description: `${state.scAccountOwner.address}`,
               stats: [
                 {
+                  id: `1`,
                   title: 'Balance',
                   value: `${convertToEth(state.scAccountOwner.balance)} ETH`,
                 },
@@ -336,22 +380,18 @@ const Index = () => {
               form: [
                 <TokenInputForm
                   key={"deposit"}
-                  state={state}
-                  onDepositSubmit={handleDepositSubmit}
-                  onInputChange={handleDepositInputChange}
-                  inputValue={depositAmount}
                   buttonText="Add Deposit"
-                  inputPlaceholder="Enter amount"
+                  onSubmitClick={handleDepositSubmit}
+                  inputs={[
+                    {
+                      id: "1",
+                      onInputChange: handleDepositAmountChange,
+                      inputValue: depositAmount,
+                      inputPlaceholder:"Enter amount"
+                    }
+                  ]}
+            
                 />,
-                <TokenInputForm
-                  key={"withdraw"}
-                  state={state}
-                  onDepositSubmit={handleWithdrawSubmit}
-                  onInputChange={handleWihdrawInputChange}
-                  inputValue={withDrawAddr}
-                  buttonText="Withdraw Deposit"
-                  inputPlaceholder="Enter address"
-              />
               ],
             }}
             disabled={!state.isFlask}
@@ -368,22 +408,33 @@ const Index = () => {
               description: `${state.scAccount.address}`,
               stats: [
                 {
-                  title: 'Index',
-                  value: state.scAccount.index,
-                },
-                {
-                  title: 'Nonce',
-                  value: state.scAccount.nonce,
-                },
-                {
-                  title: 'Balance',
-                  value: `${convertToEth(state.scAccount.balance)} ETH`,
-                },
-                {
+                  id: `0`,
                   title: 'Deposit',
-                  value: convertToEth(state.scAccount.depoist),
+                  value: `${convertToEth(state.scAccount.depoist)} ETH`,
                 },
               ],
+              form: [
+                <TokenInputForm
+                key={"withdraw"}
+                onSubmitClick={handleWithdrawSubmit}
+                buttonText="Withdraw Deposit"
+                inputs={[
+                    {
+                      id: "1",
+                      onInputChange: handleWithdrawAddrChange,
+                      inputValue: withDrawAddr,
+                      inputPlaceholder:"Enter address"
+                    },
+                    {
+                      id: "2",
+                      onInputChange: handleWithdrawAmountChange,
+                      inputValue: withdrawAmount,
+                      inputPlaceholder:"Enter amount"
+                    }
+                  ]
+                }
+              />
+              ]
             }}
             disabled={!state.isFlask}
             copyDescription

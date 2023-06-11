@@ -1,4 +1,4 @@
-# TypeScript Example Snap Front-end
+# TypeScript @transeptor/erc-4337-relayer Snap Front-end
 
 This project was bootstrapped with [Gatsby](https://www.gatsbyjs.com/).
 

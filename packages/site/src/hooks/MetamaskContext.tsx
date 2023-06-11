@@ -12,6 +12,7 @@ import { Account, SmartContractAccount } from '../types/erc-4337';
 
 export type MetamaskState = {
   isFlask: boolean;
+  isChainIdListener: boolean;
   installedSnap?: Snap;
   error?: Error;
   scAccountOwner: Account;
@@ -22,6 +23,7 @@ const initialState: MetamaskState = {
   isFlask: false,
   error: undefined,
   installedSnap: undefined,
+  isChainIdListener: false,
   scAccountOwner: {
     address: '',
     balance: '',  // in wei
@@ -56,6 +58,7 @@ export enum MetamaskActions {
   SetScAccountOwner = "SetScAccountOwner",
   SetScAccount = "SetScAccount",
   SetSupportedEntryPoints = 'SetSupportedEntryPoints',
+  SetChainIdListener = 'SetChainIdListener',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -88,6 +91,12 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
       return {
         ...state,
         scAccount: action.payload,
+      };
+
+    case MetamaskActions.SetChainIdListener:
+      return {
+        ...state,
+        isChainIdListener: action.payload,
       };
 
     default:

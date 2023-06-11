@@ -17,6 +17,7 @@ module.exports = {
       extends: ['@metamask/eslint-config-typescript'],
       rules: {
         '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+        camelcase: 'off', // Disable the "is not in camel case" rule
       },
     },
 
@@ -28,6 +29,7 @@ module.exports = {
           'error',
           { allow: ['describe', 'expect', 'it'] },
         ],
+        camelcase: 'off', // Disable the "is not in camel case" rule
       },
     },
   ],

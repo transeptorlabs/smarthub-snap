@@ -1,11 +1,10 @@
 import { useContext } from 'react';
 import styled, { useTheme } from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
-import { connectSnap, getThemePreference, getSnap, sendScAccountOwner } from '../utils';
+import { connectSnap, getThemePreference, getSnap, getScAccountOwner, getScAccount, sendSupportedEntryPoints } from '../utils';
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
-import { trimAccount } from '../utils/eth';
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -79,18 +78,52 @@ export const Header = ({
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
+      
+      await refreshERC4337State();
 
-      const account = await sendScAccountOwner();
-
-      dispatch({
-        type: MetamaskActions.SetConnectedAccount,
-        payload: account,
-      });
+      if (window.ethereum) {
+        if (!state.isChainIdListener) {
+          console.log('creating lisner:', state.isChainIdListener);
+          window.ethereum.on('chainChanged', async (chainId) => {
+            console.log('Network changed:', chainId);
+            await refreshERC4337State();
+          });
+  
+          dispatch({
+            type: MetamaskActions.SetChainIdListener,
+            payload: true,
+          });
+        }
+      }
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
+
+  const refreshERC4337State = async () => {
+    const [scAccountOwner, scAccount, supportedEntryPoints] = await Promise.all([
+      getScAccountOwner(),
+      getScAccount(),
+      sendSupportedEntryPoints(),
+    ]);
+
+    dispatch({
+      type: MetamaskActions.SetScAccountOwner,
+      payload: scAccountOwner,
+    });
+
+    dispatch({
+      type: MetamaskActions.SetScAccount,
+      payload: scAccount,
+    });
+
+    dispatch({
+      type: MetamaskActions.SetSupportedEntryPoints,
+      payload: supportedEntryPoints,
+    });
+  };
+
   return (
     <HeaderWrapper>
       <LogoWrapper>

@@ -1,15 +1,25 @@
 import { ReactNode } from 'react';
 import styled from 'styled-components';
+import { FaCopy } from "react-icons/fa";
+import { trimAccount } from '../utils/eth';
 
 type CardProps = {
   content: {
     title?: string;
-    description: ReactNode;
+    description: string;
     button?: ReactNode;
     listItems?: string[];
+    stats?: {
+      id: string;
+      title: string;
+      value: string;
+    }[];
+    form?: ReactNode[] ;
   };
   disabled?: boolean;
   fullWidth?: boolean;
+  copyDescription?: boolean;
+  isAccount?: boolean;
 };
 
 const CardWrapper = styled.div<{ fullWidth?: boolean; disabled: boolean }>`
@@ -41,19 +51,92 @@ const Title = styled.h2`
   }
 `;
 
-const Description = styled.div`
-  margin-top: 2.4rem;
-  margin-bottom: 2.4rem;
+const DescriptionContainer = styled.div`
+  display: flex;
+  flex-direction: row;
 `;
 
-export const Card = ({ content, disabled = false, fullWidth }: CardProps) => {
-  const { title, description, button, listItems } = content;
+const Description = styled.div`
+  margin-top: 2.4rem;
+  margin-bottom: 1.4rem;
+  display: inherit;
+  ${({ theme }) => theme.mediaQueries.small} {
+    display: none;
+  }
+`;
+
+const DescriptionMobile = styled.div`
+  margin-top: 2.4rem;
+  margin-bottom: 1.4rem;
+  display: none;
+  ${({ theme }) => theme.mediaQueries.small} {
+    display: inherit;
+  }
+`;
+
+const DescriptionCopy = styled.div`
+  margin-left: 1rem;
+  margin-top: 2.4rem;
+  margin-bottom: 1.4rem;
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary.main};
+    cursor: pointer;
+  }
+`;
+
+const FormContainer = styled.div`
+`;
+
+const StatsContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const Stat = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const FlexContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  ${({ theme }) => theme.mediaQueries.small} {
+    flex-direction: column;
+  }
+`;
+
+export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount }: CardProps) => {
+  const { title, description, button, listItems, form, stats} = content;
+
+  const handleCopyToClipboard = (event: any) => {
+    event.preventDefault();
+    if (description) {
+      navigator.clipboard.writeText(description);    
+    }
+  }
+
   return (
     <CardWrapper fullWidth={fullWidth} disabled={disabled}>
       {title && (
         <Title>{title}</Title>
       )}
-      <Description>{description}</Description>
+
+      <DescriptionContainer>
+        <Description>{isAccount ? `eth: ${description}` : description }</Description>
+        <DescriptionMobile>{isAccount ? `eth: ${trimAccount(description)}` : description }</DescriptionMobile>
+        
+        {copyDescription && (
+          <DescriptionCopy onClick={handleCopyToClipboard}>
+            <FaCopy />
+          </DescriptionCopy>
+        )}
+      </DescriptionContainer>
+
       {listItems && (
         <ul>
           {
@@ -64,6 +147,28 @@ export const Card = ({ content, disabled = false, fullWidth }: CardProps) => {
         </ul>
       )}
       {button}
+
+
+      <FlexContainer>
+        {stats &&
+          <StatsContainer>
+            {
+              stats.map((item: { id: string, title: string; value: string; }) => (
+                <Stat key={item.id}>
+                  <p>{item.title}</p>
+                  <p>{item.value}</p>
+                </Stat>
+              ))
+            }
+          </StatsContainer>
+        }
+        <FormContainer>
+          {form &&
+            form.map((item: ReactNode) => (
+              item
+          ))}
+        </FormContainer>
+      </FlexContainer>
     </CardWrapper>
   );
 };

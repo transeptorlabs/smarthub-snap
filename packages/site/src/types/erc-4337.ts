@@ -26,3 +26,17 @@ export enum ReputationStatus {
   THROTTLED,
   BANNED,
 }
+
+export type Account = {
+  address: string;
+  balance: string;
+};
+
+export type SmartContractAccount = {
+  address: string;
+  balance: string;
+  nonce: string;
+  index: string;
+  entryPoint: string;
+  depoist: string;
+};

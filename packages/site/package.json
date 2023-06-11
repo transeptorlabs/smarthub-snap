@@ -31,11 +31,12 @@
   },
   "dependencies": {
     "@metamask/providers": "^9.0.0",
+    "ethers": "^5.7.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-icons": "^4.3.1",
     "react-is": "^18.2.0",
-    "styled-components": "5.3.3",
-    "ethers": "^5.7.0"
+    "styled-components": "5.3.3"
   },
   "devDependencies": {
     "@metamask/eslint-config": "^10.0.0",

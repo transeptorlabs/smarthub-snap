@@ -8,21 +8,34 @@ import {
 } from 'react';
 import { Snap } from '../types';
 import { isFlask, getSnap } from '../utils';
+import { Account, SmartContractAccount } from '../types/erc-4337';
 
 export type MetamaskState = {
   isFlask: boolean;
+  isChainIdListener: boolean;
   installedSnap?: Snap;
   error?: Error;
-  scAccountOwner: string;
-  scAccount: string;
+  scAccountOwner: Account;
+  scAccount: SmartContractAccount;
 };
 
 const initialState: MetamaskState = {
   isFlask: false,
   error: undefined,
   installedSnap: undefined,
-  scAccountOwner: "",
-  scAccount: ""
+  isChainIdListener: false,
+  scAccountOwner: {
+    address: '',
+    balance: '',  // in wei
+  },
+  scAccount: {
+    address: '',
+    balance: '', // in wei
+    nonce: '',
+    index: '',
+    entryPoint: '',
+    depoist: '',
+  },
 };
 
 type MetamaskDispatch = { type: MetamaskActions; payload: any };
@@ -43,7 +56,9 @@ export enum MetamaskActions {
   SetError = 'SetError',
   SetAccount = 'SetAccount',
   SetScAccountOwner = "SetScAccountOwner",
-  SetScAccount = "SetScAccount"
+  SetScAccount = "SetScAccount",
+  SetSupportedEntryPoints = 'SetSupportedEntryPoints',
+  SetChainIdListener = 'SetChainIdListener',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -76,6 +91,12 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
       return {
         ...state,
         scAccount: action.payload,
+      };
+
+    case MetamaskActions.SetChainIdListener:
+      return {
+        ...state,
+        isChainIdListener: action.payload,
       };
 
     default:

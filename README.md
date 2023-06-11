@@ -1,7 +1,12 @@
 # Transeptor ERC-4337 Snap
 
+![Node Version](https://img.shields.io/badge/node-16.x-green)
+![Github workflow build status(main)](https://img.shields.io/github/actions/workflow/status/transeptorlabs/erc-4337-snap/build.yml?branch=main)
+
 This is the core repository for the development of ERC-4337 Relayer
 MetaMask Snap.
+
+> :warning: **This repository is currently under active development.**
 
 ## Why
 

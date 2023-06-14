@@ -31,8 +31,8 @@
     "start": "mm-snap watch"
   },
   "dependencies": {
-    "@account-abstraction/contracts": "^0.6.0",
-    "@account-abstraction/sdk": "^0.6.0",
+    "@account-abstraction/contracts": "0.6.0",
+    "@account-abstraction/sdk": "0.6.0",
     "@metamask/snaps-types": "^0.32.2",
     "@metamask/snaps-ui": "^0.32.2",
     "buffer": "^6.0.3",

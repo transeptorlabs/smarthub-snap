@@ -1,7 +1,6 @@
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { heading, panel, text } from '@metamask/snaps-ui';
-import { BigNumber, Wallet } from 'ethers';
-import { SimpleAccountAPI } from '@account-abstraction/sdk';
+import { BigNumber, Wallet, ethers } from 'ethers';
 import {
   depositToEntryPoint,
   encodeFunctionData,
@@ -14,6 +13,8 @@ import {
 } from './wallet';
 import { HttpRpcClient, getBalance, getDeposit, getGasPrice } from './client';
 import { convertToEth } from './utils';
+import { UserOperationStruct } from '@account-abstraction/contracts';
+import { SimpleAccountAPI } from './erc4337';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -33,9 +34,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   const rpcClient = new HttpRpcClient(parseInt(chainId as string, 16));
   let result;
   let scAccount: SimpleAccountAPI;
-  let signer: Wallet;
+  let scOwnerAddress: string;
   let scAddress: string;
-  let ownerAddress: string;
 
   let recevierAddress: string;
   let estimateGasAmount: BigNumber;
@@ -44,6 +44,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   let encodedData = '';
   let value: BigNumber;
   let amount: BigNumber;
+  let userOp: UserOperationStruct
 
   if (!request.params) {
     request.params = [];
@@ -51,126 +52,119 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
   // handle methods
   switch (request.method) {
-    case 'deposit':
-      signer = await getWallet();
-      value = BigNumber.from((request.params as any[])[0]);
-      recevierAddress = (request.params as any[])[1];
-      gasPrice = await getGasPrice();
-      encodedData = await encodeFunctionData(
-        rpcClient.getEntryPointContract(signer),
-        'depositTo',
-        [recevierAddress],
-      );
+    // case 'deposit':
+    //   signer = (request.params as any[])[0];
+    //   value = BigNumber.from((request.params as any[])[0]);
+    //   recevierAddress = (request.params as any[])[1];
+    //   gasPrice = await getGasPrice();
+    //   encodedData = await encodeFunctionData(
+    //     rpcClient.getEntryPointContract(signer),
+    //     'depositTo',
+    //     [recevierAddress],
+    //   );
 
-      estimateGasAmount = await estimateGas(
-        signer.address,
-        rpcClient.getEntryPointAddr(),
-        encodedData,
-      );
+    //   estimateGasAmount = await estimateGas(
+    //     await signer.getAddress(),
+    //     rpcClient.getEntryPointAddr(),
+    //     encodedData,
+    //   );
 
-      txFeeTotal = (await estimateGasCost(estimateGasAmount, gasPrice)).add(
-        value,
-      );
+    //   txFeeTotal = (await estimateGasCost(estimateGasAmount, gasPrice)).add(
+    //     value,
+    //   );
 
-      if (
-        await snap.request({
-          method: 'snap_dialog',
-          params: {
-            type: 'confirmation',
-            content: panel([
-              heading(
-                `(${origin}) Do you want to send a deposit to the entry point contract?`,
-              ),
-              text(`Amount: ${convertToEth(value.toString())} ETH`),
-              text(`ChainId: ${parseInt(chainId as string, 16)}`),
-              text(`Account to receive deposit: ${recevierAddress}`),
-              text(`Entry point contract: ${rpcClient.getEntryPointAddr()}`),
-              text(`Gas (estimated): ${estimateGasAmount.toString()} gas`),
-              text(`Gas fee: ${convertToEth(gasPrice.toString())} ETH`),
-              text(
-                `Total (amount + (gas fee * estimated gas)): ${convertToEth(
-                  txFeeTotal.toString(),
-                )} ETH`,
-              ),
-            ]),
-          },
-        })
-      ) {
-        result = await depositToEntryPoint(
-          signer,
-          rpcClient.getEntryPointAddr(),
-          value,
-          encodedData,
-          estimateGasAmount,
-          gasPrice,
-        );
-      } else {
-        result = '';
-      }
+    //   if (
+    //     await snap.request({
+    //       method: 'snap_dialog',
+    //       params: {
+    //         type: 'confirmation',
+    //         content: panel([
+    //           heading(
+    //             `(${origin}) Do you want to send a deposit to the entry point contract?`,
+    //           ),
+    //           text(`Amount: ${convertToEth(value.toString())} ETH`),
+    //           text(`ChainId: ${parseInt(chainId as string, 16)}`),
+    //           text(`Account to receive deposit: ${recevierAddress}`),
+    //           text(`Entry point contract: ${rpcClient.getEntryPointAddr()}`),
+    //           text(`Gas (estimated): ${estimateGasAmount.toString()} gas`),
+    //           text(`Gas fee: ${convertToEth(gasPrice.toString())} ETH`),
+    //           text(
+    //             `Total (amount + (gas fee * estimated gas)): ${convertToEth(
+    //               txFeeTotal.toString(),
+    //             )} ETH`,
+    //           ),
+    //         ]),
+    //       },
+    //     })
+    //   ) {
+    //     depositToEntryPoint(
+    //       signer,
+    //       rpcClient.getEntryPointAddr(),
+    //       value,
+    //       encodedData,
+    //       estimateGasAmount,
+    //       gasPrice,
+    //     );
+    //     return 'done'
+    //   }
+    //   return '';
+    // case 'withdraw':
+    //   // Note only the account that has the deposit can withdraw from the entry point contract
+    //   signer = (request.params as any[])[0];
+    //   scAccount = await getAbstractAccount(
+    //     rpcClient.getEntryPointAddr(),
+    //     rpcClient.getAccountFactoryAddr(),
+    //     signer,
+    //   );
+    //   amount = BigNumber.from((request.params as any[])[0]);
+    //   recevierAddress = (request.params as any[])[1];
 
-      return result;
+    //   encodedData = await encodeFunctionData(
+    //     rpcClient.getEntryPointContract(signer),
+    //     'withdrawTo',
+    //     [recevierAddress, amount],
+    //   );
 
-    case 'withdraw':
-      // Note only the account that has the deposit can withdraw from the entry point contract
-      signer = await getWallet();
-      amount = BigNumber.from((request.params as any[])[0]);
-      recevierAddress = (request.params as any[])[1];
-      gasPrice = await getGasPrice();
-      encodedData = await encodeFunctionData(
-        rpcClient.getEntryPointContract(signer),
-        'withdrawTo',
-        [recevierAddress, amount],
-      );
+    //   userOp = {await scAccount.createUserOpToSign({
+    //     target: rpcClient.getEntryPointAddr(),
+    //     data: encodedData,
+    //   })}
 
-      estimateGasAmount = await estimateGas(
-        signer.address,
-        rpcClient.getEntryPointAddr(),
-        encodedData,
-      );
-      txFeeTotal = await estimateGasCost(estimateGasAmount, gasPrice);
-
-      if (
-        await snap.request({
-          method: 'snap_dialog',
-          params: {
-            type: 'confirmation',
-            content: panel([
-              heading(
-                'Do you want to send withdraw deposit from entry point contract?',
-              ),
-              text(
-                `Amount to withdraw: ${convertToEth(amount.toString())} ETH`,
-              ),
-              text(`ChainId: ${parseInt(chainId as string, 16)}`),
-              text(`Account to receive withdraw: ${recevierAddress}`),
-              text(`Entry point contract: ${rpcClient.getEntryPointAddr()}`),
-              text(`Gas (estimated): ${estimateGasAmount.toString()} gas`),
-              text(`Gas fee: ${convertToEth(gasPrice.toString())} ETH`),
-              text(
-                `Total (amount + (gas fee * estimated gas)): ${convertToEth(
-                  txFeeTotal.toString(),
-                )} ETH`,
-              ),
-            ]),
-          },
-        })
-      ) {
-        result = await withdrawFromEntryPoint(
-          signer,
-          rpcClient.getEntryPointAddr(),
-          encodedData,
-          estimateGasAmount,
-          gasPrice,
-        );
-      } else {
-        result = '';
-      }
-      return result;
-
+    //   if (
+    //     await snap.request({
+    //       method: 'snap_dialog',
+    //       params: {
+    //         type: 'confirmation',
+    //         content: panel([
+    //           heading(
+    //             'Do you want to send withdraw deposit from entry point contract?',
+    //           ),
+    //           text(
+    //             `Amount to withdraw: ${convertToEth(amount.toString())} ETH`,
+    //           ),
+    //           text(`ChainId: ${parseInt(chainId as string, 16)}`),
+    //           text(`Account to receive withdraw: ${recevierAddress}`),
+    //           text(`Entry point contract: ${rpcClient.getEntryPointAddr()}`),
+    //           text(`call Gas Limit (estimated): ${userOp.callGasLimit.toString()} gas`),
+    //           text(`verification Gas Limit (estimated): ${userOp.verificationGasLimit.toString()} gas`),
+    //           text(`pre verification Gas (estimated): ${userOp.preVerificationGas.toString()} gas`),
+    //           text(`max Fee Per Gas (estimated): ${convertToEth(userOp.maxPriorityFeePerGas.toString())} ETH`),
+    //           text(`maxP riority Fee Per Gas(estimated): ${convertToEth(userOp.maxFeePerGas.toString())} ETH`),
+    //         ]),
+    //       },
+    //     })
+    //   ) {
+    //     result = await rpcClient.send('eth_sendUserOperation', [userOp, rpcClient.getEntryPointAddr()]);
+    //   } else {
+    //     result = '';
+    //   }
+    //   return result;
     case 'sc_account':
+      scOwnerAddress = (request.params as any[])[0];
       scAccount = await getAbstractAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
+        scOwnerAddress,
       );
       scAddress = await scAccount.getCounterFactualAddress();
 
@@ -180,13 +174,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         nonce: await scAccount.getNonce(),
         index: scAccount.index,
         entryPoint: rpcClient.getEntryPointAddr(),
+        factoryAddress: rpcClient.getAccountFactoryAddr(),
         deposit: await getDeposit(scAddress, rpcClient.getEntryPointAddr()),
-      });
-    case 'sc_account_owner':
-      ownerAddress = await getOwnerAddr();
-      return JSON.stringify({
-        address: ownerAddress,
-        balance: await getBalance(ownerAddress),
       });
     case 'eth_chainId':
       return await rpcClient.send(request.method, request.params as any[]);

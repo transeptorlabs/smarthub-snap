@@ -1,0 +1,1 @@
+export {SimpleAccountAPI} from './SimpleAccountAPI'

@@ -1,6 +1,7 @@
 import { BigNumber, ethers } from 'ethers';
+import { Account } from '../types/erc-4337';
 
-export const connectWallet = async (): Promise<string> => {
+export const connectWallet = async (): Promise<Account> => {
   const accounts = await window.ethereum
     .request({ method: 'eth_requestAccounts' })
     .catch((err) => {
@@ -9,10 +10,22 @@ export const connectWallet = async (): Promise<string> => {
         // If this happens, the user rejected the connection request.
         console.log('Please connect to MetaMask.');
       } else {
-        console.error(err);
+        throw Error(err);
       }
     });
-  return accounts as string[][0];
+  
+  const account: string = (accounts as string[])[0]
+  return {
+    address: account,
+    balance: await getAccountBalance(account),
+    connected: true,
+  } as Account;
+};
+
+export const getAccountBalance = async (account: string): Promise<string> => {
+  const ethersProvider = new ethers.providers.Web3Provider(window.ethereum as any);
+  const balance = await ethersProvider.getBalance(account);
+  return balance.toString()
 };
 
 export const trimAccount = (account: string): string => {
@@ -47,4 +60,12 @@ export const convertToWei = (amount: string): BigNumber => {
 
 export const isValidAddress = (address: string) => {
   return ethers.utils.isAddress(address);
+};
+
+export const encodeFunctionData = async (
+  contract: ethers.Contract,
+  functionName: string,
+  params: any[],
+): Promise<string> => {
+  return contract.interface.encodeFunctionData(functionName, params);
 };

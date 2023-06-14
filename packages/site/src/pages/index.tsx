@@ -6,7 +6,6 @@ import {
   getSnap,
   depositToEntryPoint,
   getScAccount,
-  getScAccountOwner,
   sendSupportedEntryPoints,
   shouldDisplayReconnectButton,
   withdrawFromEntryPoint,
@@ -18,8 +17,9 @@ import {
   Card,
   TokenInputForm,
 } from '../components';
-import { convertToEth, convertToWei, isValidAddress } from '../utils/eth';
+import { connectWallet, convertToEth, convertToWei, getAccountBalance, isValidAddress } from '../utils/eth';
 import { BigNumber } from 'ethers';
+import { Account } from '../types/erc-4337';
 
 const Container = styled.div`
   display: flex;
@@ -120,8 +120,41 @@ const Index = () => {
   const [withDrawAddr, setWithDrawAddr] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
 
-  const handleConnectSnapClick = async () => {
+  const handleReConnectSnapClick = async () => {
     try {
+      // connect wallet
+      let scAccountOwner: Account = {
+      address: '',
+      balance: '',
+      connected: false,
+      }
+      if (!state.scAccountOwner.connected) {
+        scAccountOwner = await connectWallet()
+        dispatch({
+          type: MetamaskActions.SetScAccountOwner,
+          payload: scAccountOwner,
+        });
+      }
+
+      if (window.ethereum) {
+        if (!state.isChainIdListener) {
+          console.log('creating lisnters:', state.isChainIdListener);
+          window.ethereum.on('chainChanged', async (chainId) => {
+            console.log('Network changed:', chainId);
+          });
+
+          window.ethereum.on('accountsChanged', async (accounts) => {
+            await refreshScOwnerState((accounts as string[])[0]);
+          });
+  
+          dispatch({
+            type: MetamaskActions.SetWalletListener,
+            payload: true,
+          });
+        }
+      }
+
+      // reconnect snap
       await connectSnap();
       const installedSnap = await getSnap();
 
@@ -130,43 +163,34 @@ const Index = () => {
         payload: installedSnap,
       });
 
-      await refreshERC4337State()
-
-      if (window.ethereum) {
-        if (!state.isChainIdListener) {
-          try {
-            console.log('creating lisner:', state.isChainIdListener);
-            window.ethereum.on('chainChanged', (chainId) => {
-              console.log('Network changed:', chainId, state);
-            });
-    
-            dispatch({
-              type: MetamaskActions.SetChainIdListener,
-              payload: true,
-            });
-          } catch (e) {
-            dispatch({ type: MetamaskActions.SetError, payload: e });
-          }
-        
-        }
-      }
+      // fetch sc account state
+      await refreshScAccountState(scAccountOwner.address);
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
 
-  const refreshERC4337State = async () => {
-    const [scAccountOwner, scAccount, supportedEntryPoints] = await Promise.all([
-      getScAccountOwner(),
-      getScAccount(),
-      sendSupportedEntryPoints(),
-    ]);
-
+  const refreshScOwnerState = async (newOwner: string) => {
+    const changedScAccountOwner: Account = {
+      address: newOwner,
+      balance: await getAccountBalance(newOwner),
+      connected: true,
+    }
     dispatch({
       type: MetamaskActions.SetScAccountOwner,
-      payload: scAccountOwner,
+      payload: changedScAccountOwner,
     });
+
+    // fetch sc account state
+    await refreshScAccountState(changedScAccountOwner.address);
+  };
+
+  const refreshScAccountState = async (owner: string) => {
+    const [scAccount, supportedEntryPoints] = await Promise.all([
+      getScAccount(owner),
+      sendSupportedEntryPoints(),
+    ]);
 
     dispatch({
       type: MetamaskActions.SetScAccount,
@@ -177,12 +201,13 @@ const Index = () => {
       type: MetamaskActions.SetSupportedEntryPoints,
       payload: supportedEntryPoints,
     });
-  }
+  };
 
   const handleDepositSubmit = async (e: any) => {
     e.preventDefault();
     const depositInWei = convertToWei(depositAmount);
 
+    console.log('handleDepositSubmit(amount):', depositInWei.toString());
     if (BigNumber.from(state.scAccountOwner.balance).lt(depositInWei)) {
       dispatch({ type: MetamaskActions.SetError, payload: new Error('Owner accout has, insufficient funds') });
       return;
@@ -190,7 +215,6 @@ const Index = () => {
     const txhash = await depositToEntryPoint(depositInWei.toString(), state.scAccount.address);
     console.log('handleDepositSubmit(txhash):', txhash);
     setDepositAmount('');
-    await refreshERC4337State()
   }
 
   const handleWithdrawSubmit = async (e: any) => {
@@ -209,7 +233,12 @@ const Index = () => {
     }
 
     try {
-      // TODO: need to create a user operation to withdraw from entry point contract
+      // get estimated user op gas
+
+      // create user op
+
+      // send user op
+
       const txhash = await withdrawFromEntryPoint(withdrawAmountInWei.toString(), withDrawAddr);
       console.log('handleWithdrawSubmit(txhash):', txhash);
       setWithdrawAmount('');
@@ -306,7 +335,7 @@ const Index = () => {
               ],
               button: (
                 <ConnectSnapButton
-                  onClick={handleConnectSnapClick}
+                  onClick={handleReConnectSnapClick}
                   disabled={!state.isFlask}
                 />
               ),
@@ -333,7 +362,7 @@ const Index = () => {
                 'While connected to a local running snap this button will always be displayed in order to update the snap if a change is made.',
               button: (
                 <ReconnectButton
-                  onClick={handleConnectSnapClick}
+                  onClick={handleReConnectSnapClick}
                   disabled={!state.installedSnap}
                 />
               ),
@@ -352,7 +381,8 @@ const Index = () => {
           </ErrorMessage>
         )}
       <CardContainer>
-        {state.scAccountOwner.address && state.installedSnap && (
+    
+        {state.scAccount.connected && state.installedSnap && (
           <Card
             content={{
               title: 'Entry Point',
@@ -365,7 +395,20 @@ const Index = () => {
           />
         )}
 
-        {state.scAccountOwner.address && state.installedSnap && (
+        {state.scAccount.connected && state.installedSnap && (
+          <Card
+            content={{
+              title: 'Smart Contract Account Factory',
+              description: state.scAccount.factoryAddress,
+            }}
+            disabled={!state.isFlask}
+            copyDescription
+            fullWidth
+            isAccount
+          />
+        )}
+
+        {state.scAccountOwner.connected && (
           <Card
             content={{
               title: 'Owner Account',
@@ -401,7 +444,7 @@ const Index = () => {
           />
         )}
 
-        {state.scAccount.address && state.installedSnap && (
+        {state.scAccount.connected && state.installedSnap && (
           <Card
             content={{
               title: 'Smart Contract Account',

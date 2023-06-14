@@ -1,4 +1,4 @@
-import type { BigNumberish, BytesLike } from 'ethers';
+import type { BigNumberish, BytesLike, ethers } from 'ethers';
 
 export type UserOperation = {
   sender: string;
@@ -30,6 +30,7 @@ export enum ReputationStatus {
 export type Account = {
   address: string;
   balance: string;
+  connected: boolean;
 };
 
 export type SmartContractAccount = {
@@ -38,5 +39,7 @@ export type SmartContractAccount = {
   nonce: string;
   index: string;
   entryPoint: string;
+  factoryAddress: string
   depoist: string;
+  connected: boolean;
 };

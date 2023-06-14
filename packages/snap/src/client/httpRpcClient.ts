@@ -1,4 +1,4 @@
-import { Wallet, ethers } from 'ethers';
+import { ethers } from 'ethers';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 
 export class HttpRpcClient {
@@ -39,7 +39,7 @@ export class HttpRpcClient {
     return this.DEFAULT_ACCOUNT_FACTORY;
   }
 
-  public getEntryPointContract(signer: Wallet): ethers.Contract {
+  public getEntryPointContract(signer: ethers.providers.JsonRpcSigner): ethers.Contract {
     return new ethers.Contract(
       this.DEFAULT_ENTRY_POINT,
       EntryPoint__factory.abi,

@@ -1,4 +1,4 @@
-# Transeptor ERC-4337 Snap
+# ERC-4337 Relayer Snap
 
 ![Node Version](https://img.shields.io/badge/node-16.x-green)
 ![Github workflow build status(main)](https://img.shields.io/github/actions/workflow/status/transeptorlabs/erc-4337-snap/build.yml?branch=main)

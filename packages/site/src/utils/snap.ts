@@ -2,7 +2,6 @@ import { BigNumber } from 'ethers';
 import { defaultSnapOrigin } from '../config';
 import { GetSnapsResponse, Snap } from '../types';
 import {
-  Account,
   ReputationEntry,
   SmartContractAccount,
   UserOperation,
@@ -61,26 +60,10 @@ export const getSnap = async (version?: string): Promise<Snap | undefined> => {
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
 
 // ERC-4337 account management *****************************************************
-export const getScAccountOwner = async (): Promise<Account> => {
+export const getScAccount = async (owner: string): Promise<SmartContractAccount> => {
   const result = await window.ethereum.request({
     method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: { method: 'sc_account_owner' },
-    },
-  });
-
-  const parsedResult = JSON.parse(result as string);
-  return {
-    address: parsedResult.address,
-    balance: BigNumber.from(parsedResult.balance).toString(),
-  } as Account;
-};
-
-export const getScAccount = async (): Promise<SmartContractAccount> => {
-  const result = await window.ethereum.request({
-    method: 'wallet_invokeSnap',
-    params: { snapId: defaultSnapOrigin, request: { method: 'sc_account' } },
+    params: { snapId: defaultSnapOrigin, request: { method: 'sc_account', params: [owner] } },
   });
 
   const parsedResult = JSON.parse(result as string);
@@ -88,9 +71,11 @@ export const getScAccount = async (): Promise<SmartContractAccount> => {
     address: parsedResult.address,
     balance: BigNumber.from(parsedResult.balance).toString(),
     entryPoint: parsedResult.entryPoint,
+    factoryAddress: parsedResult.factoryAddress,
     nonce: BigNumber.from(parsedResult.nonce).toString(),
     index: BigNumber.from(parsedResult.index).toString(),
     depoist: BigNumber.from(parsedResult.deposit).toString(),
+    connected: true,
   } as SmartContractAccount;
 };
 

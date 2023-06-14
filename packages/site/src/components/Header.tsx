@@ -1,10 +1,13 @@
 import { useContext } from 'react';
 import styled, { useTheme } from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
-import { connectSnap, getThemePreference, getSnap, getScAccountOwner, getScAccount, sendSupportedEntryPoints } from '../utils';
+import { connectSnap, getThemePreference, getSnap, getScAccount, sendSupportedEntryPoints } from '../utils';
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
+import { connectWallet, getAccountBalance } from '../utils/eth';
+import { Account } from '../types/erc-4337';
+import { ethers } from 'ethers';
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -71,47 +74,78 @@ export const Header = ({
 
   const handleConnectClick = async () => {
     try {
-      await connectSnap();
-      const installedSnap = await getSnap();
+      // connect wallet
+      let scAccountOwner: Account = {
+        address: '',
+        balance: '',
+        connected: false,
+      }
+      if (!state.scAccountOwner.connected) {
+        scAccountOwner = await connectWallet()
+        dispatch({
+          type: MetamaskActions.SetScAccountOwner,
+          payload: scAccountOwner,
+        });
+      }
+
+      if (window.ethereum) {
+        if (!state.isChainIdListener) {
+          console.log('creating lisnters:', state.isChainIdListener);
+          window.ethereum.on('chainChanged', async (chainId) => {
+            console.log('Network changed:', chainId);
+          });
+
+          window.ethereum.on('accountsChanged', async (accounts) => {
+            await refreshScOwnerState((accounts as string[])[0]);
+          });
+  
+          dispatch({
+            type: MetamaskActions.SetWalletListener,
+            payload: true,
+          });
+        }
+      }
+ 
+      // connect snap
+      let installedSnap = await getSnap();
+      if (!installedSnap) {
+        await connectSnap();
+        installedSnap = await getSnap();
+      }
 
       dispatch({
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
       
-      await refreshERC4337State();
-
-      if (window.ethereum) {
-        if (!state.isChainIdListener) {
-          console.log('creating lisner:', state.isChainIdListener);
-          window.ethereum.on('chainChanged', async (chainId) => {
-            console.log('Network changed:', chainId);
-            await refreshERC4337State();
-          });
-  
-          dispatch({
-            type: MetamaskActions.SetChainIdListener,
-            payload: true,
-          });
-        }
-      }
+      // fetch sc account state
+      await refreshScAccountState(scAccountOwner.address);
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
 
-  const refreshERC4337State = async () => {
-    const [scAccountOwner, scAccount, supportedEntryPoints] = await Promise.all([
-      getScAccountOwner(),
-      getScAccount(),
-      sendSupportedEntryPoints(),
-    ]);
-
+  const refreshScOwnerState = async (newOwner: string) => {
+    const changedScAccountOwner: Account = {
+      address: newOwner,
+      balance: await getAccountBalance(newOwner),
+      connected: true,
+    }
     dispatch({
       type: MetamaskActions.SetScAccountOwner,
-      payload: scAccountOwner,
+      payload: changedScAccountOwner,
     });
+
+    // fetch sc account state
+    await refreshScAccountState(changedScAccountOwner.address);
+  };
+
+  const refreshScAccountState = async (owner: string) => {
+    const [scAccount, supportedEntryPoints] = await Promise.all([
+      getScAccount(owner),
+      sendSupportedEntryPoints(),
+    ]);
 
     dispatch({
       type: MetamaskActions.SetScAccount,

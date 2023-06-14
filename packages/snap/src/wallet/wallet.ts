@@ -1,6 +1,6 @@
 import { BigNumber, Wallet, ethers } from 'ethers';
-import { SimpleAccountAPI } from '@account-abstraction/sdk';
 import { getBalance } from '../client';
+import { SimpleAccountAPI } from '../erc4337';
 
 const gasBuffer = 10000; // buffer of 10,000 gas
 
@@ -33,13 +33,14 @@ export const signMessage = async (
 export const getAbstractAccount = async (
   entryPointAddress: string,
   factoryAddress: string,
+  ownerAddress: string,
   index = 0,
 ): Promise<SimpleAccountAPI> => {
   const provider = new ethers.providers.Web3Provider(ethereum as any);
   const aa = new SimpleAccountAPI({
     provider,
     entryPointAddress,
-    owner: await getWallet(),
+    ownerAddress,
     factoryAddress,
     index, // nonce value used when creating multiple accounts for the same owner
   });
@@ -48,7 +49,7 @@ export const getAbstractAccount = async (
 
 export const submitTransaction = async (
   txData: ethers.providers.TransactionRequest,
-  signer: Wallet,
+  signer: ethers.providers.JsonRpcSigner,
 ): Promise<string> => {
   const res = await signer.sendTransaction(txData);
   const receipt = await res.wait();
@@ -56,21 +57,22 @@ export const submitTransaction = async (
 };
 
 export const depositToEntryPoint = async (
-  signer: Wallet,
+  signer: ethers.providers.JsonRpcSigner,
   epAddress: string,
   depositInWei: BigNumber,
   encodedFunctionData: string,
   estimateGasAmount: BigNumber,
   gasPrice: BigNumber,
 ): Promise<string> => {
-  const signerBalance = await getBalance(signer.address);
+  const signerAddress = await signer.getAddress();
+  const signerBalance = await getBalance(signerAddress);
   const totalAmount = estimateGasAmount.add(BigNumber.from(depositInWei));
   if (signerBalance.lt(totalAmount)) {
     throw new Error('Owner account has, insufficient balance');
   }
 
   const txData = {
-    from: signer.address,
+    from: signerAddress,
     to: epAddress,
     data: encodedFunctionData,
     value: depositInWei,
@@ -82,19 +84,21 @@ export const depositToEntryPoint = async (
 };
 
 export const withdrawFromEntryPoint = async (
-  signer: Wallet,
+  signer: ethers.providers.JsonRpcSigner,
   epAddress: string,
   encodedFunctionData: string,
   estimateGasAmount: BigNumber,
   gasPrice: BigNumber,
 ): Promise<string> => {
-  const signerBalance = await getBalance(signer.address);
+  const signerAddress = await signer.getAddress();
+
+  const signerBalance = await getBalance(signerAddress);
   if (signerBalance.lt(estimateGasAmount)) {
     throw new Error('Owner account has, insufficient balance');
   }
 
   const txData = {
-    from: signer.address,
+    from: signerAddress,
     to: epAddress,
     data: encodedFunctionData,
     gasPrice,

@@ -2,7 +2,6 @@ import { ComponentProps } from 'react';
 import styled from 'styled-components';
 import { MetamaskState } from '../hooks';
 import { ReactComponent as FlaskFox } from '../assets/flask_fox.svg';
-import { shouldDisplayReconnectButton } from '../utils';
 
 const Link = styled.a`
   display: flex;
@@ -94,6 +93,15 @@ export const ConnectSnapButton = (props: ComponentProps<typeof Button>) => {
   return (
     <Button {...props}>
       <FlaskFox />
+      <ButtonText>Connect snap</ButtonText>
+    </Button>
+  );
+};
+
+export const ConnectWalletButton = (props: ComponentProps<typeof Button>) => {
+  return (
+    <Button {...props}>
+      <FlaskFox />
       <ButtonText>Connect</ButtonText>
     </Button>
   );
@@ -123,16 +131,12 @@ export const HeaderButtons = ({
   state: MetamaskState;
   onConnectClick(): unknown;
 }) => {
-  if (!state.isFlask && !state.installedSnap) {
+  if (!state.isFlask) {
     return <InstallFlaskButton />;
   }
 
-  if (!state.installedSnap) {
-    return <ConnectSnapButton onClick={onConnectClick} />;
-  }
-
-  if (shouldDisplayReconnectButton(state.installedSnap)) {
-    return <ReconnectButton onClick={onConnectClick} />;
+  if (!state.scAccountOwner.connected) {
+    return <ConnectWalletButton onClick={onConnectClick} />;
   }
 
   return (

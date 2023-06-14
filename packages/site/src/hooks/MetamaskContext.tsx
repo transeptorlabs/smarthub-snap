@@ -25,16 +25,19 @@ const initialState: MetamaskState = {
   installedSnap: undefined,
   isChainIdListener: false,
   scAccountOwner: {
+    connected: false,
     address: '',
     balance: '',  // in wei
   },
   scAccount: {
+    connected: false,
     address: '',
     balance: '', // in wei
     nonce: '',
     index: '',
     entryPoint: '',
     depoist: '',
+    factoryAddress: '',
   },
 };
 
@@ -58,7 +61,7 @@ export enum MetamaskActions {
   SetScAccountOwner = "SetScAccountOwner",
   SetScAccount = "SetScAccount",
   SetSupportedEntryPoints = 'SetSupportedEntryPoints',
-  SetChainIdListener = 'SetChainIdListener',
+  SetWalletListener = 'SetWalletListener',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -93,7 +96,7 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         scAccount: action.payload,
       };
 
-    case MetamaskActions.SetChainIdListener:
+    case MetamaskActions.SetWalletListener:
       return {
         ...state,
         isChainIdListener: action.payload,

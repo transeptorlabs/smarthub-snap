@@ -1,6 +1,6 @@
 import { BigNumber, Wallet, ethers } from 'ethers';
 import { getBalance } from '../client';
-import { SimpleAccountAPI } from '../erc4337';
+import { SimpleScAccount } from '../erc4337';
 
 const gasBuffer = 10000; // buffer of 10,000 gas
 
@@ -35,9 +35,9 @@ export const getAbstractAccount = async (
   factoryAddress: string,
   ownerAddress: string,
   index = 0,
-): Promise<SimpleAccountAPI> => {
+): Promise<SimpleScAccount> => {
   const provider = new ethers.providers.Web3Provider(ethereum as any);
-  const aa = new SimpleAccountAPI({
+  const aa = new SimpleScAccount({
     provider,
     entryPointAddress,
     ownerAddress,

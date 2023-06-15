@@ -39,11 +39,12 @@ export class HttpRpcClient {
     return this.DEFAULT_ACCOUNT_FACTORY;
   }
 
-  public getEntryPointContract(signer: ethers.providers.JsonRpcSigner): ethers.Contract {
+  public getEntryPointContract(): ethers.Contract {
+    const provider = new ethers.providers.Web3Provider(ethereum as any);
     return new ethers.Contract(
       this.DEFAULT_ENTRY_POINT,
       EntryPoint__factory.abi,
-      signer,
+      provider,
     );
   }
 

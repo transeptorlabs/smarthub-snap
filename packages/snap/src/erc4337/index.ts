@@ -1,1 +1,1 @@
-export {SimpleAccountAPI} from './SimpleAccountAPI'
+export {SimpleScAccount} from './SimpleScAccount'

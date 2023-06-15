@@ -14,7 +14,7 @@ import {
 import { HttpRpcClient, getBalance, getDeposit, getGasPrice } from './client';
 import { convertToEth } from './utils';
 import { UserOperationStruct } from '@account-abstraction/contracts';
-import { SimpleAccountAPI } from './erc4337';
+import { SimpleScAccount } from './erc4337';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -33,7 +33,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   const chainId = await ethereum.request({ method: 'eth_chainId' });
   const rpcClient = new HttpRpcClient(parseInt(chainId as string, 16));
   let result;
-  let scAccount: SimpleAccountAPI;
+  let scAccount: SimpleScAccount;
   let scOwnerAddress: string;
   let scAddress: string;
 

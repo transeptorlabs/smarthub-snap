@@ -70,6 +70,11 @@ export const light: DefaultTheme = {
       alternative: '#b92534',
       muted: '#d73a4919',
     },
+    success: {
+      default: '#32a852',
+      alternative: '#109133',
+      muted: '#bff5ce',
+    },
   },
   ...theme,
 };
@@ -108,6 +113,11 @@ export const dark: DefaultTheme = {
       default: '#d73a49',
       alternative: '#b92534',
       muted: '#d73a4919',
+    },
+    success: {
+      default: '#32a852',
+      alternative: '#109133',
+      muted: '#bff5ce',
     },
   },
   ...theme,

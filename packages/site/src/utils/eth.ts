@@ -1,7 +1,19 @@
 import { BigNumber, ethers } from 'ethers';
+import { EntryPoint__factory } from '@account-abstraction/contracts';
+import { EOA } from '../types';
+import { getMMProvider } from './metamask';
 
-export const connectWallet = async (): Promise<string> => {
-  const accounts = await window.ethereum
+export const getAccountBalance = async (account: string): Promise<string> => {
+  const ethersProvider = new ethers.providers.Web3Provider(
+    getMMProvider() as any,
+  );
+  const balance = await ethersProvider.getBalance(account);
+  return balance.toString();
+};
+
+export const connectWallet = async (): Promise<EOA> => {
+  const provider = getMMProvider();
+  const accounts = await provider
     .request({ method: 'eth_requestAccounts' })
     .catch((err) => {
       if (err.code === 4001) {
@@ -9,10 +21,16 @@ export const connectWallet = async (): Promise<string> => {
         // If this happens, the user rejected the connection request.
         console.log('Please connect to MetaMask.');
       } else {
-        console.error(err);
+        throw Error(err);
       }
     });
-  return accounts as string[][0];
+
+  const account: string = (accounts as string[])[0];
+  return {
+    address: account,
+    balance: await getAccountBalance(account),
+    connected: true,
+  } as EOA;
 };
 
 export const trimAccount = (account: string): string => {
@@ -47,4 +65,54 @@ export const convertToWei = (amount: string): BigNumber => {
 
 export const isValidAddress = (address: string) => {
   return ethers.utils.isAddress(address);
+};
+
+export const encodeFunctionData = async (
+  contract: ethers.Contract,
+  functionName: string,
+  params: any[],
+): Promise<string> => {
+  return contract.interface.encodeFunctionData(functionName, params);
+};
+
+export const getEntryPointContract = (epAddress: string): ethers.Contract => {
+  const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+  return new ethers.Contract(
+    epAddress,
+    EntryPoint__factory.abi,
+    provider.getSigner(),
+  );
+};
+
+export const estimateGas = async (
+  from: string,
+  to: string,
+  data: string | ethers.utils.Bytes,
+): Promise<BigNumber> => {
+  const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+  const estimate = await provider
+    .estimateGas({ from, to, data })
+    .catch((err) => {
+      const pattern = /\(reason="(.*?)", method="(.*?)", transaction=/u;
+      const matches = err.message.match(pattern);
+      if (matches && matches.length >= 3) {
+        const reason = matches[1];
+        const method = matches[2];
+        throw new Error(
+          `Failed to estimate gas: ${reason}, when snap calling ${method}. `,
+        );
+      } else {
+        throw new Error(
+          'Unable to extract information from the error message when estimating gas.',
+        );
+      }
+    });
+
+  const buffer = estimate.add(estimate.mul(50).div(100)); // 50% buffer
+  return BigNumber.from(estimate.toNumber() + buffer.toNumber());
+};
+
+export const getGasPrice = async (): Promise<BigNumber> => {
+  const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+  return await provider.getGasPrice();
 };

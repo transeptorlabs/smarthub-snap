@@ -1,4 +1,4 @@
-import { Wallet, ethers } from 'ethers';
+import { ethers } from 'ethers';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 
 export class HttpRpcClient {
@@ -39,11 +39,12 @@ export class HttpRpcClient {
     return this.DEFAULT_ACCOUNT_FACTORY;
   }
 
-  public getEntryPointContract(signer: Wallet): ethers.Contract {
+  public getEntryPointContract(): ethers.Contract {
+    const provider = new ethers.providers.Web3Provider(ethereum as any);
     return new ethers.Contract(
       this.DEFAULT_ENTRY_POINT,
       EntryPoint__factory.abi,
-      signer,
+      provider,
     );
   }
 
@@ -51,8 +52,13 @@ export class HttpRpcClient {
     return this.chainId;
   }
 
+  public getBundlerUrl(): string {
+    return this.bundlerUrl;
+  }
+
   public async send(method: string, params: any[]): Promise<any> {
     const result = await this.provider.send(method, params);
+    // TODO: parse result and throw error if any
     return result;
   }
 }

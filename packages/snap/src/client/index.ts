@@ -9,5 +9,5 @@ export {
   getGasPrice,
   encodeFunctionData,
   estimateGas,
-  estimateGasCost
+  estimateGasCost,
 } from './mm-provider';

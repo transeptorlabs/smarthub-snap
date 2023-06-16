@@ -1,4 +1,4 @@
-import { Wallet, ethers } from 'ethers';
+import { BigNumberish, Wallet, ethers } from 'ethers';
 import { SimpleAccountAPI } from '@account-abstraction/sdk';
 
 export const getWallet = async (): Promise<Wallet> => {
@@ -30,7 +30,7 @@ export const signMessage = async (
 export const getSimpleScAccount = async (
   entryPointAddress: string,
   factoryAddress: string,
-  index = 0,
+  index: BigNumberish = '0',
 ): Promise<SimpleAccountAPI> => {
   const provider = new ethers.providers.Web3Provider(ethereum as any);
   const owner = await getWallet();

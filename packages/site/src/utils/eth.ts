@@ -1,10 +1,18 @@
 import { BigNumber, ethers } from 'ethers';
-import { Account } from '../types/erc-4337';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
+import { EOA } from '../types';
 import { getMMProvider } from './metamask';
 
-export const connectWallet = async (): Promise<Account> => {
-  const provider = getMMProvider()
+export const getAccountBalance = async (account: string): Promise<string> => {
+  const ethersProvider = new ethers.providers.Web3Provider(
+    getMMProvider() as any,
+  );
+  const balance = await ethersProvider.getBalance(account);
+  return balance.toString();
+};
+
+export const connectWallet = async (): Promise<EOA> => {
+  const provider = getMMProvider();
   const accounts = await provider
     .request({ method: 'eth_requestAccounts' })
     .catch((err) => {
@@ -16,19 +24,13 @@ export const connectWallet = async (): Promise<Account> => {
         throw Error(err);
       }
     });
-  
-  const account: string = (accounts as string[])[0]
+
+  const account: string = (accounts as string[])[0];
   return {
     address: account,
     balance: await getAccountBalance(account),
     connected: true,
-  } as Account;
-};
-
-export const getAccountBalance = async (account: string): Promise<string> => {
-  const ethersProvider = new ethers.providers.Web3Provider(getMMProvider() as any);
-  const balance = await ethersProvider.getBalance(account);
-  return balance.toString()
+  } as EOA;
 };
 
 export const trimAccount = (account: string): string => {
@@ -105,11 +107,10 @@ export const estimateGas = async (
         );
       }
     });
-  
-  const buffer = estimate.add((estimate.mul(50).div(100)))// 50% buffer
+
+  const buffer = estimate.add(estimate.mul(50).div(100)); // 50% buffer
   return BigNumber.from(estimate.toNumber() + buffer.toNumber());
 };
-
 
 export const getGasPrice = async (): Promise<BigNumber> => {
   const provider = new ethers.providers.Web3Provider(getMMProvider() as any);

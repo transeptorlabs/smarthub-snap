@@ -25,5 +25,5 @@ export const getMMProvider = (): MetaMaskInpageProvider => {
   if (!window.ethereum) {
     throw new Error('No MetaMask provider found');
   }
-  return window.ethereum 
-}
+  return window.ethereum;
+};

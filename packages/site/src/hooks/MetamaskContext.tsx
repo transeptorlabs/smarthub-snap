@@ -65,6 +65,7 @@ export enum MetamaskActions {
   SetSupportedEntryPoints = 'SetSupportedEntryPoints',
   SetWalletListener = 'SetWalletListener',
   SetUserOpHash = 'SetUserOpHash',
+  SetClearAccount = 'SetClearAccount',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -109,6 +110,28 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
       return {
         ...state,
         userOpsHash: action.payload,
+      };
+
+    case MetamaskActions.SetClearAccount:
+      return {
+        ...state,
+        eoa: {
+          connected: false,
+          address: '',
+          balance: '',  // in wei
+        },
+        scAccount: {
+          connected: false,
+          address: '',
+          balance: '', // in wei
+          nonce: '',
+          index: '',
+          entryPoint: '',
+          depoist: '',
+          factoryAddress: '',
+          ownerAddress: '',
+          bundlerUrl: '',
+        },
       };
 
     default:

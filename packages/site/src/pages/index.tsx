@@ -26,7 +26,7 @@ import {
   Card,
   TokenInputForm,
 } from '../components';
-import { BigNumber } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import { EOA } from '../types/erc-4337';
 
 const Container = styled.div`
@@ -254,9 +254,11 @@ const Index = () => {
       encodedFunctionData,
     );
 
+    const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+
     const overrides = {
       value: depositInWei.toString(),
-      // gasPrice: await getGasPrice(),
+      gasPrice: await provider.getGasPrice(),
       gasLimit: estimateGasAmount.toNumber(),
     };
     const result = await entryPointContract.depositTo(state.scAccount.address, overrides).catch((error: any) => dispatch({ type: MetamaskActions.SetError, payload: error }));
@@ -435,52 +437,13 @@ const Index = () => {
       </CardContainer>
 
       <LineBreak></LineBreak>
-      <Subtitle>Overview</Subtitle>
+      <Subtitle>Accounts</Subtitle>
       {state.error && (
           <ErrorMessage>
             <b>An error happened:</b> {state.error.message}
           </ErrorMessage>
       )}
       <CardContainer>
-    
-        {state.scAccount.connected && state.installedSnap && (
-          <Card
-            content={{
-              title: 'Entry Point',
-              description: state.scAccount.entryPoint,
-            }}
-            disabled={!state.isFlask}
-            copyDescription
-            fullWidth
-            isAccount
-          />
-        )}
-
-        {state.scAccount.connected && state.installedSnap && (
-          <Card
-            content={{
-              title: 'Smart Contract Account Factory',
-              description: state.scAccount.factoryAddress,
-            }}
-            disabled={!state.isFlask}
-            copyDescription
-            fullWidth
-            isAccount
-          />
-        )}
-
-        {state.scAccount.connected && state.installedSnap && (
-          <Card
-            content={{
-              title: 'Bundler Url',
-              description: state.scAccount.bundlerUrl,
-            }}
-            disabled={!state.isFlask}
-            copyDescription
-            fullWidth
-          />
-        )}
-
         {state.eoa.connected && (
           <Card
             content={{
@@ -520,7 +483,7 @@ const Index = () => {
         {state.scAccount.connected && state.installedSnap && (
           <Card
             content={{
-              title: 'Smart Contract Account',
+              title: 'Transeptor Deposit Account',
               description: `${state.scAccount.address}`,
               stats: [
                 {

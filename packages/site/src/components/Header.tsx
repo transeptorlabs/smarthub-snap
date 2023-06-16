@@ -124,6 +124,7 @@ export const Header = ({
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
+      dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
     }
   };
 

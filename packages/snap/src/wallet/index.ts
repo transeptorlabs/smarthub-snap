@@ -2,5 +2,5 @@ export {
   getSimpleScAccount,
   getWallet,
   getOwnerAddr,
-  signMessage
+  signMessage,
 } from './wallet';

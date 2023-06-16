@@ -58,6 +58,7 @@ export class HttpRpcClient {
 
   public async send(method: string, params: any[]): Promise<any> {
     const result = await this.provider.send(method, params);
+    // TODO: parse result and throw error if any
     return result;
   }
 }

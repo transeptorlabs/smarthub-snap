@@ -1,14 +1,13 @@
 import { BigNumber } from 'ethers';
 import { defaultSnapOrigin } from '../config';
-import { GetSnapsResponse, Snap } from '../types';
 import {
+  GetSnapsResponse,
+  Snap,
   ReputationEntry,
   SmartContractAccount,
   UserOpToSign,
-  UserOperation,
-} from '../types/erc-4337';
+} from '../types';
 import { getMMProvider } from './metamask';
-import { UserOperationStruct } from '@account-abstraction/contracts'
 
 // Snap management *****************************************************************
 /**
@@ -66,7 +65,10 @@ export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
 export const getScAccount = async (): Promise<SmartContractAccount> => {
   const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
-    params: { snapId: defaultSnapOrigin, request: { method: 'sc_account', params: [] } },
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'sc_account', params: [] },
+    },
   });
 
   const parsedResult = JSON.parse(result as string);
@@ -91,18 +93,16 @@ export const createUserOpToSign = async (
   data: string,
   index: string,
 ): Promise<UserOpToSign> => {
-  const result =  (await getMMProvider().request({
+  const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'create_userop_to_sign', params: [
-        ownerAddress, 
-        target,
-        data,
-        index,
-      ] },
+      request: {
+        method: 'create_userop_to_sign',
+        params: [ownerAddress, target, data, index],
+      },
     },
-  }));
+  });
 
   const parsedResult = JSON.parse(result as string);
   console.log('createUserOpToSign result', parsedResult);
@@ -110,7 +110,7 @@ export const createUserOpToSign = async (
   return {
     userOpHash: parsedResult.userOpHash,
     userOp: parsedResult.userOp,
-  } as UserOpToSign
+  } as UserOpToSign;
 };
 
 export const sendSupportedEntryPoints = async (): Promise<string[]> => {

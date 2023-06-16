@@ -1,19 +1,4 @@
-import type { BigNumberish, BytesLike } from 'ethers';
-import { UserOperationStruct } from '@account-abstraction/contracts'
-
-export type UserOperation = {
-  sender: string;
-  nonce: BigNumberish;
-  initCode: BytesLike;
-  callData: BytesLike;
-  callGasLimit: BigNumberish;
-  verificationGasLimit: BigNumberish;
-  preVerificationGas: BigNumberish;
-  maxFeePerGas: BigNumberish;
-  maxPriorityFeePerGas: BigNumberish;
-  paymasterAndData: BytesLike;
-  signature: BytesLike;
-};
+import { UserOperationStruct } from '@account-abstraction/contracts';
 
 export type ReputationEntry = {
   address: string;
@@ -41,7 +26,7 @@ export type SmartContractAccount = {
   nonce: string;
   index: string;
   entryPoint: string;
-  factoryAddress: string
+  factoryAddress: string;
   depoist: string;
   connected: boolean;
   bundlerUrl: string;
@@ -50,4 +35,4 @@ export type SmartContractAccount = {
 export type UserOpToSign = {
   userOpHash: string;
   userOp: UserOperationStruct;
-}
+};

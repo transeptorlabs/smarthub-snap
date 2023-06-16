@@ -4,11 +4,20 @@ import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
   connectSnap,
   getSnap,
-  depositToEntryPoint,
   getScAccount,
   sendSupportedEntryPoints,
   shouldDisplayReconnectButton,
-  withdrawFromEntryPoint,
+  createUserOpToSign,
+  getMMProvider,
+  connectWallet, 
+  convertToEth, 
+  convertToWei, 
+  estimateGas, 
+  getAccountBalance,
+  isValidAddress, 
+  encodeFunctionData,
+  getEntryPointContract,
+  sendUserOperation,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -17,9 +26,8 @@ import {
   Card,
   TokenInputForm,
 } from '../components';
-import { connectWallet, convertToEth, convertToWei, getAccountBalance, isValidAddress } from '../utils/eth';
 import { BigNumber } from 'ethers';
-import { Account } from '../types/erc-4337';
+import { EOA } from '../types/erc-4337';
 
 const Container = styled.div`
   display: flex;
@@ -105,6 +113,25 @@ const ErrorMessage = styled.div`
   }
 `;
 
+const SuccessMessage = styled.div`
+  background-color: ${({ theme }) => theme.colors.success.muted};
+  border: 1px solid ${({ theme }) => theme.colors.success.default};
+  color: ${({ theme }) => theme.colors.success.alternative};
+  border-radius: ${({ theme }) => theme.radii.default};
+  padding: 2.4rem;
+  margin-bottom: 2.4rem;
+  margin-top: 2.4rem;
+  max-width: 60rem;
+  width: 100%;
+  text-align: center;
+  ${({ theme }) => theme.mediaQueries.small} {
+    padding: 1.6rem;
+    margin-bottom: 1.2rem;
+    margin-top: 1.2rem;
+    max-width: 100%;
+  }
+`;
+
 const LineBreak = styled.hr`
   color: black;
   border: solid;
@@ -123,28 +150,28 @@ const Index = () => {
   const handleReConnectSnapClick = async () => {
     try {
       // connect wallet
-      let scAccountOwner: Account = {
-      address: '',
-      balance: '',
-      connected: false,
+      let eoa: EOA = {
+        address: '',
+        balance: '',
+        connected: false,
       }
-      if (!state.scAccountOwner.connected) {
-        scAccountOwner = await connectWallet()
+      if (!state.eoa.connected) {
+        eoa = await connectWallet()
         dispatch({
-          type: MetamaskActions.SetScAccountOwner,
-          payload: scAccountOwner,
+          type: MetamaskActions.SetEOA,
+          payload: eoa,
         });
       }
 
-      if (window.ethereum) {
+      const provider = getMMProvider()
+      if (provider) {
         if (!state.isChainIdListener) {
-          console.log('creating lisnters:', state.isChainIdListener);
-          window.ethereum.on('chainChanged', async (chainId) => {
+          provider.on('chainChanged', async (chainId) => {
             console.log('Network changed:', chainId);
           });
 
-          window.ethereum.on('accountsChanged', async (accounts) => {
-            await refreshScOwnerState((accounts as string[])[0]);
+          provider.on('accountsChanged', async (accounts) => {
+            await refreshEOAState((accounts as string[])[0]);
           });
   
           dispatch({
@@ -164,31 +191,31 @@ const Index = () => {
       });
 
       // fetch sc account state
-      await refreshScAccountState(scAccountOwner.address);
+      await refreshScAccountState();
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
 
-  const refreshScOwnerState = async (newOwner: string) => {
-    const changedScAccountOwner: Account = {
+  const refreshEOAState = async (newOwner: string) => {
+    const changedeoa: EOA = {
       address: newOwner,
       balance: await getAccountBalance(newOwner),
       connected: true,
     }
     dispatch({
-      type: MetamaskActions.SetScAccountOwner,
-      payload: changedScAccountOwner,
+      type: MetamaskActions.SetEOA,
+      payload: changedeoa,
     });
 
     // fetch sc account state
-    await refreshScAccountState(changedScAccountOwner.address);
+    await refreshScAccountState();
   };
 
-  const refreshScAccountState = async (owner: string) => {
+  const refreshScAccountState = async () => {
     const [scAccount, supportedEntryPoints] = await Promise.all([
-      getScAccount(owner),
+      getScAccount(),
       sendSupportedEntryPoints(),
     ]);
 
@@ -207,21 +234,46 @@ const Index = () => {
     e.preventDefault();
     const depositInWei = convertToWei(depositAmount);
 
-    console.log('handleDepositSubmit(amount):', depositInWei.toString());
-    if (BigNumber.from(state.scAccountOwner.balance).lt(depositInWei)) {
+    // check the owner account has enough balance
+    if (BigNumber.from(state.eoa.balance).lt(depositInWei)) {
       dispatch({ type: MetamaskActions.SetError, payload: new Error('Owner accout has, insufficient funds') });
       return;
     }
-    const txhash = await depositToEntryPoint(depositInWei.toString(), state.scAccount.address);
-    console.log('handleDepositSubmit(txhash):', txhash);
+    
+    const entryPointContract = getEntryPointContract(state.scAccount.entryPoint);
+
+    // estimate gas
+    const encodedFunctionData = await encodeFunctionData(
+      getEntryPointContract(state.scAccount.entryPoint),
+      'depositTo',
+      [state.scAccount.address]
+    );
+    const estimateGasAmount = await estimateGas(
+      state.eoa.address,
+      state.scAccount.entryPoint,
+      encodedFunctionData,
+    );
+
+    const overrides = {
+      value: depositInWei.toString(),
+      // gasPrice: await getGasPrice(),
+      gasLimit: estimateGasAmount.toNumber(),
+    };
+    const result = await entryPointContract.depositTo(state.scAccount.address, overrides).catch((error: any) => dispatch({ type: MetamaskActions.SetError, payload: error }));
+    if (!result) {
+      return;
+    }
+    const rep = await result.wait();
+    
+    // refresh account balances
     setDepositAmount('');
+    await refreshEOAState(state.eoa.address);
+    await refreshScAccountState();
   }
 
   const handleWithdrawSubmit = async (e: any) => {
     e.preventDefault();
     const withdrawAmountInWei = convertToWei(withdrawAmount);
-    console.log('withdrawAmountInWei:', withdrawAmountInWei.toString());
-
     if (!isValidAddress(withDrawAddr)) {
       dispatch({ type: MetamaskActions.SetError, payload: new Error('Invalid address') });
       return;
@@ -233,14 +285,23 @@ const Index = () => {
     }
 
     try {
-      // get estimated user op gas
+      const encodedFunctionData = await encodeFunctionData(
+        getEntryPointContract(state.scAccount.entryPoint),
+        'withdrawTo',
+        [state.eoa.address, withdrawAmountInWei.toString()]
+      );
 
-      // create user op
+      const userOpHash = await sendUserOperation(
+        state.scAccount.entryPoint,
+        encodedFunctionData,
+        state.scAccount.index,
+      )
 
-      // send user op
+      dispatch({
+        type: MetamaskActions.SetUserOpHash,
+        payload: userOpHash,
+      });
 
-      const txhash = await withdrawFromEntryPoint(withdrawAmountInWei.toString(), withDrawAddr);
-      console.log('handleWithdrawSubmit(txhash):', txhash);
       setWithdrawAmount('');
       setWithDrawAddr('');
     } catch (e) {
@@ -379,7 +440,7 @@ const Index = () => {
           <ErrorMessage>
             <b>An error happened:</b> {state.error.message}
           </ErrorMessage>
-        )}
+      )}
       <CardContainer>
     
         {state.scAccount.connected && state.installedSnap && (
@@ -408,16 +469,28 @@ const Index = () => {
           />
         )}
 
-        {state.scAccountOwner.connected && (
+        {state.scAccount.connected && state.installedSnap && (
           <Card
             content={{
-              title: 'Owner Account',
-              description: `${state.scAccountOwner.address}`,
+              title: 'Bundler Url',
+              description: state.scAccount.bundlerUrl,
+            }}
+            disabled={!state.isFlask}
+            copyDescription
+            fullWidth
+          />
+        )}
+
+        {state.eoa.connected && (
+          <Card
+            content={{
+              title: 'Connected EOA',
+              description: `${state.eoa.address}`,
               stats: [
                 {
                   id: `1`,
                   title: 'Balance',
-                  value: `${convertToEth(state.scAccountOwner.balance)} ETH`,
+                  value: `${convertToEth(state.eoa.balance)} ETH`,
                 },
               ],
               form: [
@@ -482,6 +555,22 @@ const Index = () => {
             disabled={!state.isFlask}
             copyDescription
             isAccount
+            fullWidth
+          />
+        )}
+        {state.userOpsHash && (
+          <SuccessMessage>
+            <b>UserOp successfully send</b>
+          </SuccessMessage>
+        )}
+
+        {state.scAccount.connected && state.installedSnap && (
+          <Card
+            content={{
+              title: 'User Operations Builder',
+              description: 'Coming soon...',
+            }}
+            disabled={!state.isFlask}
             fullWidth
           />
         )}

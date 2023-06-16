@@ -1,4 +1,5 @@
-import type { BigNumberish, BytesLike, ethers } from 'ethers';
+import type { BigNumberish, BytesLike } from 'ethers';
+import { UserOperationStruct } from '@account-abstraction/contracts'
 
 export type UserOperation = {
   sender: string;
@@ -27,7 +28,7 @@ export enum ReputationStatus {
   BANNED,
 }
 
-export type Account = {
+export type EOA = {
   address: string;
   balance: string;
   connected: boolean;
@@ -35,6 +36,7 @@ export type Account = {
 
 export type SmartContractAccount = {
   address: string;
+  ownerAddress: string;
   balance: string;
   nonce: string;
   index: string;
@@ -42,4 +44,10 @@ export type SmartContractAccount = {
   factoryAddress: string
   depoist: string;
   connected: boolean;
+  bundlerUrl: string;
 };
+
+export type UserOpToSign = {
+  userOpHash: string;
+  userOp: UserOperationStruct;
+}

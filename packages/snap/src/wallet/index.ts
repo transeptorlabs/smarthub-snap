@@ -1,12 +1,6 @@
 export {
-  getOwnerAddr,
-  signMessage,
-  getAbstractAccount,
-  depositToEntryPoint,
+  getSimpleScAccount,
   getWallet,
-  encodeFunctionData,
-  estimateGas,
-  submitTransaction,
-  estimateGasCost,
-  withdrawFromEntryPoint,
+  getOwnerAddr,
+  signMessage
 } from './wallet';

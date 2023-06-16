@@ -1,1 +1,0 @@
-export {SimpleScAccount} from './SimpleScAccount'

@@ -8,14 +8,15 @@ import {
 } from 'react';
 import { Snap } from '../types';
 import { isFlask, getSnap } from '../utils';
-import { Account, SmartContractAccount } from '../types/erc-4337';
+import { EOA, SmartContractAccount } from '../types/erc-4337';
 
 export type MetamaskState = {
   isFlask: boolean;
   isChainIdListener: boolean;
   installedSnap?: Snap;
   error?: Error;
-  scAccountOwner: Account;
+  userOpsHash?: string;
+  eoa: EOA;
   scAccount: SmartContractAccount;
 };
 
@@ -24,7 +25,8 @@ const initialState: MetamaskState = {
   error: undefined,
   installedSnap: undefined,
   isChainIdListener: false,
-  scAccountOwner: {
+  userOpsHash: '',
+  eoa: {
     connected: false,
     address: '',
     balance: '',  // in wei
@@ -38,6 +40,8 @@ const initialState: MetamaskState = {
     entryPoint: '',
     depoist: '',
     factoryAddress: '',
+    ownerAddress: '',
+    bundlerUrl: '',
   },
 };
 
@@ -52,16 +56,15 @@ export const MetaMaskContext = createContext<
   },
 ]);
 
-
 export enum MetamaskActions {
   SetInstalled = 'SetInstalled',
   SetFlaskDetected = 'SetFlaskDetected',
   SetError = 'SetError',
-  SetAccount = 'SetAccount',
-  SetScAccountOwner = "SetScAccountOwner",
+  SetEOA = "SetEOA",
   SetScAccount = "SetScAccount",
   SetSupportedEntryPoints = 'SetSupportedEntryPoints',
   SetWalletListener = 'SetWalletListener',
+  SetUserOpHash = 'SetUserOpHash',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -84,10 +87,10 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         error: action.payload,
       };
 
-    case MetamaskActions.SetScAccountOwner:
+    case MetamaskActions.SetEOA:
       return {
         ...state,
-        scAccountOwner: action.payload,
+        eoa: action.payload,
       };
 
     case MetamaskActions.SetScAccount:
@@ -100,6 +103,12 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
       return {
         ...state,
         isChainIdListener: action.payload,
+      };
+
+    case MetamaskActions.SetUserOpHash:
+      return {
+        ...state,
+        userOpsHash: action.payload,
       };
 
     default:
@@ -164,6 +173,25 @@ export const MetaMaskProvider = ({ children }: { children: ReactNode }) => {
       }
     };
   }, [state.error]);
+
+  useEffect(() => {
+    let timeoutId: number;
+
+    if (state.userOpsHash) {
+      timeoutId = window.setTimeout(() => {
+        dispatch({
+          type: MetamaskActions.SetUserOpHash,
+          payload: '',
+        });
+      }, 10000);
+    }
+
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [state.userOpsHash]);
 
   return (
     <MetaMaskContext.Provider value={[state, dispatch]}>

@@ -52,6 +52,10 @@ export class HttpRpcClient {
     return this.chainId;
   }
 
+  public getBundlerUrl(): string {
+    return this.bundlerUrl;
+  }
+
   public async send(method: string, params: any[]): Promise<any> {
     const result = await this.provider.send(method, params);
     return result;

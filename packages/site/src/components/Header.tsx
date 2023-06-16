@@ -1,12 +1,12 @@
 import { useContext } from 'react';
 import styled, { useTheme } from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
-import { connectSnap, getThemePreference, getSnap, getScAccount, sendSupportedEntryPoints } from '../utils';
+import { connectSnap, getThemePreference, getSnap, getScAccount, sendSupportedEntryPoints, getMMProvider } from '../utils';
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
 import { connectWallet, getAccountBalance } from '../utils/eth';
-import { Account } from '../types/erc-4337';
+import { EOA } from '../types/erc-4337';
 import { ethers } from 'ethers';
 
 const HeaderWrapper = styled.header`
@@ -75,28 +75,29 @@ export const Header = ({
   const handleConnectClick = async () => {
     try {
       // connect wallet
-      let scAccountOwner: Account = {
+      let eoa: EOA = {
         address: '',
         balance: '',
         connected: false,
       }
-      if (!state.scAccountOwner.connected) {
-        scAccountOwner = await connectWallet()
+      if (!state.eoa.connected) {
+        eoa = await connectWallet()
         dispatch({
-          type: MetamaskActions.SetScAccountOwner,
-          payload: scAccountOwner,
+          type: MetamaskActions.SetEOA,
+          payload: eoa,
         });
       }
 
-      if (window.ethereum) {
+      const provider = getMMProvider()
+      if (provider) {
         if (!state.isChainIdListener) {
           console.log('creating lisnters:', state.isChainIdListener);
-          window.ethereum.on('chainChanged', async (chainId) => {
+          provider.on('chainChanged', async (chainId) => {
             console.log('Network changed:', chainId);
           });
 
-          window.ethereum.on('accountsChanged', async (accounts) => {
-            await refreshScOwnerState((accounts as string[])[0]);
+          provider.on('accountsChanged', async (accounts) => {
+            await refreshEOAState((accounts as string[])[0]);
           });
   
           dispatch({
@@ -119,31 +120,31 @@ export const Header = ({
       });
       
       // fetch sc account state
-      await refreshScAccountState(scAccountOwner.address);
+      await refreshScAccountState();
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
 
-  const refreshScOwnerState = async (newOwner: string) => {
-    const changedScAccountOwner: Account = {
-      address: newOwner,
-      balance: await getAccountBalance(newOwner),
+  const refreshEOAState = async (newEOA: string) => {
+    const changedeoa: EOA = {
+      address: newEOA,
+      balance: await getAccountBalance(newEOA),
       connected: true,
     }
     dispatch({
-      type: MetamaskActions.SetScAccountOwner,
-      payload: changedScAccountOwner,
+      type: MetamaskActions.SetEOA,
+      payload: changedeoa,
     });
 
     // fetch sc account state
-    await refreshScAccountState(changedScAccountOwner.address);
+    await refreshScAccountState();
   };
 
-  const refreshScAccountState = async (owner: string) => {
+  const refreshScAccountState = async () => {
     const [scAccount, supportedEntryPoints] = await Promise.all([
-      getScAccount(owner),
+      getScAccount(),
       sendSupportedEntryPoints(),
     ]);
 

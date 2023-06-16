@@ -135,7 +135,7 @@ export const HeaderButtons = ({
     return <InstallFlaskButton />;
   }
 
-  if (!state.scAccountOwner.connected) {
+  if (!state.eoa.connected) {
     return <ConnectWalletButton onClick={onConnectClick} />;
   }
 

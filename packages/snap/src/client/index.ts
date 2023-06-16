@@ -7,4 +7,7 @@ export {
   getChainId,
   getFeeData,
   getGasPrice,
+  encodeFunctionData,
+  estimateGas,
+  estimateGasCost
 } from './mm-provider';

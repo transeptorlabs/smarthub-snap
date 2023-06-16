@@ -1,8 +1,11 @@
 import { BigNumber, ethers } from 'ethers';
 import { Account } from '../types/erc-4337';
+import { EntryPoint__factory } from '@account-abstraction/contracts';
+import { getMMProvider } from './metamask';
 
 export const connectWallet = async (): Promise<Account> => {
-  const accounts = await window.ethereum
+  const provider = getMMProvider()
+  const accounts = await provider
     .request({ method: 'eth_requestAccounts' })
     .catch((err) => {
       if (err.code === 4001) {
@@ -23,7 +26,7 @@ export const connectWallet = async (): Promise<Account> => {
 };
 
 export const getAccountBalance = async (account: string): Promise<string> => {
-  const ethersProvider = new ethers.providers.Web3Provider(window.ethereum as any);
+  const ethersProvider = new ethers.providers.Web3Provider(getMMProvider() as any);
   const balance = await ethersProvider.getBalance(account);
   return balance.toString()
 };
@@ -68,4 +71,47 @@ export const encodeFunctionData = async (
   params: any[],
 ): Promise<string> => {
   return contract.interface.encodeFunctionData(functionName, params);
+};
+
+export const getEntryPointContract = (epAddress: string): ethers.Contract => {
+  const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+  return new ethers.Contract(
+    epAddress,
+    EntryPoint__factory.abi,
+    provider.getSigner(),
+  );
+};
+
+export const estimateGas = async (
+  from: string,
+  to: string,
+  data: string | ethers.utils.Bytes,
+): Promise<BigNumber> => {
+  const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+  const estimate = await provider
+    .estimateGas({ from, to, data })
+    .catch((err) => {
+      const pattern = /\(reason="(.*?)", method="(.*?)", transaction=/u;
+      const matches = err.message.match(pattern);
+      if (matches && matches.length >= 3) {
+        const reason = matches[1];
+        const method = matches[2];
+        throw new Error(
+          `Failed to estimate gas: ${reason}, when snap calling ${method}. `,
+        );
+      } else {
+        throw new Error(
+          'Unable to extract information from the error message when estimating gas.',
+        );
+      }
+    });
+  
+  const buffer = estimate.add((estimate.mul(50).div(100)))// 50% buffer
+  return BigNumber.from(estimate.toNumber() + buffer.toNumber());
+};
+
+
+export const getGasPrice = async (): Promise<BigNumber> => {
+  const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+  return await provider.getGasPrice();
 };

@@ -1,3 +1,5 @@
+import { MetaMaskInpageProvider } from '@metamask/providers';
+
 /**
  * Detect if the wallet injecting the ethereum object is Flask.
  *
@@ -18,3 +20,10 @@ export const isFlask = async () => {
     return false;
   }
 };
+
+export const getMMProvider = (): MetaMaskInpageProvider => {
+  if (!window.ethereum) {
+    throw new Error('No MetaMask provider found');
+  }
+  return window.ethereum 
+}

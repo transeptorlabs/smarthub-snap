@@ -371,7 +371,7 @@ const Index = () => {
       )}
       
       {/* Install tab */}
-      {state.activeTab === AppTab.Install && (
+      {state.activeTab !== AppTab.About && (
         <CardContainer>
           {!state.isFlask && (
             <Card
@@ -384,6 +384,7 @@ const Index = () => {
               fullWidth
             />
           )}
+
           {!state.installedSnap && (
             <Card
               content={{
@@ -406,6 +407,11 @@ const Index = () => {
               fullWidth
             />
           )}
+        </CardContainer>
+      )}
+
+      {state.activeTab === AppTab.Install && (
+        <CardContainer>
           {state.installedSnap && (
             <Card
               content={{
@@ -416,10 +422,11 @@ const Index = () => {
               fullWidth
             />
           )}
+
           {shouldDisplayReconnectButton(state.installedSnap) && (
             <Card
               content={{
-                title: 'Reconnect snap',
+                title: 'Local dev - Reconnect snap',
                 description:
                   'While connected to a local running snap this button will always be displayed in order to update the snap if a change is made.',
                 button: (
@@ -530,8 +537,8 @@ const Index = () => {
         </CardContainer>
       )}
 
-      {/* Playground tab */}
-      {state.activeTab === AppTab.Playground && (
+      {/* Build tab */}
+      {state.activeTab === AppTab.Build && (
         <CardContainer>
           {state.scAccount.connected && state.installedSnap && (
               <Card

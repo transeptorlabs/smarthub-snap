@@ -25,6 +25,18 @@ The snap adds extra features to MetaMask by including RPC methods that work with
 To interact with (your) Snaps, you will need to install [MetaMask Flask](https://metamask.io/flask/), a canary distribution for developers that provides access to upcoming features.
 
 ## Getting Started
+The snap require a connection to ERC4337 Bundler. We will use Transeptor Bundler running along side a geth client to set up local ERC4337 environment.
+
+### Running ERC 4337 Bundler locally
+1. Clone transeptor bundler repo [here](https://github.com/transeptorlabs/transeptor-bundler) to local machine.
+2. Open up you termainal a change direcrory to clone transeptor bundler repo
+3. Add environment variables to `.env`-  `MNEMONIC=<your_seed_phrase>` and `BENEFICIARY=<address_to_receive_funds>`
+4. Start local GETH client `npm run geth:start` (will start at http://localhost:8545/)
+5. Deploy entry point contract and fund the bundler signer account `npm run deploy:local`
+6. Start up bundler `npm run transeptor:start`
+
+## Start up snap and React app
+Make sure you follow th steps in `Running ERC 4337 Bundler locally` before start the snap
 
 ```shell
 yarn install && yarn start

@@ -39,6 +39,9 @@ export const TabMenu = () => {
       <TabMenuItem active={activeTab === AppTab.Account} onClick={() => handleTabClick(AppTab.Account)}>
         {AppTab.Account}
       </TabMenuItem>
+      <TabMenuItem active={activeTab === AppTab.Build} onClick={() => handleTabClick(AppTab.Build)}>
+        {AppTab.Build}
+      </TabMenuItem>
       <TabMenuItem active={activeTab === AppTab.Settings} onClick={() => handleTabClick(AppTab.Settings)}>
         {AppTab.Settings}
       </TabMenuItem>

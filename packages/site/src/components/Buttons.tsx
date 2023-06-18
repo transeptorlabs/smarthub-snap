@@ -135,6 +135,10 @@ export const HeaderButtons = ({
     return <InstallFlaskButton />;
   }
 
+  if (!state.installedSnap) {
+    return <ConnectSnapButton onClick={onConnectClick} />;
+  }
+
   if (!state.eoa.connected) {
     return <ConnectWalletButton onClick={onConnectClick} />;
   }

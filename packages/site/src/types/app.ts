@@ -2,6 +2,6 @@ export enum AppTab {
     About = 'About',
     Install = 'Install',
     Account = 'Account',
-    Playground = 'Playground',
+    Build = 'Build',
     Settings = 'Settings',
 }

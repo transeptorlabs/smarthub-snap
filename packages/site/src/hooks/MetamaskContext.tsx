@@ -42,6 +42,9 @@ const initialState: MetamaskState = {
     factoryAddress: '',
     ownerAddress: '',
     bundlerUrl: '',
+    chainId: '',
+    userOperationReceipts: [],
+    userOpHashesPending: [],
   },
 };
 
@@ -196,25 +199,6 @@ export const MetaMaskProvider = ({ children }: { children: ReactNode }) => {
       }
     };
   }, [state.error]);
-
-  useEffect(() => {
-    let timeoutId: number;
-
-    if (state.userOpsHash) {
-      timeoutId = window.setTimeout(() => {
-        dispatch({
-          type: MetamaskActions.SetUserOpHash,
-          payload: '',
-        });
-      }, 10000);
-    }
-
-    return () => {
-      if (timeoutId) {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, [state.userOpsHash]);
 
   return (
     <MetaMaskContext.Provider value={[state, dispatch]}>

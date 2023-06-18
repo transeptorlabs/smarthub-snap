@@ -2,11 +2,13 @@ import { ReactNode } from 'react';
 import styled from 'styled-components';
 import { FaCopy } from "react-icons/fa";
 import { trimAccount } from '../utils/eth';
+import { UserOperationReceipt } from '../types';
+import { BigNumber } from 'ethers';
 
 type CardProps = {
   content: {
     title?: string;
-    description: string;
+    description?: string;
     button?: ReactNode;
     listItems?: string[];
     stats?: {
@@ -14,7 +16,8 @@ type CardProps = {
       title: string;
       value: string;
     }[];
-    form?: ReactNode[] ;
+    form?: ReactNode[];
+    userOperationReceipts?: UserOperationReceipt[]
   };
   disabled?: boolean;
   fullWidth?: boolean;
@@ -110,8 +113,38 @@ const FlexContainer = styled.div`
   }
 `;
 
+const ActivityItemContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  width:: 100%;
+  background-color: ${({ theme }) => theme.colors.card.default};
+  margin-top: 2.4rem;
+  margin-bottom: 2.4rem;
+  padding: 2.4rem;  
+  border: 1px solid ${({ theme }) => theme.colors.border.default};
+  border-radius: ${({ theme }) => theme.radii.default};
+  box-shadow: ${({ theme }) => theme.shadows.default};
+  align-self: stretch;
+  ${({ theme }) => theme.mediaQueries.small} {
+    margin-top: 1.2rem;
+    margin-bottom: 1.2rem;
+    padding: 0;
+  }
+`;
+
+const ActivityItem = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  ${({ theme }) => theme.mediaQueries.small} {
+    flex-direction: column;
+    padding: 2.4rem;  
+  }
+`;
+
 export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount }: CardProps) => {
-  const { title, description, button, listItems, form, stats} = content;
+  const { title, description, button, listItems, form, stats, userOperationReceipts} = content;
 
   const handleCopyToClipboard = (event: any) => {
     event.preventDefault();
@@ -126,16 +159,18 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
         <Title>{title}</Title>
       )}
 
-      <DescriptionContainer>
-        <Description>{isAccount ? `eth: ${description}` : description }</Description>
-        <DescriptionMobile>{isAccount ? `eth: ${trimAccount(description)}` : description }</DescriptionMobile>
-        
-        {copyDescription && (
-          <DescriptionCopy onClick={handleCopyToClipboard}>
-            <FaCopy />
-          </DescriptionCopy>
-        )}
-      </DescriptionContainer>
+      {description && (
+        <DescriptionContainer>
+          <Description>{isAccount ? `eth: ${description}` : description }</Description>
+          <DescriptionMobile>{isAccount ? `eth: ${trimAccount(description)}` : description }</DescriptionMobile>
+          
+          {copyDescription && (
+            <DescriptionCopy onClick={handleCopyToClipboard}>
+              <FaCopy />
+            </DescriptionCopy>
+          )}
+        </DescriptionContainer>
+      )}
 
       {listItems && (
         <ul>
@@ -147,7 +182,6 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
         </ul>
       )}
       {button}
-
 
       <FlexContainer>
         {stats &&
@@ -169,6 +203,55 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
           ))}
         </FormContainer>
       </FlexContainer>
+
+      {userOperationReceipts && (
+        userOperationReceipts.map((item: UserOperationReceipt) => (
+          <ActivityItemContainer key={`${item.sender}-${item.nonce.toString()}-${item.receipt.transactionHash}`}>
+            <ActivityItem>
+              <p>Status:</p>
+              <p>{item.success? <span>Confirmed</span>: <span>Failed</span>}</p>
+            </ActivityItem>
+
+            {!item.success && item.reason && (
+              <ActivityItem>
+                <p>Revert:</p>
+                <p>{item.reason}</p>
+              </ActivityItem>
+            )}
+           
+            <ActivityItem>
+              <p>Sender:</p>
+              <p>eth:{trimAccount(item.sender)}</p>
+            </ActivityItem>
+
+            <ActivityItem>
+              <p>To:</p>
+              <p>eth:{trimAccount(item.receipt.to)}</p>
+            </ActivityItem>
+
+            <ActivityItem>
+              <p>Nonce:</p>
+              <p>{BigNumber.from(item.nonce).toNumber()}</p>
+            </ActivityItem>
+
+            <ActivityItem>
+              <p>Gas Used(units):</p>
+              <p>{BigNumber.from(item.actualGasUsed).toNumber()}</p>
+            </ActivityItem>
+
+            <ActivityItem>
+              <p>Gas Cost(Wei):</p>
+              <p>{BigNumber.from(item.actualGasCost).toNumber()}</p>
+            </ActivityItem>
+
+            
+            <ActivityItem>
+              <p>Transaction hash:</p>
+              <p>{trimAccount(item.receipt.transactionHash)}</p>
+            </ActivityItem>
+          </ActivityItemContainer>
+        ))
+      )}
     </CardWrapper>
   );
 };

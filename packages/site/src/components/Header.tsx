@@ -149,6 +149,8 @@ export const Header = ({
       sendSupportedEntryPoints(),
     ]);
 
+    console.log('scAccount(header):', scAccount);
+
     dispatch({
       type: MetamaskActions.SetScAccount,
       payload: scAccount,

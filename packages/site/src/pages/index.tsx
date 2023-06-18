@@ -7,7 +7,6 @@ import {
   getScAccount,
   sendSupportedEntryPoints,
   shouldDisplayReconnectButton,
-  createUserOpToSign,
   getMMProvider,
   connectWallet, 
   convertToEth, 
@@ -18,6 +17,7 @@ import {
   encodeFunctionData,
   getEntryPointContract,
   sendUserOperation,
+  clearActivityData,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -25,6 +25,7 @@ import {
   ReconnectButton,
   Card,
   TokenInputForm,
+  SimpleButton,
 } from '../components';
 import { BigNumber, ethers } from 'ethers';
 import { EOA } from '../types/erc-4337';
@@ -218,6 +219,7 @@ const Index = () => {
       getScAccount(),
       sendSupportedEntryPoints(),
     ]);
+    console.log('scAccount(page)', scAccount);
 
     dispatch({
       type: MetamaskActions.SetScAccount,
@@ -306,6 +308,7 @@ const Index = () => {
 
       setWithdrawAmount('');
       setWithDrawAddr('');
+      await refreshScAccountState();
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
@@ -337,14 +340,21 @@ const Index = () => {
     }
   }
 
+  const handleClearActivity = async (e: any) => {
+    e.preventDefault();
+    await clearActivityData();
+    await refreshScAccountState();
+  }
+
   return (
     <Container>
 
       <Heading>
         Welcome to <Span>ERC-4337 Relayer</Span>
       </Heading>
+
       <LineBreak></LineBreak>
-      <Subtitle>Unlock the Full Potential of Account Abstraction</Subtitle>
+      <Subtitle>About</Subtitle>
       <CardContainer>
         <Card
           content={{
@@ -372,7 +382,6 @@ const Index = () => {
 
       <LineBreak></LineBreak>
       <Subtitle>Install</Subtitle>
-
       <CardContainer>
         {!state.isFlask && (
           <Card
@@ -521,23 +530,46 @@ const Index = () => {
             fullWidth
           />
         )}
-        {state.userOpsHash && (
-          <SuccessMessage>
-            <b>UserOp successfully send</b>
-          </SuccessMessage>
-        )}
 
         {state.scAccount.connected && state.installedSnap && (
           <Card
             content={{
-              title: 'User Operations Builder',
-              description: 'Coming soon...',
+              title: 'Activity',
+              userOperationReceipts: state.scAccount.userOperationReceipts,
             }}
             disabled={!state.isFlask}
             fullWidth
           />
         )}
-        <Notice>
+      </CardContainer>
+
+      <LineBreak></LineBreak>
+      <Subtitle>Playground</Subtitle>
+      <CardContainer>
+        {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'User Operations Builder',
+                description: 'Coming soon...',
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+        )}
+      </CardContainer>
+
+      <LineBreak></LineBreak>
+      <Subtitle>Setting</Subtitle>
+      <CardContainer>
+        {state.installedSnap && state.scAccount.connected && (
+            <ErrorMessage>
+              <p>This resets your depoist account's activity data inside the snap. Your balances and incoming transactions won't change.</p>
+            <SimpleButton text={'Clear activity data'} onClick={handleClearActivity}></SimpleButton>
+          </ErrorMessage>
+        )}
+      </CardContainer>
+
+      <Notice>
           <p>
             Please note that the this snap is only available in MetaMask Flask,
             and is actively being developed by{' '}
@@ -545,8 +577,7 @@ const Index = () => {
               Transeptor Labs
             </a>
           </p>
-        </Notice>
-      </CardContainer>
+      </Notice>
 
     </Container>
   );

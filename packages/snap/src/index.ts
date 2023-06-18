@@ -7,6 +7,7 @@ import { resolveProperties } from 'ethers/lib/utils';
 import { HttpRpcClient, getBalance, getDeposit } from './client';
 import { getSimpleScAccount } from './wallet';
 import {
+  clearState,
   getUserOpHashsConfirmed,
   getUserOpHashsPending,
   storeUserOpHashConfirmed,
@@ -43,7 +44,11 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
   let userOpHash: string;
   let userOpHashesConfirmed: string[];
+  let userOpHashesPending: string[] = [];
   const userOperationReceipts: UserOperationReceipt[] = [];
+
+  let userOperationReceiptPromises: Promise<any>[];
+  let promisesResult: any[];
 
   if (!request.params) {
     request.params = [];
@@ -112,8 +117,30 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
       );
-      scAddress = await scAccount.getCounterFactualAddress();
-      scOwnerAddress = await scAccount.owner.getAddress();
+
+      [scAddress, scOwnerAddress, userOpHashesConfirmed, userOpHashesPending] =
+        await Promise.all([
+          scAccount.getCounterFactualAddress(),
+          scAccount.owner.getAddress(),
+          getUserOpHashsConfirmed(scAccount.index.toString()),
+          getUserOpHashsPending(scAccount.index.toString()),
+        ]);
+
+      // getUserOperationReceipt for all confirmed userOpHashes
+      userOperationReceiptPromises = userOpHashesConfirmed.map(
+        (userOpHash1) => {
+          return rpcClient.send('eth_getUserOperationReceipt', [userOpHash1]);
+        },
+      );
+
+      promisesResult = await Promise.all(userOperationReceiptPromises);
+      promisesResult.forEach((userOperationReceipt) => {
+        if (userOperationReceipt) {
+          userOperationReceipts.push(
+            userOperationReceipt as UserOperationReceipt,
+          );
+        }
+      });
 
       result = JSON.stringify({
         address: scAddress,
@@ -125,31 +152,42 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         deposit: await getDeposit(scAddress, rpcClient.getEntryPointAddr()),
         ownerAddress: scOwnerAddress,
         bundlerUrl: rpcClient.getBundlerUrl(),
+        userOperationReceipts,
+        userOpHashesPending,
       });
       return result;
-    case 'get_confirmed_transactions':
+    case 'get_confirmed_userOperationReceipts':
       index = (request.params as any[])[0];
       userOpHashesConfirmed = await getUserOpHashsConfirmed(index);
-      for (const userOpHash1 of userOpHashesConfirmed) {
-        const userOperationReceipt = await rpcClient.send(
-          'eth_getUserOperationReceipt',
-          [userOpHash1],
-        );
 
+      userOperationReceiptPromises = userOpHashesConfirmed.map(
+        (userOpHash1) => {
+          return rpcClient.send('eth_getUserOperationReceipt', [userOpHash1]);
+        },
+      );
+
+      promisesResult = await Promise.all(userOperationReceiptPromises);
+      promisesResult.forEach((userOperationReceipt) => {
         if (userOperationReceipt) {
           userOperationReceipts.push(
             userOperationReceipt as UserOperationReceipt,
           );
         }
-      }
+      });
       result = JSON.stringify(userOperationReceipts);
       return result;
     case 'eth_chainId':
       return await rpcClient.send(request.method, request.params as any[]);
+    case 'clear_activity_data':
+      result = await clearState();
+      if (!result) {
+        throw new Error('Failed to clear activity data');
+      }
+      return result;
     case 'eth_getUserOperationReceipt':
       return await rpcClient.send(request.method, request.params as any[]);
     case 'eth_supportedEntryPoints':
-      return await rpcClient.send(request.method, request.params as any[]);
+      return await rpcClient.send(request.method, []);
     case 'eth_estimateUserOperationGas':
       return await rpcClient.send(request.method, request.params as any[]);
     case 'eth_getUserOperationByHash':
@@ -201,17 +239,6 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
         userOpHash = userOpHashesPending[userOpHashesPending.length - 1];
         await storeUserOpHashConfirmed(userOpHash);
 
-        /* TODO: clean up alert message
-          Success: true
-          Revert: undefined
-          TransactionHash: 0xa8356721bfcdf68b37a30ecf799fd7b487123054c95dec6def8f92dd49412c85
-          userOpHash: 0x777078e79787ccab4b6835a68df1d4883ee5475a6172b7aa263ec3260620963d
-          Sender: 0x76B446d851d32F032666770c62884a4b158de912
-          Nonce: 0x3
-          Paymaster: undefined
-          Actual Gas Cost: 0x894f593b3614
-          Actual Gas Used: 0x15546
-        */
         return snap.request({
           method: 'snap_dialog',
           params: {

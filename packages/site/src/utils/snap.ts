@@ -5,7 +5,7 @@ import {
   Snap,
   ReputationEntry,
   SmartContractAccount,
-  UserOpToSign,
+  UserOperationReceipt,
 } from '../types';
 import { getMMProvider } from './metamask';
 
@@ -83,36 +83,41 @@ export const getScAccount = async (): Promise<SmartContractAccount> => {
     connected: true,
     ownerAddress: parsedResult.ownerAddress,
     bundlerUrl: parsedResult.bundlerUrl,
+    userOperationReceipts: parsedResult.userOperationReceipts,
+    userOpHashesPending: parsedResult.userOpHashesPending,
   } as SmartContractAccount;
 };
 
-// ERC-4337 wrappers ******************************************************
-export const createUserOpToSign = async (
-  ownerAddress: string,
-  target: string,
-  data: string,
+export const getConfirmedUserOperationReceipts = async (
   index: string,
-): Promise<UserOpToSign> => {
+): Promise<UserOperationReceipt[]> => {
   const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
       request: {
-        method: 'create_userop_to_sign',
-        params: [ownerAddress, target, data, index],
+        method: 'get_confirmed_userOperationReceipts',
+        params: [index],
       },
     },
   });
 
   const parsedResult = JSON.parse(result as string);
-  console.log('createUserOpToSign result', parsedResult);
-
-  return {
-    userOpHash: parsedResult.userOpHash,
-    userOp: parsedResult.userOp,
-  } as UserOpToSign;
+  console.log('getConfirmedUserOperationReceipts result', parsedResult);
+  return [];
 };
 
+export const clearActivityData = async (): Promise<boolean> => {
+  return (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'clear_activity_data', params: [] },
+    },
+  })) as boolean;
+};
+
+// ERC-4337 wrappers ******************************************************
 export const sendSupportedEntryPoints = async (): Promise<string[]> => {
   return (await getMMProvider().request({
     method: 'wallet_invokeSnap',

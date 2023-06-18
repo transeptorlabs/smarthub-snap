@@ -6,7 +6,7 @@ import {
   useEffect,
   useReducer,
 } from 'react';
-import { Snap } from '../types';
+import { AppTab, Snap } from '../types';
 import { isFlask, getSnap } from '../utils';
 import { EOA, SmartContractAccount } from '../types/erc-4337';
 
@@ -18,6 +18,8 @@ export type MetamaskState = {
   userOpsHash?: string;
   eoa: EOA;
   scAccount: SmartContractAccount;
+  chainId: string;
+  activeTab: AppTab;
 };
 
 const initialState: MetamaskState = {
@@ -26,6 +28,8 @@ const initialState: MetamaskState = {
   installedSnap: undefined,
   isChainIdListener: false,
   userOpsHash: '',
+  chainId: '',
+  activeTab: AppTab.About,
   eoa: {
     connected: false,
     address: '',
@@ -42,7 +46,6 @@ const initialState: MetamaskState = {
     factoryAddress: '',
     ownerAddress: '',
     bundlerUrl: '',
-    chainId: '',
     userOperationReceipts: [],
     userOpHashesPending: [],
   },
@@ -69,6 +72,8 @@ export enum MetamaskActions {
   SetWalletListener = 'SetWalletListener',
   SetUserOpHash = 'SetUserOpHash',
   SetClearAccount = 'SetClearAccount',
+  SetChainId = 'SetChainId',
+  SetActiveTab = 'SetActiveTab',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -113,6 +118,19 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
       return {
         ...state,
         userOpsHash: action.payload,
+      };
+
+
+    case MetamaskActions.SetActiveTab:
+      return {
+        ...state,
+        activeTab: action.payload,
+      };
+
+    case MetamaskActions.SetChainId:
+      return {
+        ...state,
+        chainId: action.payload,
       };
 
     case MetamaskActions.SetClearAccount:

@@ -30,7 +30,6 @@ export type SmartContractAccount = {
   depoist: string;
   connected: boolean;
   bundlerUrl: string;
-  chainId: string;
   userOperationReceipts: UserOperationReceipt[];
   userOpHashesPending: string[];
 };

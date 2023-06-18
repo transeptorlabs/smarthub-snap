@@ -166,6 +166,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         },
       );
 
+      // TODO: Add pagination
       promisesResult = await Promise.all(userOperationReceiptPromises);
       promisesResult.forEach((userOperationReceipt) => {
         if (userOperationReceipt) {

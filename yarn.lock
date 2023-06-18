@@ -4579,6 +4579,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/react-blockies@npm:^1.4.0":
+  version: 1.4.1
+  resolution: "@types/react-blockies@npm:1.4.1"
+  dependencies:
+    "@types/react": "*"
+  checksum: 66e1f9eb961eaa863bab02e143f0298516d9fa640f0737816ebc766b90ca1062c2dc18cbfda1c1679aa4be640172efe6931886207af4f01b8c894988f9df085a
+  languageName: node
+  linkType: hard
+
 "@types/react-dom@npm:^18.0.0, @types/react-dom@npm:^18.0.6":
   version: 18.2.4
   resolution: "@types/react-dom@npm:18.2.4"
@@ -14594,7 +14603,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:^15.6.1, prop-types@npm:^15.7.2, prop-types@npm:^15.8.1":
+"prop-types@npm:^15.5.10, prop-types@npm:^15.6.1, prop-types@npm:^15.7.2, prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -14830,6 +14839,17 @@ __metadata:
   bin:
     rc: ./cli.js
   checksum: 2e26e052f8be2abd64e6d1dabfbd7be03f80ec18ccbc49562d31f617d0015fbdbcf0f9eed30346ea6ab789e0fdfe4337f033f8016efdbee0df5354751842080e
+  languageName: node
+  linkType: hard
+
+"react-blockies@npm:1.4.1":
+  version: 1.4.1
+  resolution: "react-blockies@npm:1.4.1"
+  dependencies:
+    prop-types: ^15.5.10
+  peerDependencies:
+    react: ">=15.0.0"
+  checksum: 87139fc2cc682d34ff8633c58ce96f89826cc3127499b623fb1d8c99dd8e1fe21055750a051933ffc500ca9c88aa017930deae963ffc635135c02907e5d75e22
   languageName: node
   linkType: hard
 
@@ -15857,6 +15877,7 @@ __metadata:
     "@testing-library/user-event": ^13.5.0
     "@types/jest": ^27.5.2
     "@types/react": ^18.0.15
+    "@types/react-blockies": ^1.4.0
     "@types/react-dom": ^18.0.6
     "@types/styled-components": ^5.1.25
     "@typescript-eslint/eslint-plugin": ^5.33.0
@@ -15877,6 +15898,7 @@ __metadata:
     prettier: ^2.2.1
     prettier-plugin-packagejson: ^2.2.18
     react: ^18.2.0
+    react-blockies: 1.4.1
     react-dom: ^18.2.0
     react-icons: ^4.3.1
     react-is: ^18.2.0

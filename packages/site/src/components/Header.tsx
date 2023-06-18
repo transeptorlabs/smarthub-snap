@@ -5,9 +5,8 @@ import { connectSnap, getThemePreference, getSnap, getScAccount, sendSupportedEn
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
-import { connectWallet, getAccountBalance } from '../utils/eth';
+import { connectWallet, getAccountBalance, getChainId } from '../utils/eth';
 import { EOA } from '../types/erc-4337';
-import { ethers } from 'ethers';
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -19,6 +18,7 @@ const HeaderWrapper = styled.header`
 `;
 
 const Title = styled.p`
+  color: ${(props) => props.theme.colors.primary.default};  
   font-size: ${(props) => props.theme.fontSizes.title};
   font-weight: bold;
   margin: 0;
@@ -88,12 +88,22 @@ export const Header = ({
         });
       }
 
-      const provider = getMMProvider()
-      if (provider) {
-        if (!state.isChainIdListener) {
-          console.log('creating lisnters:', state.isChainIdListener);
+      // get chainId
+      const chainId = await getChainId();
+      dispatch({
+        type: MetamaskActions.SetChainId,
+        payload: chainId,
+      });
+
+      // set listener
+      if (!state.isChainIdListener) {
+        const provider = getMMProvider()
+        if (provider) {
           provider.on('chainChanged', async (chainId) => {
-            console.log('Network changed:', chainId);
+            dispatch({
+              type: MetamaskActions.SetChainId,
+              payload: chainId,
+            });
           });
 
           provider.on('accountsChanged', async (accounts) => {

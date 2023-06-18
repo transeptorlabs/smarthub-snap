@@ -7,3 +7,5 @@ export * from './PoweredBy';
 export * from './SnapLogo';
 export * from './Toggle';
 export * from './Form';
+export * from './blockie';
+export * from './TabMenu';

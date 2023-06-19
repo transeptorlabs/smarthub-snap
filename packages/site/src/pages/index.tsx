@@ -153,6 +153,7 @@ const Index = () => {
               type: MetamaskActions.SetChainId,
               payload: chainId,
             });
+            // TODO: update account state          
           });
 
           provider.on('accountsChanged', async (accounts) => {
@@ -267,7 +268,7 @@ const Index = () => {
       return;
     }
 
-    if (BigNumber.from(state.scAccount.depoist).lt(withdrawAmountInWei)) {
+    if (BigNumber.from(state.scAccount.deposit).lt(withdrawAmountInWei)) {
       dispatch({ type: MetamaskActions.SetError, payload: new Error('Smart contract account, insufficient deposit') });
       return;
     }
@@ -479,6 +480,7 @@ const Index = () => {
               copyDescription
               isAccount
               fullWidth
+              isEoa
             />
           )}
 
@@ -491,7 +493,7 @@ const Index = () => {
                   {
                     id: `0`,
                     title: 'Deposit',
-                    value: `${convertToEth(state.scAccount.depoist)} ETH`,
+                    value: `${convertToEth(state.scAccount.deposit)} ETH`,
                   },
                 ],
                 form: [
@@ -521,6 +523,7 @@ const Index = () => {
               copyDescription
               isAccount
               fullWidth
+              isSC
             />
           )}
 
@@ -558,7 +561,7 @@ const Index = () => {
         <CardContainer>
           {state.installedSnap && state.scAccount.connected && (
               <ErrorMessage>
-                <p>This resets your depoist account's activity data inside the snap. Your balances and incoming transactions won't change.</p>
+                <p>This resets your deposit account's activity data inside the snap. Your balances and incoming transactions won't change.</p>
               <SimpleButton text={'Clear activity data'} onClick={handleClearActivity}></SimpleButton>
             </ErrorMessage>
           )}

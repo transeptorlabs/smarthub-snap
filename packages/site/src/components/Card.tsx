@@ -1,10 +1,11 @@
-import { ReactNode } from 'react';
+import { ReactNode, useContext } from 'react';
 import styled from 'styled-components';
 import { FaCopy } from "react-icons/fa";
 import { trimAccount } from '../utils/eth';
-import { UserOperationReceipt } from '../types';
+import { SupportedChainIdMap, UserOperationReceipt } from '../types';
 import { BigNumber } from 'ethers';
-import { Blockie } from './blockie';
+import { BlockieEoa, BlockieSc } from './blockie';
+import { MetamaskActions, MetaMaskContext } from '../hooks';
 
 type CardProps = {
   content: {
@@ -13,6 +14,7 @@ type CardProps = {
     descriptionBold?: string;
     button?: ReactNode;
     listItems?: string[];
+    blockieColor?: string;
     stats?: {
       id: string;
       title: string;
@@ -25,6 +27,8 @@ type CardProps = {
   fullWidth?: boolean;
   copyDescription?: boolean;
   isAccount?: boolean;
+  isEoa?: boolean;
+  isSC?: boolean;
 };
 
 const CardWrapper = styled.div<{ fullWidth?: boolean; disabled: boolean }>`
@@ -99,9 +103,9 @@ const DescriptionMobile = styled.div`
 `;
 
 const DescriptionCopy = styled.div`
-  margin-left: 1rem;
+  margin-left: 2rem;
   margin-top: auto;
-  margin-bottom: auto;
+  margin-bottom: 0;
   margin-right: 1rem;
   &:hover {
     color: ${({ theme }) => theme.colors.primary.main};
@@ -182,8 +186,21 @@ const ActivitySuccess = styled.span`
 const ActivityFailed = styled.span`
   color: ${({ theme }) => theme.colors.error.alternative};
 `
+const Network = styled.span`
+  margin-left: auto;
+  color: ${(props) => props.theme.colors.text.default};
+  background-color: ${({ theme }) => theme.colors.card.default};
+  padding: 1rem;
+  border: 1px solid ${({ theme }) => theme.colors.border.default};
+  border-radius: 10px;
+  box-shadow: ${({ theme }) => theme.shadows.default};
+  width: fit-content;
+  height: fit-content;
+`
 
-export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount }: CardProps) => {
+export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount, isEoa, isSC}: CardProps) => {
+  const [state] = useContext(MetaMaskContext);
+
   const { title, description, descriptionBold, button, listItems, form, stats, userOperationReceipts} = content;
 
   const handleCopyToClipboard = (event: any, text: string) => {
@@ -199,13 +216,22 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
         <Title>{title}</Title>
       )}
 
+      <FlexRow>
+        {isEoa && (
+          <BlockieEoa></BlockieEoa>
+          )
+        }
+        {isSC && (
+          <BlockieSc></BlockieSc>
+          )
+        }
+        {isAccount && (
+          <Network>{SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId] : 'Not Supported'}</Network>
+        )}
+      </FlexRow>
+   
       {description && (   
         <FlexRow>
-          {isAccount && (
-            <Blockie></Blockie>
-            )
-          }
-
           <Description>
             {descriptionBold && (
               <DescriptionTextBold>

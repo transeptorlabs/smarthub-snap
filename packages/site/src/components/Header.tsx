@@ -104,6 +104,7 @@ export const Header = ({
               type: MetamaskActions.SetChainId,
               payload: chainId,
             });
+            // TODO: update account state          
           });
 
           provider.on('accountsChanged', async (accounts) => {

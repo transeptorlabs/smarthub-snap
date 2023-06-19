@@ -14,18 +14,26 @@ const BlockieContainer = styled.div`
     }
 `;
 
-export const createRandomColor = () => {
-    const randomColor = Math.floor(Math.random()*16777215).toString(16);
-    return randomColor;
-}
-
-export const Blockie = () => (
+export const BlockieEoa = () => (
     <BlockieContainer>
         <Blockies
             seed="Jeremy"
             size={12} 
             scale={4}
-            bgColor={`#${createRandomColor()}`} 
+            bgColor='#907aa8'
+            spotColor="#abc" 
+            className="identicon"
+        />
+    </BlockieContainer>   
+)
+
+export const BlockieSc = () => (
+    <BlockieContainer>
+        <Blockies
+            seed="Jeremy"
+            size={12} 
+            scale={4}
+            bgColor='#8d15bd'
             spotColor="#abc" 
             className="identicon"
         />

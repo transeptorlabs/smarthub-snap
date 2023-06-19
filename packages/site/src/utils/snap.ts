@@ -79,7 +79,7 @@ export const getScAccount = async (): Promise<SmartContractAccount> => {
     factoryAddress: parsedResult.factoryAddress,
     nonce: BigNumber.from(parsedResult.nonce).toString(),
     index: BigNumber.from(parsedResult.index).toString(),
-    depoist: BigNumber.from(parsedResult.deposit).toString(),
+    deposit: BigNumber.from(parsedResult.deposit).toString(),
     connected: true,
     ownerAddress: parsedResult.ownerAddress,
     bundlerUrl: parsedResult.bundlerUrl,

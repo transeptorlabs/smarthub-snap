@@ -27,7 +27,7 @@ export type SmartContractAccount = {
   index: string;
   entryPoint: string;
   factoryAddress: string;
-  depoist: string;
+  deposit: string;
   connected: boolean;
   bundlerUrl: string;
   userOperationReceipts: UserOperationReceipt[];

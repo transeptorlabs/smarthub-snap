@@ -126,3 +126,7 @@ export const getGasPrice = async (): Promise<BigNumber> => {
   const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
   return await provider.getGasPrice();
 };
+
+export const parseChainId = (chainId: string): number => {
+  return parseInt(chainId as string, 16)
+};

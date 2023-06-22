@@ -15,6 +15,8 @@ import {
   sendUserOperation,
   clearActivityData,
   getChainId,
+  getBundlerUrls,
+  parseChainId,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -24,9 +26,10 @@ import {
   TokenInputForm,
   SimpleButton,
   TabMenu,
+  BundlerInputForm,
 } from '../components';
 import { BigNumber, ethers } from 'ethers';
-import { AppTab } from '../types';
+import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
 
 const Container = styled.div`
   display: flex;
@@ -115,11 +118,13 @@ const Index = () => {
   const [depositAmount, setDepositAmount] = useState('');
   const [withDrawAddr, setWithDrawAddr] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [formBundlerUrls, setFormBundlerUrls] = useState({} as BundlerUrls);
+
   const {connectEoa, refreshEOAState, getScAccountState, setWalletListener} = useAcount();
 
   useEffect(() => {
     let interval: any
-    try {   
+    try {  
       interval = setInterval(() => {
         console.log('refreshing accounts:', state);
         if (state.eoa.connected) {
@@ -138,12 +143,37 @@ const Index = () => {
     } catch (e) {
       console.error('[ERROR] refreaher:', e.message);
       dispatch({ type: MetamaskActions.SetError, payload: e });
-      return () => {
-        clearInterval(interval);
-      };
     } 
-  }, [state]);
+  }, [state.eoa.connected, state.scAccount.connected]);
+
+  useEffect(() => {
+    try {  
+      const initBundlerSetting = async () => {
+        try {
+          if (state.installedSnap) {
+            const urls = await getBundlerUrls();
+            dispatch({
+              type: MetamaskActions.SetBundlerUrls,
+              payload: urls,
+            });
+
+            setFormBundlerUrls(urls as BundlerUrls);
+          }
+        } catch (error) {
+          dispatch({ type: MetamaskActions.SetError, payload: error });
+        }
+      };
   
+      initBundlerSetting(); 
+
+      return () => {
+      };
+
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    } 
+  }, [state.installedSnap]);
+
   const handleReConnectSnapClick = async () => {
     try {
       await connectEoa();
@@ -277,12 +307,50 @@ const Index = () => {
   const handleClearActivity = async (e: any) => {
     e.preventDefault();
     await clearActivityData();
-    await getScAccountState();
+    const urls = await getBundlerUrls();
+    dispatch({
+      type: MetamaskActions.SetBundlerUrls,
+      payload: urls,
+    });
   }
 
-  const handleBundlerUrlSubmit = async (e: any) => {
+  const handleBundlerUrlSubmit = async (e: any, chainId: string) => {
     e.preventDefault();
+    console.log('submit clicked:', chainId, formBundlerUrls[chainId]);
   }
+
+  const handleBundlerUrlChange = async (e: any, chainId: string) => {
+    const inputValue = e.target.value;
+    setFormBundlerUrls({
+      ...formBundlerUrls,
+      [chainId]: inputValue,
+    })
+    console.log('value changed:', formBundlerUrls);
+  }
+
+  const createBundlerUrlForm = () => {
+    if (!formBundlerUrls) {
+      return;
+    }
+
+    return (
+      <div>
+        {Object.entries(formBundlerUrls).map(([chainId, url]) => (
+          <BundlerInputForm
+            key={chainId}
+            onSubmitClick={(e)=> handleBundlerUrlSubmit(e, chainId)}
+            buttonText="Save"
+            onInputChange={(e)=> handleBundlerUrlChange(e, chainId)}
+            inputValue={url}
+            inputPlaceholder="Enter url"
+            networkName={SupportedChainIdMap[chainId] ? SupportedChainIdMap[chainId] : 'Unknown'}
+            chainId={parseChainId(chainId).toString()}
+        />
+        ))}
+      </div>
+    );
+  }
+
 
   return (
     <Container>
@@ -512,39 +580,21 @@ const Index = () => {
       {/* Setting tab */}
       {state.activeTab === AppTab.Settings && (
         <CardContainer>
-          {state.scAccount.connected && state.installedSnap && (
+          {state.installedSnap && (
             <Card
               content={{
-                title: 'Bundler RPC Url',
-                listItems: [
-                  `ChainId: 0x1`,
-                  'Name: Ethereum Mainnet',
-                ],
-                form: [
-                  <TokenInputForm
-                  key={"save-0"}
-                  onSubmitClick={handleBundlerUrlSubmit}
-                  buttonText="Save"
-                  inputs={[
-                      {
-                        id: "1",
-                        onInputChange: handleWithdrawAddrChange,
-                        inputValue: withDrawAddr,
-                        inputPlaceholder:"Enter url"
-                      },
-                    ]
-                  }
-                />
-                ]
+                title: 'Bundler RPC Urls',
+                description: 'A list of bundler RPC Url to relay your user operations.',
+                custom: createBundlerUrlForm()
               }}
               disabled={!state.isFlask}
               fullWidth
             />
           )}
 
-          {state.installedSnap && state.scAccount.connected && (
+          {state.installedSnap && (
               <ErrorMessage>
-                <p>This resets your deposit account's activity data inside the snap. Your balances and incoming transactions won't change.</p>
+                <p>This resets your deposit account's activity and bundler Url data inside the snap. Your balances and incoming transactions won't change.</p>
               <SimpleButton text={'Clear activity data'} onClick={handleClearActivity}></SimpleButton>
             </ErrorMessage>
           )}

@@ -1,7 +1,7 @@
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
 import { EOA } from "../types";
-import { connectWallet, getAccountBalance, getMMProvider, getScAccount, sendSupportedEntryPoints } from "../utils";
+import { connectWallet, getAccountBalance, getBundlerUrls, getMMProvider, getScAccount, sendSupportedEntryPoints } from "../utils";
 
 export const useAcount = () => {
   const [state, dispatch] = useContext(MetaMaskContext);

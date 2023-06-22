@@ -5,7 +5,7 @@ import { trimAccount } from '../utils/eth';
 import { SupportedChainIdMap, UserOperationReceipt } from '../types';
 import { BigNumber } from 'ethers';
 import { BlockieEoa, BlockieSc } from './blockie';
-import { MetamaskActions, MetaMaskContext } from '../hooks';
+import { MetaMaskContext } from '../hooks';
 
 type CardProps = {
   content: {
@@ -22,6 +22,7 @@ type CardProps = {
     }[];
     form?: ReactNode[];
     userOperationReceipts?: UserOperationReceipt[]
+    custom?: ReactNode
   };
   disabled?: boolean;
   fullWidth?: boolean;
@@ -90,7 +91,6 @@ const DescriptionTextBold = styled.p`
   margin: 0;
   font-weight: bold;
 `;
-
 
 const DescriptionMobile = styled.div`
   display: flex;
@@ -201,7 +201,7 @@ const Network = styled.span`
 export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount, isEoa, isSC}: CardProps) => {
   const [state] = useContext(MetaMaskContext);
 
-  const { title, description, descriptionBold, button, listItems, form, stats, userOperationReceipts} = content;
+  const { title, description, descriptionBold, button, listItems, form, stats, userOperationReceipts, custom} = content;
 
   const handleCopyToClipboard = (event: any, text: string) => {
     event.preventDefault();
@@ -358,6 +358,8 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
           </ActivityItemContainer>
         ))
       )}
+
+      {custom}
     </CardWrapper>
   );
 };

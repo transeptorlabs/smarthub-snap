@@ -117,7 +117,7 @@ export const clearActivityData = async (): Promise<boolean> => {
   })) as boolean;
 };
 
-export const addBundlerUrl = async (chainId: string, url: string,): Promise<boolean> => {
+export const addBundlerUrl = async (chainId: string, url: string): Promise<boolean> => {
   return (await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
@@ -125,6 +125,18 @@ export const addBundlerUrl = async (chainId: string, url: string,): Promise<bool
       request: { method: 'add_bundler_url', params: [chainId, url] },
     },
   })) as boolean;
+};
+
+export const getBundlerUrls = async (): Promise<{ [chainId: string]: string }> => {
+  const result =  await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'get_bundler_urls', params: [] },
+    },
+  }) as string;
+  const parsedResult = JSON.parse(result as string);
+  return parsedResult as { [chainId: string]: string };
 };
 
 // ERC-4337 wrappers ******************************************************

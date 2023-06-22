@@ -185,6 +185,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     case 'add_bundler_url':
       result = await storeBundlerUrl((request.params as any[])[0],(request.params as any[])[1]);
       return result;
+    case 'get_bundler_urls':
+      result = JSON.stringify(await getBundlerUrls());
+      return result;
     case 'eth_chainId':
       return await rpcClient.send(request.method, request.params as any[]);
     case 'clear_activity_data':

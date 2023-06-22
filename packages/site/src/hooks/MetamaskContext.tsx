@@ -6,7 +6,7 @@ import {
   useEffect,
   useReducer,
 } from 'react';
-import { AppTab, Snap } from '../types';
+import { AppTab, BundlerUrls, Snap } from '../types';
 import { isFlask, getSnap } from '../utils';
 import { EOA, SmartContractAccount } from '../types/erc-4337';
 
@@ -20,6 +20,7 @@ export type MetamaskState = {
   scAccount: SmartContractAccount;
   chainId: string;
   activeTab: AppTab;
+  bundlerUrls?: BundlerUrls;
 };
 
 const initialState: MetamaskState = {
@@ -29,6 +30,7 @@ const initialState: MetamaskState = {
   isChainIdListener: false,
   chainId: '',
   activeTab: AppTab.About,
+  bundlerUrls: undefined,
   eoa: {
     connected: false,
     address: '',
@@ -44,7 +46,6 @@ const initialState: MetamaskState = {
     deposit: '',
     factoryAddress: '',
     ownerAddress: '',
-    bundlerUrls: {},
     userOperationReceipts: [],
     userOpHashesPending: [],
   },
@@ -72,6 +73,7 @@ export enum MetamaskActions {
   SetClearAccount = 'SetClearAccount',
   SetChainId = 'SetChainId',
   SetActiveTab = 'SetActiveTab',
+  SetBundlerUrls = 'SetBundlerUrls',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -122,6 +124,12 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
       return {
         ...state,
         chainId: action.payload,
+      };
+
+    case MetamaskActions.SetBundlerUrls:
+      return {
+        ...state,
+        bundlerUrls: action.payload,
       };
 
     case MetamaskActions.SetClearAccount:

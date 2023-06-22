@@ -31,7 +31,6 @@ export type SmartContractAccount = {
   connected: boolean;
   userOperationReceipts: UserOperationReceipt[];
   userOpHashesPending: string[];
-  bundlerUrls: {[chainId: string]: string };
 };
 
 export type UserOperationReceipt = {

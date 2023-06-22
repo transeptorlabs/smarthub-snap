@@ -13,7 +13,7 @@ export class HttpRpcClient {
   constructor(bundlerUrls: {[chainId: string]: string}, chainId: string) {
     const bundlerUrl = bundlerUrls[chainId];
     if (!bundlerUrl) {
-      throw new Error(`ChainId ${chainId} not supported`);
+      throw new Error(`ChainId ${parseInt(chainId as string, 16)} not supported`);
     }
     this.bundlerUrl = bundlerUrl;
     this.provider = new ethers.providers.JsonRpcProvider(this.bundlerUrl, {

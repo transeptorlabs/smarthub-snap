@@ -1,18 +1,14 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { MetamaskActions, MetaMaskContext } from '../hooks';
+import { MetamaskActions, MetaMaskContext, useAcount } from '../hooks';
 import {
   connectSnap,
   getSnap,
-  getScAccount,
-  sendSupportedEntryPoints,
   shouldDisplayReconnectButton,
   getMMProvider,
-  connectWallet, 
   convertToEth, 
   convertToWei, 
   estimateGas, 
-  getAccountBalance,
   isValidAddress, 
   encodeFunctionData,
   getEntryPointContract,
@@ -30,7 +26,6 @@ import {
   TabMenu,
 } from '../components';
 import { BigNumber, ethers } from 'ethers';
-import { EOA } from '../types/erc-4337';
 import { AppTab } from '../types';
 
 const Container = styled.div`
@@ -120,101 +115,60 @@ const Index = () => {
   const [depositAmount, setDepositAmount] = useState('');
   const [withDrawAddr, setWithDrawAddr] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const {connectEoa, refreshEOAState, getScAccountState, setWalletListener} = useAcount();
 
+  useEffect(() => {
+    let interval: any
+    try {   
+      interval = setInterval(() => {
+        console.log('refreshing accounts:', state);
+        if (state.eoa.connected) {
+          refreshEOAState(state.eoa.address);
+        }
+  
+        if (state.scAccount.connected) {
+          getScAccountState();
+        }
+      }, 10000)
+  
+      return () => {
+        clearInterval(interval);
+      };
+
+    } catch (e) {
+      console.error('[ERROR] refreaher:', e.message);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+      return () => {
+        clearInterval(interval);
+      };
+    } 
+  }, [state]);
+  
   const handleReConnectSnapClick = async () => {
     try {
-      // connect wallet
-      let eoa: EOA = {
-        address: '',
-        balance: '',
-        connected: false,
-      }
-      if (!state.eoa.connected) {
-        eoa = await connectWallet()
-        dispatch({
-          type: MetamaskActions.SetEOA,
-          payload: eoa,
-        });
-      }
-
-      // get chainId
-     const chainId = await getChainId();
-     dispatch({
-       type: MetamaskActions.SetChainId,
-       payload: chainId,
-     });
-
-      // set listener
-      if (!state.isChainIdListener) {
-        const provider = getMMProvider()
-        if (provider) {
-          provider.on('chainChanged', async (chainId) => {
-            dispatch({
-              type: MetamaskActions.SetChainId,
-              payload: chainId,
-            });
-            // TODO: update account state          
-          });
-
-          provider.on('accountsChanged', async (accounts) => {
-            await refreshEOAState((accounts as string[])[0]);
-          });
-  
-          dispatch({
-            type: MetamaskActions.SetWalletListener,
-            payload: true,
-          });
-        }
-      }
-
+      await connectEoa();
+      
       // reconnect snap
       await connectSnap();
       const installedSnap = await getSnap();
-
       dispatch({
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
 
-      // fetch sc account state
-      await refreshScAccountState();
+      await getScAccountState();
+
+      const chainId = await getChainId();
+      dispatch({
+        type: MetamaskActions.SetChainId,
+        payload: chainId,
+      });
+      await setWalletListener();
     } catch (e) {
-      console.error(e);
+      console.error('[ERROR] middle:', e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
+      dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
     }
-  };
-
-  const refreshEOAState = async (newOwner: string) => {
-    const changedeoa: EOA = {
-      address: newOwner,
-      balance: await getAccountBalance(newOwner),
-      connected: true,
-    }
-    dispatch({
-      type: MetamaskActions.SetEOA,
-      payload: changedeoa,
-    });
-
-    // fetch sc account state
-    await refreshScAccountState();
-  };
-
-  const refreshScAccountState = async () => {
-    const [scAccount, supportedEntryPoints] = await Promise.all([
-      getScAccount(),
-      sendSupportedEntryPoints(),
-    ]);
-    console.log('scAccount(page)', scAccount);
-
-    dispatch({
-      type: MetamaskActions.SetScAccount,
-      payload: scAccount,
-    });
-
-    dispatch({
-      type: MetamaskActions.SetSupportedEntryPoints,
-      payload: supportedEntryPoints,
-    });
   };
 
   const handleDepositSubmit = async (e: any) => {
@@ -257,7 +211,7 @@ const Index = () => {
     // refresh account balances
     setDepositAmount('');
     await refreshEOAState(state.eoa.address);
-    await refreshScAccountState();
+    await getScAccountState();
   }
 
   const handleWithdrawSubmit = async (e: any) => {
@@ -280,20 +234,15 @@ const Index = () => {
         [state.eoa.address, withdrawAmountInWei.toString()]
       );
 
-      const userOpHash = await sendUserOperation(
+      await sendUserOperation(
         state.scAccount.entryPoint,
         encodedFunctionData,
         state.scAccount.index,
-      )
-
-      dispatch({
-        type: MetamaskActions.SetUserOpHash,
-        payload: userOpHash,
-      });
+      );
 
       setWithdrawAmount('');
       setWithDrawAddr('');
-      await refreshScAccountState();
+      await getScAccountState();
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
@@ -328,7 +277,11 @@ const Index = () => {
   const handleClearActivity = async (e: any) => {
     e.preventDefault();
     await clearActivityData();
-    await refreshScAccountState();
+    await getScAccountState();
+  }
+
+  const handleBundlerUrlSubmit = async (e: any) => {
+    e.preventDefault();
   }
 
   return (
@@ -559,6 +512,36 @@ const Index = () => {
       {/* Setting tab */}
       {state.activeTab === AppTab.Settings && (
         <CardContainer>
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'Bundler RPC Url',
+                listItems: [
+                  `ChainId: 0x1`,
+                  'Name: Ethereum Mainnet',
+                ],
+                form: [
+                  <TokenInputForm
+                  key={"save-0"}
+                  onSubmitClick={handleBundlerUrlSubmit}
+                  buttonText="Save"
+                  inputs={[
+                      {
+                        id: "1",
+                        onInputChange: handleWithdrawAddrChange,
+                        inputValue: withDrawAddr,
+                        inputPlaceholder:"Enter url"
+                      },
+                    ]
+                  }
+                />
+                ]
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+
           {state.installedSnap && state.scAccount.connected && (
               <ErrorMessage>
                 <p>This resets your deposit account's activity data inside the snap. Your balances and incoming transactions won't change.</p>

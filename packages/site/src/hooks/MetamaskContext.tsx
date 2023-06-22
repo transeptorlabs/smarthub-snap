@@ -27,7 +27,6 @@ const initialState: MetamaskState = {
   error: undefined,
   installedSnap: undefined,
   isChainIdListener: false,
-  userOpsHash: '',
   chainId: '',
   activeTab: AppTab.About,
   eoa: {
@@ -45,7 +44,7 @@ const initialState: MetamaskState = {
     deposit: '',
     factoryAddress: '',
     ownerAddress: '',
-    bundlerUrl: '',
+    bundlerUrls: {},
     userOperationReceipts: [],
     userOpHashesPending: [],
   },
@@ -70,7 +69,6 @@ export enum MetamaskActions {
   SetScAccount = "SetScAccount",
   SetSupportedEntryPoints = 'SetSupportedEntryPoints',
   SetWalletListener = 'SetWalletListener',
-  SetUserOpHash = 'SetUserOpHash',
   SetClearAccount = 'SetClearAccount',
   SetChainId = 'SetChainId',
   SetActiveTab = 'SetActiveTab',
@@ -113,13 +111,6 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         ...state,
         isChainIdListener: action.payload,
       };
-
-    case MetamaskActions.SetUserOpHash:
-      return {
-        ...state,
-        userOpsHash: action.payload,
-      };
-
 
     case MetamaskActions.SetActiveTab:
       return {

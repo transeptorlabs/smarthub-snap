@@ -9,5 +9,5 @@ export enum AppTab {
 export const SupportedChainIdMap: { [chainId: string]: string } = {
   '0x1': 'Ethereum',
   '0x5': 'Goerli',
-  '0x539': 'Localhost',
+  '0x539': 'Private',
 };

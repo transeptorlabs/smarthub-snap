@@ -29,9 +29,9 @@ export type SmartContractAccount = {
   factoryAddress: string;
   deposit: string;
   connected: boolean;
-  bundlerUrl: string;
   userOperationReceipts: UserOperationReceipt[];
   userOpHashesPending: string[];
+  bundlerUrls: {[chainId: string]: string };
 };
 
 export type UserOperationReceipt = {

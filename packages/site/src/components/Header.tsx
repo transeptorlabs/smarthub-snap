@@ -1,12 +1,11 @@
 import { useContext } from 'react';
 import styled, { useTheme } from 'styled-components';
-import { MetamaskActions, MetaMaskContext } from '../hooks';
-import { connectSnap, getThemePreference, getSnap, getScAccount, sendSupportedEntryPoints, getMMProvider } from '../utils';
+import { MetamaskActions, MetaMaskContext, useAcount } from '../hooks';
+import { connectSnap, getThemePreference, getSnap } from '../utils';
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
-import { connectWallet, getAccountBalance, getChainId } from '../utils/eth';
-import { EOA } from '../types/erc-4337';
+import { getChainId } from '../utils/eth';
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -71,106 +70,36 @@ export const Header = ({
 }) => {
   const theme = useTheme();
   const [state, dispatch] = useContext(MetaMaskContext);
+  const {connectEoa, getScAccountState, setWalletListener} = useAcount();
 
   const handleConnectClick = async () => {
     try {
-      // connect wallet
-      let eoa: EOA = {
-        address: '',
-        balance: '',
-        connected: false,
-      }
-      if (!state.eoa.connected) {
-        eoa = await connectWallet()
-        dispatch({
-          type: MetamaskActions.SetEOA,
-          payload: eoa,
-        });
-      }
-
-      // get chainId
-      const chainId = await getChainId();
-      dispatch({
-        type: MetamaskActions.SetChainId,
-        payload: chainId,
-      });
-
-      // set listener
-      if (!state.isChainIdListener) {
-        const provider = getMMProvider()
-        if (provider) {
-          provider.on('chainChanged', async (chainId) => {
-            dispatch({
-              type: MetamaskActions.SetChainId,
-              payload: chainId,
-            });
-            // TODO: update account state          
-          });
-
-          provider.on('accountsChanged', async (accounts) => {
-            await refreshEOAState((accounts as string[])[0]);
-          });
+      await connectEoa();
   
-          dispatch({
-            type: MetamaskActions.SetWalletListener,
-            payload: true,
-          });
-        }
-      }
- 
       // connect snap
       let installedSnap = await getSnap();
       if (!installedSnap) {
         await connectSnap();
         installedSnap = await getSnap();
       }
-
       dispatch({
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
-      
-      // fetch sc account state
-      await refreshScAccountState();
+ 
+      await getScAccountState();
+
+      const chainId = await getChainId();
+      dispatch({
+        type: MetamaskActions.SetChainId,
+        payload: chainId,
+      });
+      await setWalletListener();
     } catch (e) {
-      console.error(e);
+      console.error('[ERROR] header:', e.message);
       dispatch({ type: MetamaskActions.SetError, payload: e });
       dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
     }
-  };
-
-  const refreshEOAState = async (newEOA: string) => {
-    const changedeoa: EOA = {
-      address: newEOA,
-      balance: await getAccountBalance(newEOA),
-      connected: true,
-    }
-    dispatch({
-      type: MetamaskActions.SetEOA,
-      payload: changedeoa,
-    });
-
-    // fetch sc account state
-    await refreshScAccountState();
-  };
-
-  const refreshScAccountState = async () => {
-    const [scAccount, supportedEntryPoints] = await Promise.all([
-      getScAccount(),
-      sendSupportedEntryPoints(),
-    ]);
-
-    console.log('scAccount(header):', scAccount);
-
-    dispatch({
-      type: MetamaskActions.SetScAccount,
-      payload: scAccount,
-    });
-
-    dispatch({
-      type: MetamaskActions.SetSupportedEntryPoints,
-      payload: supportedEntryPoints,
-    });
   };
 
   return (

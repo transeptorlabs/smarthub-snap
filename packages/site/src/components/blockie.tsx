@@ -20,7 +20,8 @@ export const BlockieEoa = () => (
             seed="Jeremy"
             size={12} 
             scale={4}
-            bgColor='#907aa8'
+            color='#424f80'
+            bgColor="#8692bf"
             spotColor="#abc" 
             className="identicon"
         />
@@ -33,7 +34,8 @@ export const BlockieSc = () => (
             seed="Jeremy"
             size={12} 
             scale={4}
-            bgColor='#8d15bd'
+            color='#8e2791'
+            bgColor="#c899c9"
             spotColor="#abc" 
             className="identicon"
         />

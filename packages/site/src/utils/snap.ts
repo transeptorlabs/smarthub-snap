@@ -82,9 +82,9 @@ export const getScAccount = async (): Promise<SmartContractAccount> => {
     deposit: BigNumber.from(parsedResult.deposit).toString(),
     connected: true,
     ownerAddress: parsedResult.ownerAddress,
-    bundlerUrl: parsedResult.bundlerUrl,
     userOperationReceipts: parsedResult.userOperationReceipts,
     userOpHashesPending: parsedResult.userOpHashesPending,
+    bundlerUrls: parsedResult.bundlerUrls,
   } as SmartContractAccount;
 };
 
@@ -113,6 +113,16 @@ export const clearActivityData = async (): Promise<boolean> => {
     params: {
       snapId: defaultSnapOrigin,
       request: { method: 'clear_activity_data', params: [] },
+    },
+  })) as boolean;
+};
+
+export const addBundlerUrl = async (chainId: string, url: string,): Promise<boolean> => {
+  return (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'add_bundler_url', params: [chainId, url] },
     },
   })) as boolean;
 };

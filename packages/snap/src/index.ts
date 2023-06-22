@@ -8,8 +8,10 @@ import { HttpRpcClient, getBalance, getDeposit } from './client';
 import { getSimpleScAccount } from './wallet';
 import {
   clearState,
+  getBundlerUrls,
   getUserOpHashsConfirmed,
   getUserOpHashsPending,
+  storeBundlerUrl,
   storeUserOpHashConfirmed,
   storeUserOpHashPending,
 } from './state';
@@ -29,8 +31,11 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   origin,
   request,
 }) => {
-  const chainId = await ethereum.request({ method: 'eth_chainId' });
-  const rpcClient = new HttpRpcClient(parseInt(chainId as string, 16));
+  const [bundlerUrls, chainId]  = await Promise.all([
+    getBundlerUrls(),
+    ethereum.request({ method: 'eth_chainId' })
+  ]);
+  const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
   let result;
   let scAccount: SimpleAccountAPI;
   let scOwnerAddress: string;
@@ -151,9 +156,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         factoryAddress: rpcClient.getAccountFactoryAddr(),
         deposit: await getDeposit(scAddress, rpcClient.getEntryPointAddr()),
         ownerAddress: scOwnerAddress,
-        bundlerUrl: rpcClient.getBundlerUrl(),
         userOperationReceipts,
         userOpHashesPending,
+        bundlerUrls: await getBundlerUrls(),
       });
       return result;
     case 'get_confirmed_userOperationReceipts':
@@ -176,6 +181,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         }
       });
       result = JSON.stringify(userOperationReceipts);
+      return result;
+    case 'add_bundler_url':
+      result = await storeBundlerUrl((request.params as any[])[0],(request.params as any[])[1]);
       return result;
     case 'eth_chainId':
       return await rpcClient.send(request.method, request.params as any[]);
@@ -213,10 +221,13 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 };
 
 export const onCronjob: OnCronjobHandler = async ({ request }) => {
-  const chainId = await ethereum.request({ method: 'eth_chainId' });
+  const [bundlerUrls, chainId]  = await Promise.all([
+    getBundlerUrls(),
+    ethereum.request({ method: 'eth_chainId' })
+  ]);
 
   try {
-    const rpcClient = new HttpRpcClient(parseInt(chainId as string, 16));
+    const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
     let userOpHash: string;
     let userOpHashesPending: string[] = [];
     let userOperationReceipt: UserOperationReceipt;
@@ -225,7 +236,7 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
       case 'checkUserOperationReceiptReady':
         userOpHashesPending = await getUserOpHashsPending();
         if (userOpHashesPending.length === 0) {
-          return null;
+          return;
         }
 
         userOpHash = userOpHashesPending[userOpHashesPending.length - 1];
@@ -235,7 +246,7 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
         );
 
         if (!userOperationReceipt) {
-          return null;
+          return;
         }
         userOpHash = userOpHashesPending[userOpHashesPending.length - 1];
         await storeUserOpHashConfirmed(userOpHash);

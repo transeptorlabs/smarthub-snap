@@ -3,10 +3,13 @@
 ![Node Version](https://img.shields.io/badge/node-16.x-green)
 ![Github workflow build status(main)](https://img.shields.io/github/actions/workflow/status/transeptorlabs/erc-4337-snap/build.yml?branch=main)
 
-This is the core repository for the development of ERC-4337 Relayer
+This is the core repository for the development of the ERC-4337 Relayer
 MetaMask Snap.
 
 > :warning: **This repository is currently under active development.**
+
+
+https://github.com/transeptorlabs/erc-4337-snap/assets/34751375/bbfc11e3-2b55-4178-8328-8e121afc1871
 
 ## Why
 
@@ -26,26 +29,27 @@ To interact with (your) Snaps, you will need to install [MetaMask Flask](https:/
 
 ## Getting Started
 
-The snap require a connection to ERC4337 Bundler. We will use Transeptor Bundler running along side a geth client to set up local ERC4337 environment.
+The snap requires a connection to ERC4337 Bundler. We will use Transeptor Bundler running alongside a geth client to set up the local ERC-4337 environment.
 
 ### Running ERC 4337 Bundler locally
 
-1. Clone transeptor bundler repo [here](https://github.com/transeptorlabs/transeptor-bundler) to local machine.
-2. Open up you terminal a change directory to clone transeptor bundler repo
+1. Clone the Transeptor bundler repo [here](https://github.com/transeptorlabs/transeptor-bundler) to the local machine.
+2. Open up your terminal a change directory to clone Transeptor bundler repo
 3. Add environment variables to `.env`- `MNEMONIC=<your_seed_phrase>` and `BENEFICIARY=<address_to_receive_funds>`
 4. Start local GETH client `npm run geth:start` (will start at http://localhost:8545/)
-5. Deploy entry point contract and fund the bundler signer account `npm run deploy:local`
+5. Deploy the entry point contract and fund the bundler signer account using `npm run deploy:local` script
 6. Start up bundler `npm run transeptor:start`
 
-## Start up snap and React app
+### Start up snap and React app
 
-Make sure you follow th steps in `Running ERC 4337 Bundler locally` before start the snap
+Make sure you follow the steps in `Running ERC 4337 Bundler locally` before starting the snap
 
 ```shell
 yarn install && yarn start
 ```
 
 ## Contributing
+We welcome contributions to enhance our ERC-4337 Relayer Snap. If you would like to contribute, please follow these guidelines [here](https://github.com/transeptorlabs/erc-4337-snap/blob/main/CONTRIBUTING.md).
 
 ### Testing and Linting
 

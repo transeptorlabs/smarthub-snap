@@ -8,7 +8,6 @@ MetaMask Snap.
 
 > :warning: **This repository is currently under active development.**
 
-
 https://github.com/transeptorlabs/erc-4337-snap/assets/34751375/bbfc11e3-2b55-4178-8328-8e121afc1871
 
 ## Why
@@ -49,6 +48,7 @@ yarn install && yarn start
 ```
 
 ## Contributing
+
 We welcome contributions to enhance our ERC-4337 Relayer Snap. If you would like to contribute, please follow these guidelines [here](https://github.com/transeptorlabs/erc-4337-snap/blob/main/CONTRIBUTING.md).
 
 ### Testing and Linting

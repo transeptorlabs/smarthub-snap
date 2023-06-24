@@ -61,14 +61,13 @@ export const getSnap = async (version?: string): Promise<Snap | undefined> => {
 };
 
 export const connectErc4337Relayer = async (): Promise<boolean> => {
-  return await getMMProvider().request({
+  return (await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
       request: { method: 'connect_erc4337_relayer', params: [] },
     },
-  }) as boolean;
-
+  })) as boolean;
 };
 
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
@@ -128,7 +127,10 @@ export const clearActivityData = async (): Promise<boolean> => {
   })) as boolean;
 };
 
-export const addBundlerUrl = async (chainId: string, url: string): Promise<boolean> => {
+export const addBundlerUrl = async (
+  chainId: string,
+  url: string,
+): Promise<boolean> => {
   return (await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
@@ -139,13 +141,13 @@ export const addBundlerUrl = async (chainId: string, url: string): Promise<boole
 };
 
 export const getBundlerUrls = async (): Promise<BundlerUrls> => {
-  const result =  await getMMProvider().request({
+  const result = (await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
       request: { method: 'get_bundler_urls', params: [] },
     },
-  }) as string;
+  })) as string;
   const parsedResult = JSON.parse(result as string);
   return parsedResult as BundlerUrls;
 };

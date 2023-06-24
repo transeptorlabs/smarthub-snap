@@ -16,7 +16,6 @@ import {
   storeUserOpHashPending,
 } from './state';
 import { UserOperationReceipt } from './types';
-import { trimAccount } from './utils';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -32,9 +31,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   origin,
   request,
 }) => {
-  const [bundlerUrls, chainId]  = await Promise.all([
+  const [bundlerUrls, chainId] = await Promise.all([
     getBundlerUrls(),
-    ethereum.request({ method: 'eth_chainId' })
+    ethereum.request({ method: 'eth_chainId' }),
   ]);
   const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
   let result;
@@ -183,7 +182,10 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       result = JSON.stringify(userOperationReceipts);
       return result;
     case 'add_bundler_url':
-      result = await storeBundlerUrl((request.params as any[])[0],(request.params as any[])[1]);
+      result = await storeBundlerUrl(
+        (request.params as any[])[0],
+        (request.params as any[])[1],
+      );
       return result;
     case 'get_bundler_urls':
       result = JSON.stringify(await getBundlerUrls());
@@ -224,9 +226,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 };
 
 export const onCronjob: OnCronjobHandler = async ({ request }) => {
-  const [bundlerUrls, chainId]  = await Promise.all([
+  const [bundlerUrls, chainId] = await Promise.all([
     getBundlerUrls(),
-    ethereum.request({ method: 'eth_chainId' })
+    ethereum.request({ method: 'eth_chainId' }),
   ]);
 
   try {
@@ -239,7 +241,7 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
       case 'checkUserOperationReceiptReady':
         userOpHashesPending = await getUserOpHashsPending();
         if (userOpHashesPending.length === 0) {
-          return;
+          return null;
         }
 
         userOpHash = userOpHashesPending[userOpHashesPending.length - 1];
@@ -249,7 +251,7 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
         );
 
         if (!userOperationReceipt) {
-          return;
+          return null;
         }
         userOpHash = userOpHashesPending[userOpHashesPending.length - 1];
         await storeUserOpHashConfirmed(userOpHash);

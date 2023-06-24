@@ -128,5 +128,5 @@ export const getGasPrice = async (): Promise<BigNumber> => {
 };
 
 export const parseChainId = (chainId: string): number => {
-  return parseInt(chainId as string, 16)
+  return parseInt(chainId as string, 16);
 };

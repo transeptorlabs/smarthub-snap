@@ -1,4 +1,3 @@
-
 const getState = async (
   index = '0',
 ): Promise<{
@@ -7,9 +6,8 @@ const getState = async (
     [scIndex: string]: {
       userOpHashesConfirmed: string[];
       userOpHashesPending: string[];
-    }
-  }
-  ;
+    };
+  };
 }> => {
   let state = (await snap.request({
     method: 'snap_manageState',
@@ -20,8 +18,8 @@ const getState = async (
       [scIndex: string]: {
         userOpHashesConfirmed: string[];
         userOpHashesPending: string[];
-      }
-    }
+      };
+    };
   } | null;
 
   if (state === null) {
@@ -30,16 +28,16 @@ const getState = async (
       bundlerUrls: {
         '0x539': 'http://localhost:3000/rpc', // 1337
         '0x1': '', // ethereum mainnet
-        '0x5':'', // goerli
-        '0x89':'', // polygon mainnet
-        '0x13881':'' // polygon mumbai
+        '0x5': '', // goerli
+        '0x89': '', // polygon mainnet
+        '0x13881': '', // polygon mumbai
       },
       scAccounts: {
-        '0': { 
-          userOpHashesConfirmed: [], 
+        '0': {
+          userOpHashesConfirmed: [],
           userOpHashesPending: [],
         },
-      }
+      },
     };
 
     await snap.request({
@@ -49,11 +47,15 @@ const getState = async (
   }
 
   // if index does not exist, initialize it and set default data
-  if (!state.scAccounts[index] === undefined || state.scAccounts[index] === null) {
-    state.scAccounts[index] = { 
-      userOpHashesConfirmed: [], 
+  if (
+    !state.scAccounts[index] === undefined ||
+    state.scAccounts[index] === null
+  ) {
+    state.scAccounts[index] = {
+      userOpHashesConfirmed: [],
       userOpHashesPending: [],
     };
+
     await snap.request({
       method: 'snap_manageState',
       params: { operation: 'update', newState: state },
@@ -79,7 +81,7 @@ export const getUserOpHashsPending = async (index = '0'): Promise<string[]> => {
 
 export const getBundlerUrls = async (
   index = '0',
-): Promise<{[chainId: string]: string }> => {
+): Promise<{ [chainId: string]: string }> => {
   const state = await getState(index);
   // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
   return Object.assign({}, state.bundlerUrls);
@@ -93,7 +95,8 @@ export const storeUserOpHashConfirmed = async (
   state.scAccounts[index].userOpHashesConfirmed.push(userOpHash);
 
   // remove from pending if exists
-  const removeIndex = state.scAccounts[index].userOpHashesPending.indexOf(userOpHash);
+  const removeIndex =
+    state.scAccounts[index].userOpHashesPending.indexOf(userOpHash);
   if (removeIndex > -1) {
     state.scAccounts[index].userOpHashesPending.splice(removeIndex, 1);
   }

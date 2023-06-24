@@ -5,5 +5,5 @@ export {
   clearState,
   storeUserOpHashPending,
   getBundlerUrls,
-  storeBundlerUrl
+  storeBundlerUrl,
 } from './state';

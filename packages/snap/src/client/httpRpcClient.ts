@@ -3,17 +3,21 @@ import { EntryPoint__factory } from '@account-abstraction/contracts';
 
 export class HttpRpcClient {
   private readonly provider: ethers.providers.JsonRpcProvider;
+
   private readonly bundlerUrl: string;
+
   private readonly DEFAULT_ENTRY_POINT =
     '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789';
 
   private readonly DEFAULT_ACCOUNT_FACTORY =
     '0x9406Cc6185a346906296840746125a0E44976454';
 
-  constructor(bundlerUrls: {[chainId: string]: string}, chainId: string) {
+  constructor(bundlerUrls: { [chainId: string]: string }, chainId: string) {
     const bundlerUrl = bundlerUrls[chainId];
     if (!bundlerUrl) {
-      throw new Error(`ChainId ${parseInt(chainId as string, 16)} not supported`);
+      throw new Error(
+        `ChainId ${parseInt(chainId as string, 16)} not supported`,
+      );
     }
     this.bundlerUrl = bundlerUrl;
     this.provider = new ethers.providers.JsonRpcProvider(this.bundlerUrl, {

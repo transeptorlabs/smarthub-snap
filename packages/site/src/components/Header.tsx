@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import styled, { useTheme } from 'styled-components';
 import { MetamaskActions, MetaMaskContext, useAcount } from '../hooks';
-import { connectSnap, getThemePreference, getSnap } from '../utils';
+import { connectSnap, getThemePreference, getSnap, connectErc4337Relayer } from '../utils';
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
@@ -74,29 +74,29 @@ export const Header = ({
 
   const handleConnectClick = async () => {
     try {
-      await connectEoa();
-  
-      // connect snap
       let installedSnap = await getSnap();
       if (!installedSnap) {
+        console.log('installing snap');
         await connectSnap();
         installedSnap = await getSnap();
+        dispatch({
+          type: MetamaskActions.SetInstalled,
+          payload: installedSnap,
+        });
+        return
+      } else {
+        console.log('snap already installed');
+        dispatch({
+          type: MetamaskActions.SetInstalled,
+          payload: installedSnap,
+        });
       }
-      dispatch({
-        type: MetamaskActions.SetInstalled,
-        payload: installedSnap,
-      });
- 
+      
+      console.log('connecting eoa and sc account');
+      await connectEoa();
       await getScAccountState();
-
-      const chainId = await getChainId();
-      dispatch({
-        type: MetamaskActions.SetChainId,
-        payload: chainId,
-      });
       await setWalletListener();
     } catch (e) {
-      console.error('[ERROR] header:', e.message);
       dispatch({ type: MetamaskActions.SetError, payload: e });
       dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
     }

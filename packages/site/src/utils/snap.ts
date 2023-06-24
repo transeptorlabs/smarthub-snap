@@ -6,6 +6,7 @@ import {
   ReputationEntry,
   SmartContractAccount,
   UserOperationReceipt,
+  BundlerUrls,
 } from '../types';
 import { getMMProvider } from './metamask';
 
@@ -40,7 +41,7 @@ export const connectSnap = async (
 };
 
 /**
- * Get the snap from MetaMask.
+ * Get the ERC4337 relayer snap from MetaMask.
  *
  * @param version - The version of the snap to install (optional).
  * @returns The snap object returned by the extension.
@@ -57,6 +58,17 @@ export const getSnap = async (version?: string): Promise<Snap | undefined> => {
     console.log('Failed to obtain installed snap', e);
     return undefined;
   }
+};
+
+export const connectErc4337Relayer = async (): Promise<boolean> => {
+  return await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'connect_erc4337_relayer', params: [] },
+    },
+  }) as boolean;
+
 };
 
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
@@ -84,7 +96,6 @@ export const getScAccount = async (): Promise<SmartContractAccount> => {
     ownerAddress: parsedResult.ownerAddress,
     userOperationReceipts: parsedResult.userOperationReceipts,
     userOpHashesPending: parsedResult.userOpHashesPending,
-    bundlerUrls: parsedResult.bundlerUrls,
   } as SmartContractAccount;
 };
 
@@ -127,7 +138,7 @@ export const addBundlerUrl = async (chainId: string, url: string): Promise<boole
   })) as boolean;
 };
 
-export const getBundlerUrls = async (): Promise<{ [chainId: string]: string }> => {
+export const getBundlerUrls = async (): Promise<BundlerUrls> => {
   const result =  await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
@@ -136,7 +147,7 @@ export const getBundlerUrls = async (): Promise<{ [chainId: string]: string }> =
     },
   }) as string;
   const parsedResult = JSON.parse(result as string);
-  return parsedResult as { [chainId: string]: string };
+  return parsedResult as BundlerUrls;
 };
 
 // ERC-4337 wrappers ******************************************************

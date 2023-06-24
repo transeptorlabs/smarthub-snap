@@ -16,6 +16,7 @@ import {
   storeUserOpHashPending,
 } from './state';
 import { UserOperationReceipt } from './types';
+import { trimAccount } from './utils';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -158,7 +159,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         ownerAddress: scOwnerAddress,
         userOperationReceipts,
         userOpHashesPending,
-        bundlerUrls: await getBundlerUrls(),
       });
       return result;
     case 'get_confirmed_userOperationReceipts':

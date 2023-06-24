@@ -17,6 +17,7 @@ import {
   getChainId,
   getBundlerUrls,
   parseChainId,
+  addBundlerUrl,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -120,13 +121,12 @@ const Index = () => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [formBundlerUrls, setFormBundlerUrls] = useState({} as BundlerUrls);
 
-  const {connectEoa, refreshEOAState, getScAccountState, setWalletListener} = useAcount();
+  const {refreshEOAState, getScAccountState, setWalletListener} = useAcount();
 
   useEffect(() => {
     let interval: any
     try {  
       interval = setInterval(() => {
-        console.log('refreshing accounts:', state);
         if (state.eoa.connected) {
           refreshEOAState(state.eoa.address);
         }
@@ -144,27 +144,11 @@ const Index = () => {
       console.error('[ERROR] refreaher:', e.message);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     } 
-  }, [state.eoa.connected, state.scAccount.connected]);
+  }, [state.eoa, state.scAccount]);
 
   useEffect(() => {
     try {  
-      const initBundlerSetting = async () => {
-        try {
-          if (state.installedSnap) {
-            const urls = await getBundlerUrls();
-            dispatch({
-              type: MetamaskActions.SetBundlerUrls,
-              payload: urls,
-            });
-
-            setFormBundlerUrls(urls as BundlerUrls);
-          }
-        } catch (error) {
-          dispatch({ type: MetamaskActions.SetError, payload: error });
-        }
-      };
-  
-      initBundlerSetting(); 
+      handleFetchBundlerUrls(); 
 
       return () => {
       };
@@ -176,28 +160,30 @@ const Index = () => {
 
   const handleReConnectSnapClick = async () => {
     try {
-      await connectEoa();
-      
-      // reconnect snap
       await connectSnap();
       const installedSnap = await getSnap();
       dispatch({
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
-
-      await getScAccountState();
-
-      const chainId = await getChainId();
-      dispatch({
-        type: MetamaskActions.SetChainId,
-        payload: chainId,
-      });
-      await setWalletListener();
     } catch (e) {
-      console.error('[ERROR] middle:', e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
-      dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
+    }
+  };
+
+  const handleFetchBundlerUrls = async () => {
+    try {
+      if (state.installedSnap) {
+        const urls = await getBundlerUrls();
+        dispatch({
+          type: MetamaskActions.SetBundlerUrls,
+          payload: urls,
+        });
+
+        setFormBundlerUrls(urls);
+      }
+    } catch (error) {
+      dispatch({ type: MetamaskActions.SetError, payload: error });
     }
   };
 
@@ -307,16 +293,13 @@ const Index = () => {
   const handleClearActivity = async (e: any) => {
     e.preventDefault();
     await clearActivityData();
-    const urls = await getBundlerUrls();
-    dispatch({
-      type: MetamaskActions.SetBundlerUrls,
-      payload: urls,
-    });
+    await handleFetchBundlerUrls();
   }
 
   const handleBundlerUrlSubmit = async (e: any, chainId: string) => {
     e.preventDefault();
-    console.log('submit clicked:', chainId, formBundlerUrls[chainId]);
+    await addBundlerUrl(chainId, formBundlerUrls[chainId]);
+    await handleFetchBundlerUrls();
   }
 
   const handleBundlerUrlChange = async (e: any, chainId: string) => {
@@ -325,14 +308,9 @@ const Index = () => {
       ...formBundlerUrls,
       [chainId]: inputValue,
     })
-    console.log('value changed:', formBundlerUrls);
   }
 
   const createBundlerUrlForm = () => {
-    if (!formBundlerUrls) {
-      return;
-    }
-
     return (
       <div>
         {Object.entries(formBundlerUrls).map(([chainId, url]) => (
@@ -350,7 +328,6 @@ const Index = () => {
       </div>
     );
   }
-
 
   return (
     <Container>

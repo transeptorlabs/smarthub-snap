@@ -207,7 +207,7 @@ export const MetaMaskProvider = ({ children }: { children: ReactNode }) => {
           type: MetamaskActions.SetError,
           payload: undefined,
         });
-      }, 10000);
+      }, 5000);
     }
 
     return () => {
@@ -216,7 +216,7 @@ export const MetaMaskProvider = ({ children }: { children: ReactNode }) => {
       }
     };
   }, [state.error]);
-
+  
   return (
     <MetaMaskContext.Provider value={[state, dispatch]}>
       {children}

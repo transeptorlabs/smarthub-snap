@@ -1,7 +1,7 @@
 import { useContext, useEffect } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
 import { EOA } from "../types";
-import { connectWallet, getAccountBalance, getBundlerUrls, getMMProvider, getScAccount, sendSupportedEntryPoints } from "../utils";
+import { connectWallet, getAccountBalance, getBundlerUrls, getChainId, getMMProvider, getScAccount, sendSupportedEntryPoints } from "../utils";
 
 export const useAcount = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
@@ -46,10 +46,15 @@ export const useAcount = () => {
   const setWalletListener = async () => {
     if (!state.isChainIdListener) {
       console.log('setWalletListener:', state)
+      const chainId = await getChainId();
+      dispatch({
+        type: MetamaskActions.SetChainId,
+        payload: chainId,
+      });
+      
       const provider = getMMProvider()
       if (provider) {
         provider.on('chainChanged', async (chainId) => {
-          console.log('chainChanged:', state)
           dispatch({
             type: MetamaskActions.SetChainId,
             payload: chainId,
@@ -64,7 +69,6 @@ export const useAcount = () => {
         });
      
         provider.on('accountsChanged', async (accounts) => {
-          console.log('accountsChanged:', state)
           await refreshEOAState((accounts as string[])[0]).catch((e) => {
             fatalError(e);
           });        

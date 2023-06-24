@@ -8,9 +8,7 @@ MetaMask Snap.
 
 > :warning: **This repository is currently under active development.**
 
-
 https://github.com/transeptorlabs/erc-4337-relayer/assets/34751375/be238592-9953-4a23-82f8-fd95777202d4
-
 
 ## Why
 
@@ -48,6 +46,8 @@ Make sure you follow the steps in `Running ERC 4337 Bundler locally` before star
 ```shell
 yarn install && yarn start
 ```
+
+Set `SNAP_ORIGIN=prod:http://localhost:8080` in local `.env` file
 
 ## Contributing
 

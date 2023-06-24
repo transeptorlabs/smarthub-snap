@@ -193,7 +193,7 @@ const Index = () => {
 
     // check the owner account has enough balance
     if (BigNumber.from(state.eoa.balance).lt(depositInWei)) {
-      dispatch({ type: MetamaskActions.SetError, payload: new Error('Owner accout has, insufficient funds') });
+      dispatch({ type: MetamaskActions.SetError, payload: new Error('EOA has, insufficient funds.') });
       return;
     }
     
@@ -486,11 +486,11 @@ const Index = () => {
             <Card
               content={{
                 description: `${state.scAccount.address}`,
-                descriptionBold: 'Transeptor Deposit Account',
+                descriptionBold: 'Smart Account',
                 stats: [
                   {
                     id: `0`,
-                    title: 'Deposit',
+                    title: 'Entry Point Deposit',
                     value: `${convertToEth(state.scAccount.deposit)} ETH`,
                   },
                 ],

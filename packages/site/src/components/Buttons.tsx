@@ -54,8 +54,6 @@ const FormButon = styled.button`
   }
 `;
 
-
-
 const ButtonText = styled.span`
   margin-left: 1rem;
 `;
@@ -93,7 +91,7 @@ export const ConnectSnapButton = (props: ComponentProps<typeof Button>) => {
   return (
     <Button {...props}>
       <FlaskFox />
-      <ButtonText>Connect snap</ButtonText>
+      <ButtonText>Install snap</ButtonText>
     </Button>
   );
 };
@@ -133,6 +131,10 @@ export const HeaderButtons = ({
 }) => {
   if (!state.isFlask) {
     return <InstallFlaskButton />;
+  }
+
+  if (!state.installedSnap) {
+    return <ConnectSnapButton onClick={onConnectClick} />;
   }
 
   if (!state.eoa.connected) {

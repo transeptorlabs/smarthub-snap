@@ -6,7 +6,7 @@ import {
   useEffect,
   useReducer,
 } from 'react';
-import { Snap } from '../types';
+import { AppTab, BundlerUrls, Snap } from '../types';
 import { isFlask, getSnap } from '../utils';
 import { EOA, SmartContractAccount } from '../types/erc-4337';
 
@@ -18,6 +18,9 @@ export type MetamaskState = {
   userOpsHash?: string;
   eoa: EOA;
   scAccount: SmartContractAccount;
+  chainId: string;
+  activeTab: AppTab;
+  bundlerUrls?: BundlerUrls;
 };
 
 const initialState: MetamaskState = {
@@ -25,7 +28,9 @@ const initialState: MetamaskState = {
   error: undefined,
   installedSnap: undefined,
   isChainIdListener: false,
-  userOpsHash: '',
+  chainId: '',
+  activeTab: AppTab.About,
+  bundlerUrls: undefined,
   eoa: {
     connected: false,
     address: '',
@@ -38,11 +43,9 @@ const initialState: MetamaskState = {
     nonce: '',
     index: '',
     entryPoint: '',
-    depoist: '',
+    deposit: '',
     factoryAddress: '',
     ownerAddress: '',
-    bundlerUrl: '',
-    chainId: '',
     userOperationReceipts: [],
     userOpHashesPending: [],
   },
@@ -67,8 +70,10 @@ export enum MetamaskActions {
   SetScAccount = "SetScAccount",
   SetSupportedEntryPoints = 'SetSupportedEntryPoints',
   SetWalletListener = 'SetWalletListener',
-  SetUserOpHash = 'SetUserOpHash',
   SetClearAccount = 'SetClearAccount',
+  SetChainId = 'SetChainId',
+  SetActiveTab = 'SetActiveTab',
+  SetBundlerUrls = 'SetBundlerUrls',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -109,10 +114,22 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         isChainIdListener: action.payload,
       };
 
-    case MetamaskActions.SetUserOpHash:
+    case MetamaskActions.SetActiveTab:
       return {
         ...state,
-        userOpsHash: action.payload,
+        activeTab: action.payload,
+      };
+
+    case MetamaskActions.SetChainId:
+      return {
+        ...state,
+        chainId: action.payload,
+      };
+
+    case MetamaskActions.SetBundlerUrls:
+      return {
+        ...state,
+        bundlerUrls: action.payload,
       };
 
     case MetamaskActions.SetClearAccount:
@@ -130,7 +147,7 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
           nonce: '',
           index: '',
           entryPoint: '',
-          depoist: '',
+          deposit: '',
           factoryAddress: '',
           ownerAddress: '',
           bundlerUrl: '',
@@ -190,7 +207,7 @@ export const MetaMaskProvider = ({ children }: { children: ReactNode }) => {
           type: MetamaskActions.SetError,
           payload: undefined,
         });
-      }, 10000);
+      }, 5000);
     }
 
     return () => {
@@ -199,7 +216,7 @@ export const MetaMaskProvider = ({ children }: { children: ReactNode }) => {
       }
     };
   }, [state.error]);
-
+  
   return (
     <MetaMaskContext.Provider value={[state, dispatch]}>
       {children}

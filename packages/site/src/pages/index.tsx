@@ -1,23 +1,23 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { MetamaskActions, MetaMaskContext } from '../hooks';
+import { MetamaskActions, MetaMaskContext, useAcount } from '../hooks';
 import {
   connectSnap,
   getSnap,
-  getScAccount,
-  sendSupportedEntryPoints,
   shouldDisplayReconnectButton,
   getMMProvider,
-  connectWallet, 
   convertToEth, 
   convertToWei, 
   estimateGas, 
-  getAccountBalance,
   isValidAddress, 
   encodeFunctionData,
   getEntryPointContract,
   sendUserOperation,
   clearActivityData,
+  getChainId,
+  getBundlerUrls,
+  parseChainId,
+  addBundlerUrl,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -26,34 +26,25 @@ import {
   Card,
   TokenInputForm,
   SimpleButton,
+  TabMenu,
+  BundlerInputForm,
 } from '../components';
 import { BigNumber, ethers } from 'ethers';
-import { EOA } from '../types/erc-4337';
+import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
 
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   flex: 1;
-  margin-top: 7.6rem;
+  margin-top: 1.6rem;
   margin-bottom: 7.6rem;
   ${({ theme }) => theme.mediaQueries.small} {
     padding-left: 2.4rem;
     padding-right: 2.4rem;
-    margin-top: 2rem;
     margin-bottom: 2rem;
     width: auto;
   }
-`;
-
-const Heading = styled.h1`
-  margin-top: 0;
-  margin-bottom: 2.4rem;
-  text-align: center;
-`;
-
-const Span = styled.span`
-  color: ${(props) => props.theme.colors.primary.default};
 `;
 
 const Subtitle = styled.p`
@@ -114,28 +105,9 @@ const ErrorMessage = styled.div`
   }
 `;
 
-const SuccessMessage = styled.div`
-  background-color: ${({ theme }) => theme.colors.success.muted};
-  border: 1px solid ${({ theme }) => theme.colors.success.default};
-  color: ${({ theme }) => theme.colors.success.alternative};
-  border-radius: ${({ theme }) => theme.radii.default};
-  padding: 2.4rem;
-  margin-bottom: 2.4rem;
-  margin-top: 2.4rem;
-  max-width: 60rem;
-  width: 100%;
-  text-align: center;
-  ${({ theme }) => theme.mediaQueries.small} {
-    padding: 1.6rem;
-    margin-bottom: 1.2rem;
-    margin-top: 1.2rem;
-    max-width: 100%;
-  }
-`;
-
 const LineBreak = styled.hr`
-  color: black;
-  border: solid;
+  color: ${(props) => props.theme.colors.primary};
+  border: solid 1px ${(props) => props.theme.colors.border.default};
   width: 60%;
   ${({ theme }) => theme.mediaQueries.small} {
     width: 80%;
@@ -147,89 +119,72 @@ const Index = () => {
   const [depositAmount, setDepositAmount] = useState('');
   const [withDrawAddr, setWithDrawAddr] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [formBundlerUrls, setFormBundlerUrls] = useState({} as BundlerUrls);
+
+  const {refreshEOAState, getScAccountState, setWalletListener} = useAcount();
+
+  useEffect(() => {
+    let interval: any
+    try {  
+      interval = setInterval(() => {
+        if (state.eoa.connected) {
+          refreshEOAState(state.eoa.address);
+        }
+  
+        if (state.scAccount.connected) {
+          getScAccountState();
+        }
+      }, 10000)
+  
+      return () => {
+        clearInterval(interval);
+      };
+
+    } catch (e) {
+      console.error('[ERROR] refreaher:', e.message);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    } 
+  }, [state.eoa, state.scAccount]);
+
+  useEffect(() => {
+    try {  
+      handleFetchBundlerUrls(); 
+
+      return () => {
+      };
+
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    } 
+  }, [state.installedSnap]);
 
   const handleReConnectSnapClick = async () => {
     try {
-      // connect wallet
-      let eoa: EOA = {
-        address: '',
-        balance: '',
-        connected: false,
-      }
-      if (!state.eoa.connected) {
-        eoa = await connectWallet()
-        dispatch({
-          type: MetamaskActions.SetEOA,
-          payload: eoa,
-        });
-      }
-
-      const provider = getMMProvider()
-      if (provider) {
-        if (!state.isChainIdListener) {
-          provider.on('chainChanged', async (chainId) => {
-            console.log('Network changed:', chainId);
-          });
-
-          provider.on('accountsChanged', async (accounts) => {
-            await refreshEOAState((accounts as string[])[0]);
-          });
-  
-          dispatch({
-            type: MetamaskActions.SetWalletListener,
-            payload: true,
-          });
-        }
-      }
-
-      // reconnect snap
       await connectSnap();
       const installedSnap = await getSnap();
-
       dispatch({
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
-
-      // fetch sc account state
-      await refreshScAccountState();
     } catch (e) {
-      console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
 
-  const refreshEOAState = async (newOwner: string) => {
-    const changedeoa: EOA = {
-      address: newOwner,
-      balance: await getAccountBalance(newOwner),
-      connected: true,
+  const handleFetchBundlerUrls = async () => {
+    try {
+      if (state.installedSnap) {
+        const urls = await getBundlerUrls();
+        dispatch({
+          type: MetamaskActions.SetBundlerUrls,
+          payload: urls,
+        });
+
+        setFormBundlerUrls(urls);
+      }
+    } catch (error) {
+      dispatch({ type: MetamaskActions.SetError, payload: error });
     }
-    dispatch({
-      type: MetamaskActions.SetEOA,
-      payload: changedeoa,
-    });
-
-    // fetch sc account state
-    await refreshScAccountState();
-  };
-
-  const refreshScAccountState = async () => {
-    const [scAccount, supportedEntryPoints] = await Promise.all([
-      getScAccount(),
-      sendSupportedEntryPoints(),
-    ]);
-    console.log('scAccount(page)', scAccount);
-
-    dispatch({
-      type: MetamaskActions.SetScAccount,
-      payload: scAccount,
-    });
-
-    dispatch({
-      type: MetamaskActions.SetSupportedEntryPoints,
-      payload: supportedEntryPoints,
-    });
   };
 
   const handleDepositSubmit = async (e: any) => {
@@ -272,7 +227,7 @@ const Index = () => {
     // refresh account balances
     setDepositAmount('');
     await refreshEOAState(state.eoa.address);
-    await refreshScAccountState();
+    await getScAccountState();
   }
 
   const handleWithdrawSubmit = async (e: any) => {
@@ -283,7 +238,7 @@ const Index = () => {
       return;
     }
 
-    if (BigNumber.from(state.scAccount.depoist).lt(withdrawAmountInWei)) {
+    if (BigNumber.from(state.scAccount.deposit).lt(withdrawAmountInWei)) {
       dispatch({ type: MetamaskActions.SetError, payload: new Error('Smart contract account, insufficient deposit') });
       return;
     }
@@ -295,20 +250,15 @@ const Index = () => {
         [state.eoa.address, withdrawAmountInWei.toString()]
       );
 
-      const userOpHash = await sendUserOperation(
+      await sendUserOperation(
         state.scAccount.entryPoint,
         encodedFunctionData,
         state.scAccount.index,
-      )
-
-      dispatch({
-        type: MetamaskActions.SetUserOpHash,
-        payload: userOpHash,
-      });
+      );
 
       setWithdrawAmount('');
       setWithDrawAddr('');
-      await refreshScAccountState();
+      await getScAccountState();
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
@@ -343,231 +293,290 @@ const Index = () => {
   const handleClearActivity = async (e: any) => {
     e.preventDefault();
     await clearActivityData();
-    await refreshScAccountState();
+    await handleFetchBundlerUrls();
+  }
+
+  const handleBundlerUrlSubmit = async (e: any, chainId: string) => {
+    e.preventDefault();
+    await addBundlerUrl(chainId, formBundlerUrls[chainId]);
+    await handleFetchBundlerUrls();
+  }
+
+  const handleBundlerUrlChange = async (e: any, chainId: string) => {
+    const inputValue = e.target.value;
+    setFormBundlerUrls({
+      ...formBundlerUrls,
+      [chainId]: inputValue,
+    })
+  }
+
+  const createBundlerUrlForm = () => {
+    return (
+      <div>
+        {Object.entries(formBundlerUrls).map(([chainId, url]) => (
+          <BundlerInputForm
+            key={chainId}
+            onSubmitClick={(e)=> handleBundlerUrlSubmit(e, chainId)}
+            buttonText="Save"
+            onInputChange={(e)=> handleBundlerUrlChange(e, chainId)}
+            inputValue={url}
+            inputPlaceholder="Enter url"
+            networkName={SupportedChainIdMap[chainId] ? SupportedChainIdMap[chainId] : 'Unknown'}
+            chainId={parseChainId(chainId).toString()}
+        />
+        ))}
+      </div>
+    );
   }
 
   return (
     <Container>
-
-      <Heading>
-        Welcome to <Span>ERC-4337 Relayer</Span>
-      </Heading>
-
+      <TabMenu></TabMenu>
       <LineBreak></LineBreak>
-      <Subtitle>About</Subtitle>
-      <CardContainer>
-        <Card
-          content={{
-            title: 'Why',
-            description: `ERC-4337: Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.`,
-          }}
-          fullWidth
-        />
-        <Card
-          content={{
-            title: 'What',
-            description: `ERC-4337 Relayer is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.`,
-          }}
-          fullWidth
-        />
-        <Card
-          content={{
-            title: 'How',
-            description:
-              'The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components.',
-          }}
-          fullWidth
-        />
-      </CardContainer>
 
-      <LineBreak></LineBreak>
-      <Subtitle>Install</Subtitle>
-      <CardContainer>
-        {!state.isFlask && (
-          <Card
-            content={{
-              title: 'Install',
-              description:
-                'Snaps is pre-release software only available in MetaMask Flask, a canary distribution for developers with access to upcoming features.',
-              button: <InstallFlaskButton />,
-            }}
-            fullWidth
-          />
-        )}
-        {!state.installedSnap && (
-          <Card
-            content={{
-              title: 'Enable ERC-4337: Account Abstraction capabilities',
-              description: 'Features include:',
-              listItems: [
-                'Relay user operations inside of MetaMask',
-                'Manage ERC-4337 accounts(create, sign, send, transfer funds)',
-                'Wraps all eth ERC-4337 namespace rpc methods',
-                'Manage stake an deposit with supported entrypoint contracts',
-              ],
-              button: (
-                <ConnectSnapButton
-                  onClick={handleReConnectSnapClick}
-                  disabled={!state.isFlask}
-                />
-              ),
-            }}
-            disabled={!state.isFlask}
-            fullWidth
-          />
-        )}
-        {state.installedSnap && (
-          <Card
-            content={{
-              title: 'ERC-4337 Relayer is installed and ready to use',
-              description: `Installed with v${state.installedSnap.version}. Use MetaMask settings page, to see the more details on the installed snap.`,
-            }}
-            disabled={!state.isFlask}
-            fullWidth
-          />
-        )}
-        {shouldDisplayReconnectButton(state.installedSnap) && (
-          <Card
-            content={{
-              title: 'Reconnect snap',
-              description:
-                'While connected to a local running snap this button will always be displayed in order to update the snap if a change is made.',
-              button: (
-                <ReconnectButton
-                  onClick={handleReConnectSnapClick}
-                  disabled={!state.installedSnap}
-                />
-              ),
-            }}
-            disabled={!state.installedSnap}
-            fullWidth
-          />
-        )}
-      </CardContainer>
-
-      <LineBreak></LineBreak>
-      <Subtitle>Accounts</Subtitle>
+      {/* Error message */}
       {state.error && (
-          <ErrorMessage>
-            <b>An error happened:</b> {state.error.message}
-          </ErrorMessage>
+        <ErrorMessage>
+          <b>An error happened:</b> {state.error.message}
+        </ErrorMessage>
       )}
-      <CardContainer>
-        {state.eoa.connected && (
+
+      {/* About tab */}
+      {state.activeTab === AppTab.About && (
+        <CardContainer>
           <Card
             content={{
-              title: 'Connected EOA',
-              description: `${state.eoa.address}`,
-              stats: [
-                {
-                  id: `1`,
-                  title: 'Balance',
-                  value: `${convertToEth(state.eoa.balance)} ETH`,
-                },
-              ],
-              form: [
-                <TokenInputForm
-                  key={"deposit"}
-                  buttonText="Add Deposit"
-                  onSubmitClick={handleDepositSubmit}
-                  inputs={[
-                    {
-                      id: "1",
-                      onInputChange: handleDepositAmountChange,
-                      inputValue: depositAmount,
-                      inputPlaceholder:"Enter amount"
-                    }
-                  ]}
-            
-                />,
-              ],
+              title: 'Why',
+              description: `ERC-4337: Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.`,
             }}
-            disabled={!state.isFlask}
-            copyDescription
-            isAccount
             fullWidth
           />
-        )}
-
-        {state.scAccount.connected && state.installedSnap && (
           <Card
             content={{
-              title: 'Transeptor Deposit Account',
-              description: `${state.scAccount.address}`,
-              stats: [
-                {
-                  id: `0`,
-                  title: 'Deposit',
-                  value: `${convertToEth(state.scAccount.depoist)} ETH`,
-                },
-              ],
-              form: [
-                <TokenInputForm
-                key={"withdraw"}
-                onSubmitClick={handleWithdrawSubmit}
-                buttonText="Withdraw Deposit"
-                inputs={[
-                    {
-                      id: "1",
-                      onInputChange: handleWithdrawAddrChange,
-                      inputValue: withDrawAddr,
-                      inputPlaceholder:"Enter address"
-                    },
-                    {
-                      id: "2",
-                      onInputChange: handleWithdrawAmountChange,
-                      inputValue: withdrawAmount,
-                      inputPlaceholder:"Enter amount"
-                    }
-                  ]
-                }
-              />
-              ]
+              title: 'What',
+              description: `ERC-4337 Relayer is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.`,
             }}
-            disabled={!state.isFlask}
-            copyDescription
-            isAccount
             fullWidth
           />
-        )}
-
-        {state.scAccount.connected && state.installedSnap && (
           <Card
             content={{
-              title: 'Activity',
-              userOperationReceipts: state.scAccount.userOperationReceipts,
+              title: 'How',
+              description:
+                'The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components.',
             }}
-            disabled={!state.isFlask}
             fullWidth
           />
-        )}
-      </CardContainer>
-
-      <LineBreak></LineBreak>
-      <Subtitle>Playground</Subtitle>
-      <CardContainer>
-        {state.scAccount.connected && state.installedSnap && (
+        </CardContainer>
+      )}
+      
+      {/* Install tab */}
+      {state.activeTab !== AppTab.About && (
+        <CardContainer>
+          {!state.isFlask && (
             <Card
               content={{
-                title: 'User Operations Builder',
-                description: 'Coming soon...',
+                title: 'Install',
+                description:
+                  'Snaps is pre-release software only available in MetaMask Flask, a canary distribution for developers with access to upcoming features.',
+                button: <InstallFlaskButton />,
+              }}
+              fullWidth
+            />
+          )}
+
+          {!state.installedSnap && (
+            <Card
+              content={{
+                title: 'Enable ERC-4337: Account Abstraction capabilities',
+                description: 'Features include:',
+                listItems: [
+                  'Relay user operations inside of MetaMask',
+                  'Manage ERC-4337 accounts(create, sign, send, transfer funds)',
+                  'Wraps all eth ERC-4337 namespace rpc methods',
+                  'Manage stake an deposit with supported entrypoint contracts',
+                ],
+                button: (
+                  <ConnectSnapButton
+                    onClick={handleReConnectSnapClick}
+                    disabled={!state.isFlask}
+                  />
+                ),
               }}
               disabled={!state.isFlask}
               fullWidth
             />
-        )}
-      </CardContainer>
+          )}
+        </CardContainer>
+      )}
 
-      <LineBreak></LineBreak>
-      <Subtitle>Setting</Subtitle>
-      <CardContainer>
-        {state.installedSnap && state.scAccount.connected && (
-            <ErrorMessage>
-              <p>This resets your depoist account's activity data inside the snap. Your balances and incoming transactions won't change.</p>
-            <SimpleButton text={'Clear activity data'} onClick={handleClearActivity}></SimpleButton>
-          </ErrorMessage>
-        )}
-      </CardContainer>
+      {state.activeTab === AppTab.Install && (
+        <CardContainer>
+          {state.installedSnap && (
+            <Card
+              content={{
+                title: 'ERC-4337 Relayer is installed and ready to use',
+                description: `Installed with v${state.installedSnap.version}. Use MetaMask settings page, to see the more details on the installed snap.`,
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+
+          {shouldDisplayReconnectButton(state.installedSnap) && (
+            <Card
+              content={{
+                title: 'Local dev - Reconnect snap',
+                description:
+                  'While connected to a local running snap this button will always be displayed in order to update the snap if a change is made.',
+                button: (
+                  <ReconnectButton
+                    onClick={handleReConnectSnapClick}
+                    disabled={!state.installedSnap}
+                  />
+                ),
+              }}
+              disabled={!state.installedSnap}
+              fullWidth
+            />
+          )}
+        </CardContainer>
+      )}
+
+      {/* Account tab */}
+      {state.activeTab === AppTab.Account && (
+        <CardContainer>
+          {state.eoa.connected && (
+            <Card
+              content={{
+                descriptionBold: 'Connected EOA',
+                description: `${state.eoa.address}`,
+                stats: [
+                  {
+                    id: `1`,
+                    title: 'Balance',
+                    value: `${convertToEth(state.eoa.balance)} ETH`,
+                  },
+                ],
+                form: [
+                  <TokenInputForm
+                    key={"deposit"}
+                    buttonText="Add Deposit"
+                    onSubmitClick={handleDepositSubmit}
+                    inputs={[
+                      {
+                        id: "1",
+                        onInputChange: handleDepositAmountChange,
+                        inputValue: depositAmount,
+                        inputPlaceholder:"Enter amount"
+                      }
+                    ]}
+              
+                  />,
+                ],
+              }}
+              disabled={!state.isFlask}
+              copyDescription
+              isAccount
+              fullWidth
+              isEoa
+            />
+          )}
+
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                description: `${state.scAccount.address}`,
+                descriptionBold: 'Transeptor Deposit Account',
+                stats: [
+                  {
+                    id: `0`,
+                    title: 'Deposit',
+                    value: `${convertToEth(state.scAccount.deposit)} ETH`,
+                  },
+                ],
+                form: [
+                  <TokenInputForm
+                  key={"withdraw"}
+                  onSubmitClick={handleWithdrawSubmit}
+                  buttonText="Withdraw Deposit"
+                  inputs={[
+                      {
+                        id: "1",
+                        onInputChange: handleWithdrawAddrChange,
+                        inputValue: withDrawAddr,
+                        inputPlaceholder:"Enter address"
+                      },
+                      {
+                        id: "2",
+                        onInputChange: handleWithdrawAmountChange,
+                        inputValue: withdrawAmount,
+                        inputPlaceholder:"Enter amount"
+                      }
+                    ]
+                  }
+                />
+                ]
+              }}
+              disabled={!state.isFlask}
+              copyDescription
+              isAccount
+              fullWidth
+              isSC
+            />
+          )}
+
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'Activity',
+                userOperationReceipts: state.scAccount.userOperationReceipts,
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+        </CardContainer>
+      )}
+
+      {/* Build tab */}
+      {state.activeTab === AppTab.Build && (
+        <CardContainer>
+          {state.scAccount.connected && state.installedSnap && (
+              <Card
+                content={{
+                  title: 'User Operations Builder',
+                  description: 'Coming soon...',
+                }}
+                disabled={!state.isFlask}
+                fullWidth
+              />
+          )}
+        </CardContainer>
+      )}
+
+      {/* Setting tab */}
+      {state.activeTab === AppTab.Settings && (
+        <CardContainer>
+          {state.installedSnap && (
+            <Card
+              content={{
+                title: 'Bundler RPC Urls',
+                description: 'A list of bundler RPC Url to relay your user operations.',
+                custom: createBundlerUrlForm()
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+
+          {state.installedSnap && (
+              <ErrorMessage>
+                <p>This resets your deposit account's activity and bundler Url data inside the snap. Your balances and incoming transactions won't change.</p>
+              <SimpleButton text={'Clear activity data'} onClick={handleClearActivity}></SimpleButton>
+            </ErrorMessage>
+          )}
+        </CardContainer>
+      )}
 
       <Notice>
           <p>
@@ -578,7 +587,6 @@ const Index = () => {
             </a>
           </p>
       </Notice>
-
     </Container>
   );
 };

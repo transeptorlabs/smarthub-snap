@@ -11,6 +11,16 @@ export const getAccountBalance = async (account: string): Promise<string> => {
   return balance.toString();
 };
 
+export const getChainId = async (): Promise<string> => {
+  const provider = getMMProvider();
+  const chainId = await provider
+    .request({ method: 'eth_chainId' })
+    .catch((err) => {
+      throw Error(err);
+    });
+  return chainId as string;
+};
+
 export const connectWallet = async (): Promise<EOA> => {
   const provider = getMMProvider();
   const accounts = await provider
@@ -115,4 +125,8 @@ export const estimateGas = async (
 export const getGasPrice = async (): Promise<BigNumber> => {
   const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
   return await provider.getGasPrice();
+};
+
+export const parseChainId = (chainId: string): number => {
+  return parseInt(chainId as string, 16);
 };

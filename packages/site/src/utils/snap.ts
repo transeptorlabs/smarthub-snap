@@ -6,6 +6,7 @@ import {
   ReputationEntry,
   SmartContractAccount,
   UserOperationReceipt,
+  BundlerUrls,
 } from '../types';
 import { getMMProvider } from './metamask';
 
@@ -40,7 +41,7 @@ export const connectSnap = async (
 };
 
 /**
- * Get the snap from MetaMask.
+ * Get the ERC4337 relayer snap from MetaMask.
  *
  * @param version - The version of the snap to install (optional).
  * @returns The snap object returned by the extension.
@@ -57,6 +58,16 @@ export const getSnap = async (version?: string): Promise<Snap | undefined> => {
     console.log('Failed to obtain installed snap', e);
     return undefined;
   }
+};
+
+export const connectErc4337Relayer = async (): Promise<boolean> => {
+  return (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'connect_erc4337_relayer', params: [] },
+    },
+  })) as boolean;
 };
 
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
@@ -79,10 +90,9 @@ export const getScAccount = async (): Promise<SmartContractAccount> => {
     factoryAddress: parsedResult.factoryAddress,
     nonce: BigNumber.from(parsedResult.nonce).toString(),
     index: BigNumber.from(parsedResult.index).toString(),
-    depoist: BigNumber.from(parsedResult.deposit).toString(),
+    deposit: BigNumber.from(parsedResult.deposit).toString(),
     connected: true,
     ownerAddress: parsedResult.ownerAddress,
-    bundlerUrl: parsedResult.bundlerUrl,
     userOperationReceipts: parsedResult.userOperationReceipts,
     userOpHashesPending: parsedResult.userOpHashesPending,
   } as SmartContractAccount;
@@ -115,6 +125,31 @@ export const clearActivityData = async (): Promise<boolean> => {
       request: { method: 'clear_activity_data', params: [] },
     },
   })) as boolean;
+};
+
+export const addBundlerUrl = async (
+  chainId: string,
+  url: string,
+): Promise<boolean> => {
+  return (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'add_bundler_url', params: [chainId, url] },
+    },
+  })) as boolean;
+};
+
+export const getBundlerUrls = async (): Promise<BundlerUrls> => {
+  const result = (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'get_bundler_urls', params: [] },
+    },
+  })) as string;
+  const parsedResult = JSON.parse(result as string);
+  return parsedResult as BundlerUrls;
 };
 
 // ERC-4337 wrappers ******************************************************

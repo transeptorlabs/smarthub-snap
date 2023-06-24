@@ -1,16 +1,20 @@
-import { ReactNode } from 'react';
+import { ReactNode, useContext } from 'react';
 import styled from 'styled-components';
 import { FaCopy } from "react-icons/fa";
 import { trimAccount } from '../utils/eth';
-import { UserOperationReceipt } from '../types';
+import { SupportedChainIdMap, UserOperationReceipt } from '../types';
 import { BigNumber } from 'ethers';
+import { BlockieEoa, BlockieSc } from './blockie';
+import { MetaMaskContext } from '../hooks';
 
 type CardProps = {
   content: {
     title?: string;
     description?: string;
+    descriptionBold?: string;
     button?: ReactNode;
     listItems?: string[];
+    blockieColor?: string;
     stats?: {
       id: string;
       title: string;
@@ -18,11 +22,14 @@ type CardProps = {
     }[];
     form?: ReactNode[];
     userOperationReceipts?: UserOperationReceipt[]
+    custom?: ReactNode
   };
   disabled?: boolean;
   fullWidth?: boolean;
   copyDescription?: boolean;
   isAccount?: boolean;
+  isEoa?: boolean;
+  isSC?: boolean;
 };
 
 const CardWrapper = styled.div<{ fullWidth?: boolean; disabled: boolean }>`
@@ -49,28 +56,46 @@ const CardWrapper = styled.div<{ fullWidth?: boolean; disabled: boolean }>`
 const Title = styled.h2`
   font-size: ${({ theme }) => theme.fontSizes.large};
   margin: 0;
+  margin-bottom: 1.6rem;
   ${({ theme }) => theme.mediaQueries.small} {
     font-size: ${({ theme }) => theme.fontSizes.text};
   }
 `;
 
-const DescriptionContainer = styled.div`
+const FlexRow = styled.div`
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 1.2rem;
+`;
+
+const FlexRowNoMargin = styled.div`
   display: flex;
   flex-direction: row;
 `;
 
 const Description = styled.div`
-  margin-top: 2.4rem;
-  margin-bottom: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
   display: inherit;
   ${({ theme }) => theme.mediaQueries.small} {
     display: none;
   }
 `;
 
+const DescriptionText = styled.p`
+  margin: 0;
+`;
+
+const DescriptionTextBold = styled.p` 
+  margin: 0;
+  font-weight: bold;
+`;
+
 const DescriptionMobile = styled.div`
-  margin-top: 2.4rem;
-  margin-bottom: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
   display: none;
   ${({ theme }) => theme.mediaQueries.small} {
     display: inherit;
@@ -78,9 +103,10 @@ const DescriptionMobile = styled.div`
 `;
 
 const DescriptionCopy = styled.div`
-  margin-left: 1rem;
-  margin-top: 2.4rem;
-  margin-bottom: 1.4rem;
+  margin-left: 2rem;
+  margin-top: auto;
+  margin-bottom: 0;
+  margin-right: 1rem;
   &:hover {
     color: ${({ theme }) => theme.colors.primary.main};
     cursor: pointer;
@@ -118,7 +144,7 @@ const ActivityItemContainer = styled.div`
   flex-direction: column;
   width:: 100%;
   background-color: ${({ theme }) => theme.colors.card.default};
-  margin-top: 2.4rem;
+  margin-top: 0;
   margin-bottom: 2.4rem;
   padding: 2.4rem;  
   border: 1px solid ${({ theme }) => theme.colors.border.default};
@@ -143,33 +169,99 @@ const ActivityItem = styled.div`
   }
 `;
 
-export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount }: CardProps) => {
-  const { title, description, button, listItems, form, stats, userOperationReceipts} = content;
+const ActivityCopy = styled.div`
+  margin-left: 1rem;
+  margin-top: auto;
+  margin-bottom: auto;
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary.main};
+    cursor: pointer;
+  }
+`;
 
-  const handleCopyToClipboard = (event: any) => {
+const ActivitySuccess = styled.span`
+  color: ${({ theme }) => theme.colors.success.alternative};
+`
+
+const ActivityFailed = styled.span`
+  color: ${({ theme }) => theme.colors.error.alternative};
+`
+const Network = styled.span`
+  margin-left: auto;
+  color: ${(props) => props.theme.colors.text.default};
+  background-color: ${({ theme }) => theme.colors.card.default};
+  padding: 1rem;
+  border: 1px solid ${({ theme }) => theme.colors.border.default};
+  border-radius: 10px;
+  box-shadow: ${({ theme }) => theme.shadows.default};
+  width: fit-content;
+  height: fit-content;
+`
+
+export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount, isEoa, isSC}: CardProps) => {
+  const [state] = useContext(MetaMaskContext);
+
+  const { title, description, descriptionBold, button, listItems, form, stats, userOperationReceipts, custom} = content;
+
+  const handleCopyToClipboard = (event: any, text: string) => {
     event.preventDefault();
-    if (description) {
-      navigator.clipboard.writeText(description);    
+    if (text) {
+      navigator.clipboard.writeText(text);    
     }
   }
-
+  
   return (
     <CardWrapper fullWidth={fullWidth} disabled={disabled}>
       {title && (
         <Title>{title}</Title>
       )}
 
-      {description && (
-        <DescriptionContainer>
-          <Description>{isAccount ? `eth: ${description}` : description }</Description>
-          <DescriptionMobile>{isAccount ? `eth: ${trimAccount(description)}` : description }</DescriptionMobile>
+      <FlexRow>
+        {isEoa && (
+          <BlockieEoa></BlockieEoa>
+          )
+        }
+        {isSC && (
+          <BlockieSc></BlockieSc>
+          )
+        }
+        {isAccount && (
+          <Network>{SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId] : 'Not Supported'}</Network>
+        )}
+      </FlexRow>
+   
+      {description && (   
+        <FlexRow>
+          <Description>
+            {descriptionBold && (
+              <DescriptionTextBold>
+                {descriptionBold}
+              </DescriptionTextBold>
+              )
+            }
+            <DescriptionText>
+              {isAccount ? `eth: ${description}` : description }
+            </DescriptionText>
+          </Description>
+
+          <DescriptionMobile>
+            {descriptionBold && (
+              <DescriptionTextBold>
+                {descriptionBold}
+              </DescriptionTextBold>
+              )
+            }
+            <DescriptionText>
+              {isAccount ? `eth: ${trimAccount(description)}` : description }
+            </DescriptionText>
+          </DescriptionMobile>
           
           {copyDescription && (
-            <DescriptionCopy onClick={handleCopyToClipboard}>
+            <DescriptionCopy onClick={e => handleCopyToClipboard(e, description)}>
               <FaCopy />
             </DescriptionCopy>
           )}
-        </DescriptionContainer>
+        </FlexRow>
       )}
 
       {listItems && (
@@ -209,7 +301,7 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
           <ActivityItemContainer key={`${item.sender}-${item.nonce.toString()}-${item.receipt.transactionHash}`}>
             <ActivityItem>
               <p>Status:</p>
-              <p>{item.success? <span>Confirmed</span>: <span>Failed</span>}</p>
+              <p>{item.success? <ActivitySuccess>Confirmed</ActivitySuccess>: <ActivityFailed>Failed</ActivityFailed>}</p>
             </ActivityItem>
 
             {!item.success && item.reason && (
@@ -221,14 +313,24 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
            
             <ActivityItem>
               <p>Sender:</p>
-              <p>eth:{trimAccount(item.sender)}</p>
+              <FlexRowNoMargin>
+                <p>eth:{trimAccount(item.sender)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.sender)}>
+                  <FaCopy />
+                </ActivityCopy>
+              </FlexRowNoMargin>
             </ActivityItem>
 
             <ActivityItem>
               <p>To:</p>
-              <p>eth:{trimAccount(item.receipt.to)}</p>
+              <FlexRowNoMargin>
+                <p>eth:{trimAccount(item.receipt.to)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.receipt.to)}>
+                  <FaCopy />
+                </ActivityCopy>
+              </FlexRowNoMargin>
             </ActivityItem>
-
+           
             <ActivityItem>
               <p>Nonce:</p>
               <p>{BigNumber.from(item.nonce).toNumber()}</p>
@@ -244,14 +346,20 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
               <p>{BigNumber.from(item.actualGasCost).toNumber()}</p>
             </ActivityItem>
 
-            
-            <ActivityItem>
-              <p>Transaction hash:</p>
-              <p>{trimAccount(item.receipt.transactionHash)}</p>
-            </ActivityItem>
+              <ActivityItem>
+                <p>Transaction hash:</p>
+                <FlexRowNoMargin>
+                  <p>{trimAccount(item.receipt.transactionHash)}</p>
+                  <ActivityCopy onClick={e => handleCopyToClipboard(e, item.receipt.transactionHash)}>
+                    <FaCopy />
+                  </ActivityCopy>
+                </FlexRowNoMargin>
+              </ActivityItem>      
           </ActivityItemContainer>
         ))
       )}
+
+      {custom}
     </CardWrapper>
   );
 };

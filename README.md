@@ -20,7 +20,7 @@ ERC-4337 Relayer is a snap that makes it easy for developers and MetaMask wallet
 
 ## How
 
-The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components.
+The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components. Please take a look at the [ERC-4337 Relayer Snap Architecture page](https://transeptorlabs.io/snap/concepts/architecture).
 
 ## Snaps is pre-release software
 

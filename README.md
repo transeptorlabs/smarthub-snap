@@ -26,18 +26,65 @@ The snap adds extra features to MetaMask by including RPC methods that work with
 
 To interact with (your) Snaps, you will need to install [MetaMask Flask](https://metamask.io/flask/), a canary distribution for developers that provides access to upcoming features.
 
+## Contributing
+
+We welcome contributions to enhance our ERC-4337 Relayer Snap. If you would like to contribute, please follow these guidelines [here](https://github.com/transeptorlabs/erc-4337-snap/blob/main/CONTRIBUTING.md).
+
 ## Getting Started
 
 The snap requires a connection to ERC4337 Bundler. We will use Transeptor Bundler running alongside a geth client to set up the local ERC-4337 environment.
 
-### Running ERC 4337 Bundler locally
+### Running ERC 4337 Bundler node locally
+The first things you need to do are cloning this repository and installing its
+dependencies:
 
-1. Clone the Transeptor bundler repo [here](https://github.com/transeptorlabs/transeptor-bundler) to the local machine.
-2. Open up your terminal a change directory to clone Transeptor bundler repo
-3. Add environment variables to `.env`- `MNEMONIC=<your_seed_phrase>` and `BENEFICIARY=<address_to_receive_funds>`
-4. Start local GETH client `npm run geth:start` (will start at http://localhost:8545/)
-5. Deploy the entry point contract and fund the bundler signer account using `npm run deploy:local` script
-6. Start up bundler `npm run transeptor:start`
+```sh
+git clone https://github.com/transeptorlabs/account-abstraction-boilerplate.git
+cd account-abstraction-boilerplate
+npm install
+```
+
+Once installed, let's run an ETH client on your local network:
+
+```sh
+npm run node
+```
+
+Next, on a new terminal, go to the repository's root folder and run this to
+deploy Account Abstraction and your contract:
+
+```sh
+npm run deploy:all
+```
+
+Next, we can use use `.env.sample` to create .env file with your `MNEMONIC` and `BENEFICIARY`.
+
+- `MNEMONIC`: and is set to the default seend phrase of hardhat accounts. The first account of the hardhat accounts is used as the bundler signer.
+- `BENEFICIARY`: is set to the second account of the hardhat accounts.
+
+Then, we can fund the bundler signer account with some ETH:
+```sh
+npm run fund 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+```
+
+Finally, we can run the ERC-4337 Bundler(Transeptor)
+
+```sh
+npm run bundler
+```
+
+The Bundler will start running on [http://localhost:3000/rpc](http://localhost:3000/rpc). You will
+need to have [Metamask Flask](https://metamask.io/flask/) installed and listening to
+`localhost 8545`.
+
+#### Troubleshooting
+
+- `Invalid nonce` errors: if you are seeing this error on the `npx hardhat node`
+  console, try resetting your Metamask account. This will reset the account's
+  transaction history and also the nonce. Open Metamask, click on your account
+  followed by `Settings > Advanced > Clear activity tab data`.
+
+
 
 ### Start up snap and React app
 
@@ -49,17 +96,13 @@ yarn install && yarn start
 
 Set `SNAP_ORIGIN=prod:http://localhost:8080` in local `.env` file
 
-## Contributing
-
-We welcome contributions to enhance our ERC-4337 Relayer Snap. If you would like to contribute, please follow these guidelines [here](https://github.com/transeptorlabs/erc-4337-snap/blob/main/CONTRIBUTING.md).
-
-### Testing and Linting
+#### Testing and Linting
 
 Run `yarn test` to run the tests once.
 
 Run `yarn lint` to run the linter, or run `yarn lint:fix` to run the linter and fix any automatically fixable issues.
 
-## Notes
+#### Notes
 
 - Babel is used for transpiling TypeScript to JavaScript, so when building with the CLI,
   `transpilationMode` must be set to `localOnly` (default) or `localAndDeps`.

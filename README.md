@@ -35,6 +35,7 @@ We welcome contributions to enhance our ERC-4337 Relayer Snap. If you would like
 The snap requires a connection to ERC4337 Bundler. We will use Transeptor Bundler running alongside a geth client to set up the local ERC-4337 environment.
 
 ### Running ERC 4337 Bundler node locally
+
 The first things you need to do are cloning this repository and installing its
 dependencies:
 
@@ -63,6 +64,7 @@ Next, we can use use `.env.sample` to create .env file with your `MNEMONIC` and 
 - `BENEFICIARY`: is set to the second account of the hardhat accounts.
 
 Then, we can fund the bundler signer account with some ETH:
+
 ```sh
 npm run fund 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 ```
@@ -83,8 +85,6 @@ need to have [Metamask Flask](https://metamask.io/flask/) installed and listenin
   console, try resetting your Metamask account. This will reset the account's
   transaction history and also the nonce. Open Metamask, click on your account
   followed by `Settings > Advanced > Clear activity tab data`.
-
-
 
 ### Start up snap and React app
 

@@ -4,7 +4,7 @@
 ![Github workflow build status(main)](https://img.shields.io/github/actions/workflow/status/transeptorlabs/erc-4337-relayer/build-test.yml?branch=main)
 
 This is the core repository for the development of the ERC-4337 Relayer
-MetaMask Snap.
+MetaMask Snap. Roadmap [here](https://hackmd.io/@V00D00-child/SJOnAnxF2#Roadmap)
 
 > :warning: **This repository is currently under active development.**
 

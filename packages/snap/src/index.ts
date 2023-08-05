@@ -5,7 +5,7 @@ import { copyable, heading, panel, text } from '@metamask/snaps-ui';
 import { deepHexlify } from '@account-abstraction/utils';
 import { resolveProperties } from 'ethers/lib/utils';
 import { HttpRpcClient, getBalance, getDeposit } from './client';
-import { getSimpleScAccount } from './wallet';
+import { findAccountIndex, getEoaAccount, getPrivateKey, getSimpleScAccount } from './wallet';
 import {
   clearState,
   getBundlerUrls,
@@ -43,7 +43,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
   let target: string;
   let data: string;
-  let index: string;
+  let index: number;
   let userOp: UserOperationStruct;
   let hexifiedUserOp: UserOperationStruct;
 
@@ -67,7 +67,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       scAccount = await getSimpleScAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
-        index,
+        index as unknown as number,
       );
 
       if (
@@ -96,7 +96,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         ]);
 
         if (userOpHash) {
-          if (!(await storeUserOpHashPending(userOpHash, index))) {
+          if (!(await storeUserOpHashPending(userOpHash, index as number))) {
             throw new Error('Failed to store user operation hash');
           }
           return snap.request({
@@ -118,34 +118,43 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       }
       throw new Error('User cancelled the Transaction');
     case 'sc_account':
+      scOwnerAddress = (request.params as any[])[0] as string;
+      index = await findAccountIndex(scOwnerAddress)
       scAccount = await getSimpleScAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
+        index,
       );
 
-      [scAddress, scOwnerAddress, userOpHashesConfirmed, userOpHashesPending] =
+      // [scAddress, scOwnerAddress, userOpHashesConfirmed, userOpHashesPending] =
+      //   await Promise.all([
+      //     scAccount.getCounterFactualAddress(),
+      //     scAccount.owner.getAddress(),
+      //     getUserOpHashsConfirmed(index),
+      //     getUserOpHashsPending(index),
+      //   ]);
+
+        [scAddress, scOwnerAddress] =
         await Promise.all([
           scAccount.getCounterFactualAddress(),
           scAccount.owner.getAddress(),
-          getUserOpHashsConfirmed(scAccount.index.toString()),
-          getUserOpHashsPending(scAccount.index.toString()),
         ]);
 
       // getUserOperationReceipt for all confirmed userOpHashes
-      userOperationReceiptPromises = userOpHashesConfirmed.map(
-        (userOpHash1) => {
-          return rpcClient.send('eth_getUserOperationReceipt', [userOpHash1]);
-        },
-      );
+      // userOperationReceiptPromises = userOpHashesConfirmed.map(
+      //   (userOpHash1) => {
+      //     return rpcClient.send('eth_getUserOperationReceipt', [userOpHash1]);
+      //   },
+      // );
 
-      promisesResult = await Promise.all(userOperationReceiptPromises);
-      promisesResult.forEach((userOperationReceipt) => {
-        if (userOperationReceipt) {
-          userOperationReceipts.push(
-            userOperationReceipt as UserOperationReceipt,
-          );
-        }
-      });
+      // promisesResult = await Promise.all(userOperationReceiptPromises);
+      // promisesResult.forEach((userOperationReceipt) => {
+      //   if (userOperationReceipt) {
+      //     userOperationReceipts.push(
+      //       userOperationReceipt as UserOperationReceipt,
+      //     );
+      //   }
+      // });
 
       result = JSON.stringify({
         address: scAddress,
@@ -156,13 +165,13 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         factoryAddress: rpcClient.getAccountFactoryAddr(),
         deposit: await getDeposit(scAddress, rpcClient.getEntryPointAddr()),
         ownerAddress: scOwnerAddress,
-        userOperationReceipts,
-        userOpHashesPending,
+        userOperationReceipts: [],
+        userOpHashesPending: [],
       });
       return result;
     case 'get_confirmed_userOperationReceipts':
       index = (request.params as any[])[0];
-      userOpHashesConfirmed = await getUserOpHashsConfirmed(index);
+      userOpHashesConfirmed = await getUserOpHashsConfirmed(index as number);
 
       userOperationReceiptPromises = userOpHashesConfirmed.map(
         (userOpHash1) => {

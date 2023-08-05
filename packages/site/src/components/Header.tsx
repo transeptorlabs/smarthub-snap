@@ -70,7 +70,7 @@ export const Header = ({
 }) => {
   const theme = useTheme();
   const [state, dispatch] = useContext(MetaMaskContext);
-  const {connectEoa, getScAccountState, setWalletListener} = useAcount();
+  const {getEoa, getScAccountState, setWalletListener} = useAcount();
 
   const handleConnectClick = async () => {
     try {
@@ -92,9 +92,8 @@ export const Header = ({
         });
       }
       
-      console.log('connecting eoa and sc account');
-      await connectEoa();
-      await getScAccountState();
+      const ownerEoa = await getEoa();
+      await getScAccountState(ownerEoa.address);
       await setWalletListener();
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });

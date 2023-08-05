@@ -73,16 +73,18 @@ export const connectErc4337Relayer = async (): Promise<boolean> => {
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
 
 // ERC-4337 account management *****************************************************
-export const getScAccount = async (): Promise<SmartContractAccount> => {
+export const getScAccount = async (ownerEoa: string): Promise<SmartContractAccount> => {
+  console.log('getScAccount ownerEoa:', ownerEoa);
   const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'sc_account', params: [] },
+      request: { method: 'sc_account', params: [ownerEoa] },
     },
   });
 
   const parsedResult = JSON.parse(result as string);
+  console.log('getScAccount result:', parsedResult);
   return {
     address: parsedResult.address,
     balance: BigNumber.from(parsedResult.balance).toString(),

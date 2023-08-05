@@ -1,9 +1,9 @@
 const getState = async (
-  index = '0',
+  index = 0,
 ): Promise<{
   bundlerUrls: { [chainId: string]: string };
   scAccounts: {
-    [scIndex: string]: {
+    [scIndex: number]: {
       userOpHashesConfirmed: string[];
       userOpHashesPending: string[];
     };
@@ -33,7 +33,7 @@ const getState = async (
         '0x13881': '', // polygon mumbai
       },
       scAccounts: {
-        '0': {
+        0: {
           userOpHashesConfirmed: [],
           userOpHashesPending: [],
         },
@@ -66,21 +66,21 @@ const getState = async (
 };
 
 export const getUserOpHashsConfirmed = async (
-  index = '0',
+  index = 0,
 ): Promise<string[]> => {
   const state = await getState(index);
   // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
   return Array.from(state.scAccounts[index].userOpHashesConfirmed);
 };
 
-export const getUserOpHashsPending = async (index = '0'): Promise<string[]> => {
+export const getUserOpHashsPending = async (index = 0): Promise<string[]> => {
   const state = await getState(index);
   // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
   return Array.from(state.scAccounts[index].userOpHashesPending);
 };
 
 export const getBundlerUrls = async (
-  index = '0',
+  index = 0,
 ): Promise<{ [chainId: string]: string }> => {
   const state = await getState(index);
   // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
@@ -89,7 +89,7 @@ export const getBundlerUrls = async (
 
 export const storeUserOpHashConfirmed = async (
   userOpHash: string,
-  index = '0',
+  index = 0,
 ): Promise<boolean> => {
   const state = await getState(index);
   state.scAccounts[index].userOpHashesConfirmed.push(userOpHash);
@@ -110,7 +110,7 @@ export const storeUserOpHashConfirmed = async (
 
 export const storeUserOpHashPending = async (
   userOpHash: string,
-  index = '0',
+  index = 0,
 ): Promise<boolean> => {
   const state = await getState(index);
   state.scAccounts[index].userOpHashesPending.push(userOpHash);

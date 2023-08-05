@@ -1,34 +1,23 @@
 import { useContext, useEffect } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
-import { EOA } from "../types";
+import { EOA, SmartContractAccount } from "../types";
 import { connectWallet, getAccountBalance, getBundlerUrls, getChainId, getMMProvider, getScAccount, sendSupportedEntryPoints } from "../utils";
 
 export const useAcount = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
 
-  const connectEoa = async () => {
+  const getEoa = async (): Promise<EOA> => {
     let eoa = await connectWallet()
     dispatch({
       type: MetamaskActions.SetEOA,
       payload: eoa,
     });
+    return eoa;
   };
 
-  const refreshEOAState = async (newAccount: string) => {
-    const changedeoa: EOA = {
-      address: newAccount,
-      balance: await getAccountBalance(newAccount),
-      connected: true,
-    }
-    dispatch({
-      type: MetamaskActions.SetEOA,
-      payload: changedeoa,
-    });
-  };
-
-  const getScAccountState = async () => {
+  const getScAccountState = async (ownerEoa: string): Promise<SmartContractAccount> => {
     const [scAccount, supportedEntryPoints] = await Promise.all([
-      getScAccount(),
+      getScAccount(ownerEoa),
       sendSupportedEntryPoints(),
     ]);
 
@@ -40,6 +29,19 @@ export const useAcount = () => {
     dispatch({
       type: MetamaskActions.SetSupportedEntryPoints,
       payload: supportedEntryPoints,
+    });
+    return scAccount;
+  };
+
+  const refreshEOAState = async (newAccount: string) => {
+    const changedeoa: EOA = {
+      address: newAccount,
+      balance: await getAccountBalance(newAccount),
+      connected: true,
+    }
+    dispatch({
+      type: MetamaskActions.SetEOA,
+      payload: changedeoa,
     });
   };
 
@@ -60,10 +62,11 @@ export const useAcount = () => {
             payload: chainId,
           });
     
-          await connectEoa().catch((e) => {
+          const ownerEoa = await getEoa().catch((e) => {
             fatalError(e)
           });
-          await getScAccountState().catch((e) => {
+          if (!ownerEoa) return;
+          await getScAccountState(ownerEoa.address).catch((e) => {
             fatalError(e)
           });        
         });
@@ -88,9 +91,9 @@ export const useAcount = () => {
   }
 
   return {
-    connectEoa,
-    refreshEOAState,
+    getEoa,
     getScAccountState,
+    refreshEOAState,
     setWalletListener
   }
 }

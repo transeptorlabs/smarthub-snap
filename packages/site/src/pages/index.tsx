@@ -132,7 +132,7 @@ const Index = () => {
         }
   
         if (state.scAccount.connected) {
-          getScAccountState();
+          getScAccountState(state.eoa.address);
         }
       }, 10000)
   
@@ -166,6 +166,7 @@ const Index = () => {
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
+
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
@@ -227,7 +228,7 @@ const Index = () => {
     // refresh account balances
     setDepositAmount('');
     await refreshEOAState(state.eoa.address);
-    await getScAccountState();
+    await getScAccountState(state.eoa.address);
   }
 
   const handleWithdrawSubmit = async (e: any) => {
@@ -258,7 +259,7 @@ const Index = () => {
 
       setWithdrawAmount('');
       setWithDrawAddr('');
-      await getScAccountState();
+      await getScAccountState(state.eoa.address);
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
@@ -448,7 +449,7 @@ const Index = () => {
           {state.eoa.connected && (
             <Card
               content={{
-                descriptionBold: 'Connected EOA',
+                descriptionBold: 'Connected EOA(owner)',
                 description: `${state.eoa.address}`,
                 stats: [
                   {
@@ -490,7 +491,7 @@ const Index = () => {
                 stats: [
                   {
                     id: `0`,
-                    title: 'Entry Point Deposit',
+                    title: 'Deposit',
                     value: `${convertToEth(state.scAccount.deposit)} ETH`,
                   },
                 ],

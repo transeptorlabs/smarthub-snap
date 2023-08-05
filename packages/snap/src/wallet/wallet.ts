@@ -1,45 +1,91 @@
-import { BigNumberish, Wallet, ethers } from 'ethers';
+import { Wallet, ethers } from 'ethers';
 import { SimpleAccountAPI } from '@account-abstraction/sdk';
+import {
+  deriveBIP44AddressKey,
+  JsonBIP44CoinTypeNode,
+} from '@metamask/key-tree';
+import { remove0x } from '@metamask/utils';
 
-export const getWallet = async (): Promise<Wallet> => {
-  const privKey = await snap.request({
-    method: 'snap_getEntropy',
+/**
+ Get a private key for the ETH coin type. Ethereum uses the following derivation path: m/44'/60'/account'/change/index
+  44': The BIP-44 constant for hardened derivation.
+  60': The coin type for Ethereum.
+  account': The account index.
+  change: Represents the external (0) or internal (1) chain for receiving and change addresses.
+  index: The index number representing the address within the account and change chain.
+  
+  ex: m/44'/60'/0'/0/0 -  account 0 in MetaMask wallet
+ */
+export const getPrivateKey = async (addressIndex: number) => {
+  const coinTypeNode = (await snap.request({
+    method: 'snap_getBip44Entropy',
     params: {
-      version: 1,
-      salt: 'transeptor-ecr4337-wallet',
+      coinType: 60,
     },
-  });
+  })) as JsonBIP44CoinTypeNode;
 
+  return remove0x(
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    (
+      await deriveBIP44AddressKey(coinTypeNode, {
+        account: 0,
+        change: 0,
+        address_index: addressIndex // change this to get different private keys
+      })
+    ).privateKey!,
+  );
+};
+
+const getWallet = async (addressIndex: number): Promise<Wallet> => {
+  const privKey = await getPrivateKey(addressIndex);
   const provider = new ethers.providers.Web3Provider(ethereum as any);
   return new Wallet(privKey).connect(provider);
 };
 
-export const getOwnerAddr = async (): Promise<string> => {
-  const ethWallet = await getWallet();
-  return ethWallet.address;
+export const findAccountIndex = async (ethAddress: string): Promise<number> => {
+  const maxIndex = 20;
+  let found = false;
+  let foundIndex = -1;
+  for (let i = 0; i < maxIndex; i++) {
+    const account = await getEoaAccount(i);
+    if (account.toLowerCase() === ethAddress.toLowerCase()) {
+      found = true;
+      foundIndex = i;
+    }
+  }
+  if (!found) {
+    throw new Error('Account not found');
+  }
+  return foundIndex;
 };
 
-export const signMessage = async (
+export const getEoaAccount = async (addressIndex: number): Promise<string> => {
+  const privKey = await getPrivateKey(addressIndex);
+  return new Wallet(privKey).getAddress();
+};
+
+export const signMessageWithEoa = async (
   message: string | ethers.utils.Bytes,
+  addressIndex: number,
 ): Promise<string> => {
-  const ethWallet = await getWallet();
+  const ethWallet = await getWallet(addressIndex);
   return await ethWallet.signMessage(message);
 };
 
-// TODO: Allow use to have multiple accounts(use snap_manageState to keep track on index for each account)
 export const getSimpleScAccount = async (
   entryPointAddress: string,
   factoryAddress: string,
-  index: BigNumberish = '0',
+  index: number,
+  smartIndex: number = 0,
 ): Promise<SimpleAccountAPI> => {
   const provider = new ethers.providers.Web3Provider(ethereum as any);
-  const owner = await getWallet();
+  const owner = await getWallet(index);
   const aa = new SimpleAccountAPI({
     provider,
     entryPointAddress,
     owner,
     factoryAddress,
-    index, // nonce value used when creating multiple accounts for the same owner
+    index: smartIndex, // nonce value used when creating multiple accounts for the same owner
   });
   return aa;
 };

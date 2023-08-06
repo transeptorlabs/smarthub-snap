@@ -101,7 +101,7 @@ export const getScAccount = async (ownerEoa: string): Promise<SmartContractAccou
 };
 
 export const getConfirmedUserOperationReceipts = async (
-  index: string,
+  ownerEoa: string,
 ): Promise<UserOperationReceipt[]> => {
   const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
@@ -109,7 +109,7 @@ export const getConfirmedUserOperationReceipts = async (
       snapId: defaultSnapOrigin,
       request: {
         method: 'get_confirmed_userOperationReceipts',
-        params: [index],
+        params: [ownerEoa],
       },
     },
   });

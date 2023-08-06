@@ -5,17 +5,19 @@ import { copyable, heading, panel, text } from '@metamask/snaps-ui';
 import { deepHexlify } from '@account-abstraction/utils';
 import { resolveProperties } from 'ethers/lib/utils';
 import { HttpRpcClient, getBalance, getDeposit } from './client';
-import { findAccountIndex, getEoaAccount, getPrivateKey, getSimpleScAccount } from './wallet';
+import { findAccountIndex, getSimpleScAccount } from './wallet';
 import {
   clearState,
   getBundlerUrls,
   getUserOpHashsConfirmed,
+  getAllUserOpHashsPending,
   getUserOpHashsPending,
   storeBundlerUrl,
   storeUserOpHashConfirmed,
   storeUserOpHashPending,
 } from './state';
 import { UserOperationReceipt } from './types';
+import { BigNumber } from 'ethers';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -40,16 +42,17 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   let scAccount: SimpleAccountAPI;
   let scOwnerAddress: string;
   let scAddress: string;
+  let eoaIndex: number;
+  let scIndex: number;
 
   let target: string;
   let data: string;
-  let index: number;
   let userOp: UserOperationStruct;
   let hexifiedUserOp: UserOperationStruct;
 
   let userOpHash: string;
   let userOpHashesConfirmed: string[];
-  let userOpHashesPending: string[] = [];
+  let userOpHashsPending: string[];
   const userOperationReceipts: UserOperationReceipt[] = [];
 
   let userOperationReceiptPromises: Promise<any>[];
@@ -63,12 +66,13 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     case 'eth_sendUserOperation':
       target = (request.params as any[])[0];
       data = (request.params as any[])[1];
-      index = (request.params as any[])[2];
+      eoaIndex = (request.params as any[])[2];
       scAccount = await getSimpleScAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
-        index as unknown as number,
+        eoaIndex as unknown as number,
       );
+      scIndex = BigNumber.from(scAccount.index).toNumber();
 
       if (
         await snap.request({
@@ -87,7 +91,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           },
         })
       ) {
-        // create user operation and send it
+        // create user operation and send it on success confirmation
         userOp = await scAccount.createSignedUserOp({ target, data });
         hexifiedUserOp = deepHexlify(await resolveProperties(userOp));
         userOpHash = await rpcClient.send(request.method, [
@@ -96,7 +100,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         ]);
 
         if (userOpHash) {
-          if (!(await storeUserOpHashPending(userOpHash, index as number))) {
+          if (!(await storeUserOpHashPending(userOpHash, eoaIndex, scIndex, chainId as string))) {
             throw new Error('Failed to store user operation hash');
           }
           return snap.request({
@@ -104,7 +108,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
             params: {
               type: 'alert',
               content: panel([
-                heading('Transaction Sent'),
+                heading('User Operation Sent'),
                 text(
                   `Sent from Deposit account: ${await scAccount.getAccountAddress()}`,
                 ),
@@ -113,26 +117,26 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
             },
           });
         }
-        // TODO: handle error show reason for failing
-        throw new Error('Transaction failed');
+        throw new Error('User Operation failed');
       }
-      throw new Error('User cancelled the Transaction');
+      throw new Error('User cancelled the User Operation');
     case 'sc_account':
       scOwnerAddress = (request.params as any[])[0] as string;
-      index = await findAccountIndex(scOwnerAddress)
+      eoaIndex = await findAccountIndex(scOwnerAddress)
       scAccount = await getSimpleScAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
-        index,
+        eoaIndex,
       );
+      scIndex = BigNumber.from(scAccount.index).toNumber();
 
-      // [scAddress, scOwnerAddress, userOpHashesConfirmed, userOpHashesPending] =
-      //   await Promise.all([
-      //     scAccount.getCounterFactualAddress(),
-      //     scAccount.owner.getAddress(),
-      //     getUserOpHashsConfirmed(index),
-      //     getUserOpHashsPending(index),
-      //   ]);
+      [scAddress, scOwnerAddress, userOpHashesConfirmed, userOpHashsPending] =
+        await Promise.all([
+          scAccount.getCounterFactualAddress(),
+          scAccount.owner.getAddress(),
+          getUserOpHashsConfirmed(eoaIndex, scIndex, chainId as string),
+          getUserOpHashsPending(eoaIndex, scIndex, chainId as string),
+        ]);
 
         [scAddress, scOwnerAddress] =
         await Promise.all([
@@ -141,20 +145,20 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         ]);
 
       // getUserOperationReceipt for all confirmed userOpHashes
-      // userOperationReceiptPromises = userOpHashesConfirmed.map(
-      //   (userOpHash1) => {
-      //     return rpcClient.send('eth_getUserOperationReceipt', [userOpHash1]);
-      //   },
-      // );
+      userOperationReceiptPromises = userOpHashesConfirmed.map(
+        (userOpHash1) => {
+          return rpcClient.send('eth_getUserOperationReceipt', [userOpHash1]);
+        },
+      );
 
-      // promisesResult = await Promise.all(userOperationReceiptPromises);
-      // promisesResult.forEach((userOperationReceipt) => {
-      //   if (userOperationReceipt) {
-      //     userOperationReceipts.push(
-      //       userOperationReceipt as UserOperationReceipt,
-      //     );
-      //   }
-      // });
+      promisesResult = await Promise.all(userOperationReceiptPromises);
+      promisesResult.forEach((userOperationReceipt) => {
+        if (userOperationReceipt) {
+          userOperationReceipts.push(
+            userOperationReceipt as UserOperationReceipt,
+          );
+        }
+      });
 
       result = JSON.stringify({
         address: scAddress,
@@ -165,14 +169,23 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         factoryAddress: rpcClient.getAccountFactoryAddr(),
         deposit: await getDeposit(scAddress, rpcClient.getEntryPointAddr()),
         ownerAddress: scOwnerAddress,
-        userOperationReceipts: [],
-        userOpHashesPending: [],
+        // TODO: Fix this filter for user ops for this specific scAccount
+        userOpHashesPending: userOpHashsPending,
+        userOpHashesConfirmed: userOpHashesConfirmed,
+        userOperationReceipts: userOperationReceipts,
       });
       return result;
     case 'get_confirmed_userOperationReceipts':
-      index = (request.params as any[])[0];
-      userOpHashesConfirmed = await getUserOpHashsConfirmed(index as number);
+      scOwnerAddress = (request.params as any[])[0] as string;
+      eoaIndex = await findAccountIndex(scOwnerAddress)
+      scAccount = await getSimpleScAccount(
+        rpcClient.getEntryPointAddr(),
+        rpcClient.getAccountFactoryAddr(),
+        eoaIndex,
+      );
+      scIndex = BigNumber.from(scAccount.index).toNumber();
 
+      userOpHashesConfirmed = await getUserOpHashsConfirmed(eoaIndex, scIndex, chainId as string);
       userOperationReceiptPromises = userOpHashesConfirmed.map(
         (userOpHash1) => {
           return rpcClient.send('eth_getUserOperationReceipt', [userOpHash1]);
@@ -241,19 +254,23 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
   ]);
 
   try {
-    const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
+    let rpcClient: HttpRpcClient;
     let userOpHash: string;
-    let userOpHashesPending: string[] = [];
+    let allUserOpHashesPending: { [key: string]: string } = {};
     let userOperationReceipt: UserOperationReceipt;
+    let firstkey: string;
 
     switch (request.method) {
       case 'checkUserOperationReceiptReady':
-        userOpHashesPending = await getUserOpHashsPending();
-        if (userOpHashesPending.length === 0) {
+        allUserOpHashesPending = await getAllUserOpHashsPending();
+        if (Object.keys(allUserOpHashesPending).length === 0) {
           return null;
         }
 
-        userOpHash = userOpHashesPending[userOpHashesPending.length - 1];
+        firstkey = Object.keys(allUserOpHashesPending)[0]; // key = eoaIndex-scIndex-chainId-userOpHash
+        userOpHash = allUserOpHashesPending[firstkey];
+
+        rpcClient = new HttpRpcClient(bundlerUrls, firstkey.split('-')[2] as string);
         userOperationReceipt = await rpcClient.send(
           'eth_getUserOperationReceipt',
           [userOpHash],
@@ -262,8 +279,7 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
         if (!userOperationReceipt) {
           return null;
         }
-        userOpHash = userOpHashesPending[userOpHashesPending.length - 1];
-        await storeUserOpHashConfirmed(userOpHash);
+        await storeUserOpHashConfirmed(userOpHash, Number(firstkey.split('-')[0]), Number(firstkey.split('-')[1]), firstkey.split('-')[2]);
 
         return snap.request({
           method: 'snap_dialog',

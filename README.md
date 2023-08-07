@@ -1,7 +1,9 @@
 # ERC-4337 Relayer Snap
 
 ![Node Version](https://img.shields.io/badge/node-16.x-green)
+[![codecov](https://img.shields.io/codecov/c/github/transeptorlabs/erc-4337-relayer.svg?style=flat-square)](https://app.codecov.io/gh/transeptorlabs/erc-4337-relayer)
 ![Github workflow build status(main)](https://img.shields.io/github/actions/workflow/status/transeptorlabs/erc-4337-relayer/build-test.yml?branch=main)
+
 
 This is the core repository for the development of the ERC-4337 Relayer
 MetaMask Snap. Roadmap [here](https://hackmd.io/@V00D00-child/SJOnAnxF2#Roadmap)

@@ -1,6 +1,7 @@
 export {
   getSimpleScAccount,
-  getWallet,
-  getOwnerAddr,
-  signMessage,
+  signMessageWithEoa,
+  getPrivateKey,
+  getEoaAccount,
+  findAccountIndex,
 } from './wallet';

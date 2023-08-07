@@ -14,8 +14,6 @@ import {
   getEntryPointContract,
   sendUserOperation,
   clearActivityData,
-  getChainId,
-  getBundlerUrls,
   parseChainId,
   addBundlerUrl,
 } from '../utils';
@@ -121,20 +119,21 @@ const Index = () => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [formBundlerUrls, setFormBundlerUrls] = useState({} as BundlerUrls);
 
-  const {refreshEOAState, getScAccountState, setWalletListener} = useAcount();
+  const {refreshEOAState, getScAccountState, getAccountActivity, getBundlerUrls} = useAcount();
 
   useEffect(() => {
     let interval: any
     try {  
-      interval = setInterval(() => {
-        if (state.eoa.connected) {
-          refreshEOAState(state.eoa.address);
+      interval = setInterval(async () => {
+        if (state.eoa.connected === true && state.scAccount.connected === true) {
+          await Promise.all([
+            refreshEOAState(state.eoa.address),
+            getScAccountState(state.eoa.address),
+            getAccountActivity(state.eoa.address, Number(state.scAccount.index)),
+          ]);
+          console.log('refreshing account state');
         }
-  
-        if (state.scAccount.connected) {
-          getScAccountState();
-        }
-      }, 10000)
+      }, 20000) // 20 seconds
   
       return () => {
         clearInterval(interval);
@@ -144,12 +143,13 @@ const Index = () => {
       console.error('[ERROR] refreaher:', e.message);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     } 
-  }, [state.eoa, state.scAccount]);
+  }, [state.eoa, state.scAccount, state.smartAccountActivity]);
 
   useEffect(() => {
     try {  
-      handleFetchBundlerUrls(); 
-
+      if (state.installedSnap) {
+        handleFetchBundlerUrls()
+      }
       return () => {
       };
 
@@ -166,25 +166,15 @@ const Index = () => {
         type: MetamaskActions.SetInstalled,
         payload: installedSnap,
       });
+
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
 
   const handleFetchBundlerUrls = async () => {
-    try {
-      if (state.installedSnap) {
-        const urls = await getBundlerUrls();
-        dispatch({
-          type: MetamaskActions.SetBundlerUrls,
-          payload: urls,
-        });
-
-        setFormBundlerUrls(urls);
-      }
-    } catch (error) {
-      dispatch({ type: MetamaskActions.SetError, payload: error });
-    }
+    const urls = await getBundlerUrls();
+    setFormBundlerUrls(urls);
   };
 
   const handleDepositSubmit = async (e: any) => {
@@ -227,7 +217,7 @@ const Index = () => {
     // refresh account balances
     setDepositAmount('');
     await refreshEOAState(state.eoa.address);
-    await getScAccountState();
+    await getScAccountState(state.eoa.address);
   }
 
   const handleWithdrawSubmit = async (e: any) => {
@@ -253,12 +243,12 @@ const Index = () => {
       await sendUserOperation(
         state.scAccount.entryPoint,
         encodedFunctionData,
-        state.scAccount.index,
+        state.eoa.address,
       );
 
       setWithdrawAmount('');
       setWithDrawAddr('');
-      await getScAccountState();
+      await getScAccountState(state.eoa.address);
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
@@ -442,13 +432,13 @@ const Index = () => {
         </CardContainer>
       )}
 
-      {/* Account tab */}
+      {/* Account tab (eoa details, smart account details, smart account activity)*/}
       {state.activeTab === AppTab.Account && (
         <CardContainer>
           {state.eoa.connected && (
             <Card
               content={{
-                descriptionBold: 'Connected EOA',
+                descriptionBold: 'Connected EOA(owner)',
                 description: `${state.eoa.address}`,
                 stats: [
                   {
@@ -490,7 +480,7 @@ const Index = () => {
                 stats: [
                   {
                     id: `0`,
-                    title: 'Entry Point Deposit',
+                    title: 'Deposit',
                     value: `${convertToEth(state.scAccount.deposit)} ETH`,
                   },
                 ],
@@ -529,7 +519,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Activity',
-                userOperationReceipts: state.scAccount.userOperationReceipts,
+                userOperationReceipts: state.smartAccountActivity.userOperationReceipts,
               }}
               disabled={!state.isFlask}
               fullWidth

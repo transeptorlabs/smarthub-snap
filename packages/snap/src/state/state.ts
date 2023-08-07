@@ -1,11 +1,48 @@
+const DEFAULT_STATE = {
+  bundlerUrls: {
+    '0x539': 'http://localhost:3000/rpc', // 1337
+    '0x1': '', // ethereum mainnet
+    '0x5': '', // goerli
+    '0x89': '', // polygon mainnet
+    '0x13881': '', // polygon mumbai
+  },
+  userOpHashesPending: {},
+  0: {
+    scAccounts: {
+      0: {
+        '0x539': {
+          userOpHashesConfirmed: [],
+        },
+        '0x1': {
+          userOpHashesConfirmed: [],
+        },
+        '0x5': {
+          userOpHashesConfirmed: [],
+        },
+        '0x89': {
+          userOpHashesConfirmed: [],
+        },
+        '0x13881': {
+          userOpHashesConfirmed: [],
+        },
+      },
+    },
+  },
+};
+
 const getState = async (
-  index = '0',
+  eoaIndex = 0,
+  scIndex = 0,
 ): Promise<{
   bundlerUrls: { [chainId: string]: string };
-  scAccounts: {
-    [scIndex: string]: {
-      userOpHashesConfirmed: string[];
-      userOpHashesPending: string[];
+  userOpHashesPending: { [key: string]: string }; // key = eoaIndex-scIndex-chainId
+  [eoaIndex: number]: {
+    scAccounts: {
+      [scIndex: number]: {
+        [chainId: string]: {
+          userOpHashesConfirmed: string[];
+        };
+      };
     };
   };
 }> => {
@@ -14,92 +51,137 @@ const getState = async (
     params: { operation: 'get' },
   })) as {
     bundlerUrls: { [chainId: string]: string };
-    scAccounts: {
-      [scIndex: string]: {
-        userOpHashesConfirmed: string[];
-        userOpHashesPending: string[];
+    userOpHashesPending: { [key: string]: string };
+    [eoaIndex: number]: {
+      scAccounts: {
+        [scIndex: number]: {
+          [chainId: string]: {
+            userOpHashesConfirmed: string[];
+          };
+        };
       };
     };
   } | null;
 
   if (state === null) {
     // initialize state if empty and set default data
-    state = {
-      bundlerUrls: {
-        '0x539': 'http://localhost:3000/rpc', // 1337
-        '0x1': '', // ethereum mainnet
-        '0x5': '', // goerli
-        '0x89': '', // polygon mainnet
-        '0x13881': '', // polygon mumbai
-      },
-      scAccounts: {
-        '0': {
-          userOpHashesConfirmed: [],
-          userOpHashesPending: [],
-        },
-      },
-    };
-
-    await snap.request({
-      method: 'snap_manageState',
-      params: { operation: 'update', newState: state },
-    });
+    state = DEFAULT_STATE;
   }
 
-  // if index does not exist, initialize it and set default data
+  // if eoaIndex does not exist, initialize it
+  if (state[eoaIndex] === undefined || state[eoaIndex] === null) {
+    state[eoaIndex] = {
+      scAccounts: {},
+    };
+  }
+
+  // if scIndex does not exist, initialize it
   if (
-    !state.scAccounts[index] === undefined ||
-    state.scAccounts[index] === null
+    state[eoaIndex].scAccounts[scIndex] === undefined ||
+    state[eoaIndex].scAccounts[scIndex] === null
   ) {
-    state.scAccounts[index] = {
-      userOpHashesConfirmed: [],
-      userOpHashesPending: [],
+    state[eoaIndex].scAccounts[scIndex] = {
+      '0x539': {
+        userOpHashesConfirmed: [],
+      },
+      '0x1': {
+        userOpHashesConfirmed: [],
+      },
+      '0x5': {
+        userOpHashesConfirmed: [],
+      },
+      '0x89': {
+        userOpHashesConfirmed: [],
+      },
+      '0x13881': {
+        userOpHashesConfirmed: [],
+      },
     };
-
-    await snap.request({
-      method: 'snap_manageState',
-      params: { operation: 'update', newState: state },
-    });
   }
+
+  await snap.request({
+    method: 'snap_manageState',
+    params: { operation: 'update', newState: state },
+  });
 
   return state;
 };
 
 export const getUserOpHashsConfirmed = async (
-  index = '0',
+  eoaIndex: number,
+  scIndex: number,
+  chainId: string,
 ): Promise<string[]> => {
-  const state = await getState(index);
+  const state = await getState(eoaIndex, scIndex);
+
   // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
-  return Array.from(state.scAccounts[index].userOpHashesConfirmed);
+  return Array.from(
+    state[eoaIndex].scAccounts[scIndex][chainId].userOpHashesConfirmed,
+  );
 };
 
-export const getUserOpHashsPending = async (index = '0'): Promise<string[]> => {
-  const state = await getState(index);
+export const getAllUserOpHashsPending = async (): Promise<{
+  [key: string]: string;
+}> => {
+  const state = await getState();
   // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
-  return Array.from(state.scAccounts[index].userOpHashesPending);
+  return Object.assign({}, state.userOpHashesPending);
 };
 
-export const getBundlerUrls = async (
-  index = '0',
-): Promise<{ [chainId: string]: string }> => {
-  const state = await getState(index);
+export const getUserOpHashsPending = async (
+  eoaIndex: number,
+  scIndex: number,
+  chainId: string,
+): Promise<string[]> => {
+  const state = await getState();
+
+  const foundUserOpHashesPending: string[] = [];
+  const userOpHashesPending = Object.assign({}, state.userOpHashesPending);
+
+  for (const key in userOpHashesPending) {
+    if (
+      key.includes(`${eoaIndex}-${scIndex}-${chainId}`) &&
+      userOpHashesPending[key] !== undefined
+    ) {
+      foundUserOpHashesPending.push(userOpHashesPending[key]);
+    }
+  }
+  return foundUserOpHashesPending;
+};
+
+export const getTotalSmartAccount = async (
+  eoaIndex: number,
+): Promise<number> => {
+  const state = await getState();
+  // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
+  const smartAccounts = Object.assign({}, state[eoaIndex].scAccounts);
+  return Object.keys(smartAccounts).length;
+};
+
+export const getBundlerUrls = async (): Promise<{
+  [chainId: string]: string;
+}> => {
+  const state = await getState();
   // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
   return Object.assign({}, state.bundlerUrls);
 };
 
 export const storeUserOpHashConfirmed = async (
   userOpHash: string,
-  index = '0',
+  eoaIndex: number,
+  scIndex: number,
+  chainId: string,
 ): Promise<boolean> => {
-  const state = await getState(index);
-  state.scAccounts[index].userOpHashesConfirmed.push(userOpHash);
+  const state = await getState(eoaIndex, scIndex);
 
-  // remove from pending if exists
-  const removeIndex =
-    state.scAccounts[index].userOpHashesPending.indexOf(userOpHash);
-  if (removeIndex > -1) {
-    state.scAccounts[index].userOpHashesPending.splice(removeIndex, 1);
-  }
+  state[eoaIndex].scAccounts[scIndex][chainId].userOpHashesConfirmed.push(
+    userOpHash,
+  );
+
+  // remove userOpHash from pending
+  delete state.userOpHashesPending[
+    `${eoaIndex}-${scIndex}-${chainId}-${userOpHash}`
+  ];
 
   await snap.request({
     method: 'snap_manageState',
@@ -110,10 +192,13 @@ export const storeUserOpHashConfirmed = async (
 
 export const storeUserOpHashPending = async (
   userOpHash: string,
-  index = '0',
+  eoaIndex: number,
+  scIndex: number,
+  chainId: string,
 ): Promise<boolean> => {
-  const state = await getState(index);
-  state.scAccounts[index].userOpHashesPending.push(userOpHash);
+  const state = await getState();
+  state.userOpHashesPending[`${eoaIndex}-${scIndex}-${chainId}-${userOpHash}`] =
+    userOpHash;
 
   await snap.request({
     method: 'snap_manageState',

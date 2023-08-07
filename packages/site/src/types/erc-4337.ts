@@ -29,11 +29,16 @@ export type SmartContractAccount = {
   factoryAddress: string;
   deposit: string;
   connected: boolean;
-  userOperationReceipts: UserOperationReceipt[];
-  userOpHashesPending: string[];
 };
 
-export type UserOperationReceipt = {
+export type SmartAccountActivity = {
+  userOpHashsPending: string[];
+  userOpHashesConfirmed: string[];
+  userOperationReceipts: UserOperationReceipt[];
+  scIndex: number;
+};
+
+type UserOperationReceipt = {
   // / the request hash
   userOpHash: string;
   // / the account sending this UserOperation

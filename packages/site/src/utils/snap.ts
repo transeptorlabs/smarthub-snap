@@ -5,8 +5,8 @@ import {
   Snap,
   ReputationEntry,
   SmartContractAccount,
-  UserOperationReceipt,
   BundlerUrls,
+  SmartAccountActivity,
 } from '../types';
 import { getMMProvider } from './metamask';
 
@@ -73,12 +73,14 @@ export const connectErc4337Relayer = async (): Promise<boolean> => {
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
 
 // ERC-4337 account management *****************************************************
-export const getScAccount = async (): Promise<SmartContractAccount> => {
+export const getScAccount = async (
+  ownerEoa: string,
+): Promise<SmartContractAccount> => {
   const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'sc_account', params: [] },
+      request: { method: 'sc_account', params: [{ scOwnerAddress: ownerEoa }] },
     },
   });
 
@@ -93,28 +95,36 @@ export const getScAccount = async (): Promise<SmartContractAccount> => {
     deposit: BigNumber.from(parsedResult.deposit).toString(),
     connected: true,
     ownerAddress: parsedResult.ownerAddress,
-    userOperationReceipts: parsedResult.userOperationReceipts,
-    userOpHashesPending: parsedResult.userOpHashesPending,
   } as SmartContractAccount;
 };
 
-export const getConfirmedUserOperationReceipts = async (
-  index: string,
-): Promise<UserOperationReceipt[]> => {
+export const getSmartAccountActivity = async (
+  scOwnerAddress: string,
+  scIndex: number,
+): Promise<SmartAccountActivity> => {
   const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
       request: {
-        method: 'get_confirmed_userOperationReceipts',
-        params: [index],
+        method: 'smart_account_activity',
+        params: [
+          {
+            scOwnerAddress,
+            scIndex,
+          },
+        ],
       },
     },
   });
 
   const parsedResult = JSON.parse(result as string);
-  console.log('getConfirmedUserOperationReceipts result', parsedResult);
-  return [];
+  return {
+    userOpHashsPending: parsedResult.userOpHashsPending,
+    userOpHashesConfirmed: parsedResult.userOpHashesConfirmed,
+    userOperationReceipts: parsedResult.userOperationReceipts,
+    scIndex: parsedResult.scIndex,
+  } as SmartAccountActivity;
 };
 
 export const clearActivityData = async (): Promise<boolean> => {
@@ -140,7 +150,7 @@ export const addBundlerUrl = async (
   })) as boolean;
 };
 
-export const getBundlerUrls = async (): Promise<BundlerUrls> => {
+export const bundlerUrls = async (): Promise<BundlerUrls> => {
   const result = (await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
@@ -166,7 +176,7 @@ export const sendSupportedEntryPoints = async (): Promise<string[]> => {
 export const sendUserOperation = async (
   target: string,
   data: string,
-  index: string,
+  scOwnerAddress: string,
 ) => {
   return await getMMProvider().request({
     method: 'wallet_invokeSnap',
@@ -174,7 +184,13 @@ export const sendUserOperation = async (
       snapId: defaultSnapOrigin,
       request: {
         method: 'eth_sendUserOperation',
-        params: [target, data, index],
+        params: [
+          {
+            target,
+            data,
+            scOwnerAddress,
+          },
+        ],
       },
     },
   });

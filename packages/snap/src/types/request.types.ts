@@ -7,3 +7,8 @@ export type SendUserOpParams = {
   data: string;
   scOwnerAddress: string;
 };
+
+export type SmartAccountActivityParams = {
+  scOwnerAddress: string;
+  scIndex: number;
+};

@@ -5,8 +5,8 @@ import {
   Snap,
   ReputationEntry,
   SmartContractAccount,
-  UserOperationReceipt,
   BundlerUrls,
+  SmartAccountActivity,
 } from '../types';
 import { getMMProvider } from './metamask';
 
@@ -98,19 +98,19 @@ export const getScAccount = async (
   } as SmartContractAccount;
 };
 
-export const getConfirmedUserOperationReceipts = async (
-  ownerEoa: string,
+export const getSmartAccountActivity = async (
+  scOwnerAddress: string,
   scIndex: number,
-): Promise<UserOperationReceipt[]> => {
+): Promise<SmartAccountActivity> => {
   const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
       request: {
-        method: 'get_confirmed_userOperationReceipts',
+        method: 'smart_account_activity',
         params: [
           {
-            ownerEoa,
+            scOwnerAddress,
             scIndex,
           }],
       },
@@ -118,8 +118,12 @@ export const getConfirmedUserOperationReceipts = async (
   });
 
   const parsedResult = JSON.parse(result as string);
-  console.log('getConfirmedUserOperationReceipts result', parsedResult);
-  return [];
+  return {
+    userOpHashsPending: parsedResult.userOpHashsPending,
+    userOpHashesConfirmed: parsedResult.userOpHashesConfirmed,
+    userOperationReceipts: parsedResult.userOperationReceipts,
+    scIndex: parsedResult.scIndex,
+  } as SmartAccountActivity;
 };
 
 export const clearActivityData = async (): Promise<boolean> => {
@@ -145,7 +149,7 @@ export const addBundlerUrl = async (
   })) as boolean;
 };
 
-export const getBundlerUrls = async (): Promise<BundlerUrls> => {
+export const bundlerUrls = async (): Promise<BundlerUrls> => {
   const result = (await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {

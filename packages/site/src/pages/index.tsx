@@ -14,8 +14,6 @@ import {
   getEntryPointContract,
   sendUserOperation,
   clearActivityData,
-  getChainId,
-  getBundlerUrls,
   parseChainId,
   addBundlerUrl,
 } from '../utils';
@@ -121,20 +119,20 @@ const Index = () => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [formBundlerUrls, setFormBundlerUrls] = useState({} as BundlerUrls);
 
-  const {refreshEOAState, getScAccountState, setWalletListener} = useAcount();
+  const {refreshEOAState, getScAccountState, getAccountActivity, getBundlerUrls} = useAcount();
 
   useEffect(() => {
     let interval: any
     try {  
-      interval = setInterval(() => {
-        if (state.eoa.connected) {
-          refreshEOAState(state.eoa.address);
+      interval = setInterval(async () => {
+        console.log('checking account state:', state.eoa, state.scAccount, state.smartAccountActivity);
+        if (state.eoa.connected === true && state.scAccount.connected === true) {
+          await refreshEOAState(state.eoa.address);
+          await getScAccountState(state.eoa.address);
+          await getAccountActivity(state.eoa.address, Number(state.scAccount.index));
+          console.log('refreshing account state:', state.eoa, state.scAccount, state.smartAccountActivity);
         }
-  
-        if (state.scAccount.connected) {
-          getScAccountState(state.eoa.address);
-        }
-      }, 10000)
+      }, 30000) // 30 seconds
   
       return () => {
         clearInterval(interval);
@@ -144,12 +142,13 @@ const Index = () => {
       console.error('[ERROR] refreaher:', e.message);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     } 
-  }, [state.eoa, state.scAccount]);
+  }, [state.eoa, state.scAccount, state.smartAccountActivity]);
 
   useEffect(() => {
     try {  
-      handleFetchBundlerUrls(); 
-
+      if (state.installedSnap) {
+        handleFetchBundlerUrls()
+      }
       return () => {
       };
 
@@ -173,19 +172,8 @@ const Index = () => {
   };
 
   const handleFetchBundlerUrls = async () => {
-    try {
-      if (state.installedSnap) {
-        const urls = await getBundlerUrls();
-        dispatch({
-          type: MetamaskActions.SetBundlerUrls,
-          payload: urls,
-        });
-
-        setFormBundlerUrls(urls);
-      }
-    } catch (error) {
-      dispatch({ type: MetamaskActions.SetError, payload: error });
-    }
+    const urls = await getBundlerUrls();
+    setFormBundlerUrls(urls);
   };
 
   const handleDepositSubmit = async (e: any) => {
@@ -443,7 +431,7 @@ const Index = () => {
         </CardContainer>
       )}
 
-      {/* Account tab */}
+      {/* Account tab (eoa details, smart account details, smart account activity)*/}
       {state.activeTab === AppTab.Account && (
         <CardContainer>
           {state.eoa.connected && (
@@ -530,7 +518,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Activity',
-                userOperationReceipts: state.scAccount.userOperationReceipts,
+                userOperationReceipts: state.smartAccountActivity.userOperationReceipts,
               }}
               disabled={!state.isFlask}
               fullWidth

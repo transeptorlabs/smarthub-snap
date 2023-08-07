@@ -31,7 +31,14 @@ export type SmartContractAccount = {
   connected: boolean;
 };
 
-export type UserOperationReceipt = {
+export type SmartAccountActivity = {
+  userOpHashsPending: string[];
+  userOpHashesConfirmed:  string[];
+  userOperationReceipts: UserOperationReceipt[]
+  scIndex: number;
+}
+
+type UserOperationReceipt = {
   // / the request hash
   userOpHash: string;
   // / the account sending this UserOperation

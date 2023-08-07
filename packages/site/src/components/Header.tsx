@@ -70,13 +70,13 @@ export const Header = ({
 }) => {
   const theme = useTheme();
   const [state, dispatch] = useContext(MetaMaskContext);
-  const {getEoa, getScAccountState, setWalletListener} = useAcount();
+  const {getEoa, getScAccountState, getAccountActivity, setWalletListener} = useAcount();
 
   const handleConnectClick = async () => {
     try {
       let installedSnap = await getSnap();
       if (!installedSnap) {
-        console.log('installing snap');
+        // installing snap
         await connectSnap();
         installedSnap = await getSnap();
         dispatch({
@@ -85,7 +85,7 @@ export const Header = ({
         });
         return
       } else {
-        console.log('snap already installed');
+        // snap already installed
         dispatch({
           type: MetamaskActions.SetInstalled,
           payload: installedSnap,
@@ -93,11 +93,15 @@ export const Header = ({
       }
       
       const ownerEoa = await getEoa();
-      await getScAccountState(ownerEoa.address);
+      const smartAccount = await getScAccountState(ownerEoa.address);
+      const accountActivity = await getAccountActivity(ownerEoa.address, Number(smartAccount.index));
       await setWalletListener();
+
+      console.log('handleConnectClick(done):', ownerEoa, smartAccount, accountActivity);
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
       dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
+      dispatch({ type: MetamaskActions.SetClearSmartAccountActivity, payload: true});
     }
   };
 

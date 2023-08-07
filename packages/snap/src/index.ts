@@ -17,7 +17,7 @@ import {
   storeUserOpHashConfirmed,
   storeUserOpHashPending,
 } from './state';
-import { SendUserOpParams, SmartAccountParams, UserOperationReceipt } from './types';
+import { SendUserOpParams, SmartAccountActivityParams, SmartAccountParams, UserOperationReceipt } from './types';
 
 
 const debug = (data: any) => {
@@ -62,9 +62,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   let userOpHashesConfirmed: string[];
   let userOpHashsPending: string[];
   const userOperationReceipts: UserOperationReceipt[] = [];
-
-  let userOperationReceiptPromises: Promise<any>[];
-  let promisesResult: any[];
 
   if (!request.params) {
     request.params = [];
@@ -176,32 +173,37 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       }
       throw new Error('User cancelled the User Operation');
     }
-    case 'get_confirmed_userOperationReceipts':
-      scOwnerAddress = (request.params as any[])[0] as string;
-      eoaIndex = await findAccountIndex(scOwnerAddress);
+    case 'smart_account_activity': {
+      const params: SmartAccountActivityParams = (
+        request.params as any[]
+      )[0] as SmartAccountActivityParams;
+      
+      eoaIndex = await findAccountIndex(params.scOwnerAddress);
+      scIndex = params.scIndex;
       scAccount = await getSimpleScAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
         eoaIndex,
       );
-      scIndex = BigNumber.from(scAccount.index).toNumber();
 
-      userOpHashesConfirmed = await getUserOpHashsConfirmed(
+      // get confirmed and pending user operation hashes
+      const userOpHashesConfirmed: string[] = await getUserOpHashsConfirmed(
         eoaIndex,
         scIndex,
         chainId as string,
       );
-      userOpHashsPending = await getUserOpHashsPending(eoaIndex, scIndex, chainId as string)
+      const userOpHashsPending: string[] = await getUserOpHashsPending(eoaIndex, scIndex, chainId as string)
 
 
-      userOperationReceiptPromises = userOpHashesConfirmed.map(
+      // TODO: Add pagination
+      // send confirmed user operation hashes to bundler to get user operation receipts
+      const userOperationReceiptPromises = userOpHashesConfirmed.map(
         (userOpHash1) => {
           return rpcClient.send('eth_getUserOperationReceipt', [userOpHash1]);
         },
       );
 
-      // TODO: Add pagination
-      promisesResult = await Promise.all(userOperationReceiptPromises);
+      const promisesResult: UserOperationReceipt[] = await Promise.all(userOperationReceiptPromises);
       promisesResult.forEach((userOperationReceipt) => {
         if (userOperationReceipt) {
           userOperationReceipts.push(
@@ -209,11 +211,16 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           );
         }
       });
-      result = JSON.stringify({
+
+      result = JSON.stringify(
+        {
         userOpHashsPending,
         userOpHashesConfirmed,
-        userOperationReceipts});
+        userOperationReceipts,
+        scIndex,
+      });
       return result;
+    }
     case 'add_bundler_url':
       result = await storeBundlerUrl(
         (request.params as any[])[0],

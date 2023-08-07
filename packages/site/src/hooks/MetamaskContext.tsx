@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { AppTab, BundlerUrls, Snap } from '../types';
 import { isFlask, getSnap } from '../utils';
-import { EOA, SmartContractAccount, UserOperationReceipt } from '../types/erc-4337';
+import { EOA, SmartAccountActivity, SmartContractAccount } from '../types/erc-4337';
 
 export type MetamaskState = {
   isFlask: boolean;
@@ -21,9 +21,7 @@ export type MetamaskState = {
   chainId: string;
   activeTab: AppTab;
   bundlerUrls?: BundlerUrls;
-  userOpHashesPending: string[];
-  userOpHashesConfirmed: string[];
-  userOperationReceipts: UserOperationReceipt[];
+  smartAccountActivity: SmartAccountActivity;
 };
 
 const initialState: MetamaskState = {
@@ -34,9 +32,12 @@ const initialState: MetamaskState = {
   chainId: '',
   activeTab: AppTab.About,
   bundlerUrls: undefined,
-  userOpHashesPending: [],
-  userOpHashesConfirmed: [],
-  userOperationReceipts: [],
+  smartAccountActivity: {
+    userOpHashsPending: [],
+    userOpHashesConfirmed: [],
+    userOperationReceipts: [],
+    scIndex: 0,
+  },
   eoa: {
     connected: false,
     address: '',
@@ -78,6 +79,8 @@ export enum MetamaskActions {
   SetChainId = 'SetChainId',
   SetActiveTab = 'SetActiveTab',
   SetBundlerUrls = 'SetBundlerUrls',
+  SetSmartAccountActivity = 'SetSmartAccountActivity',
+  SetClearSmartAccountActivity = 'SetClearSmartAccountActivity',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -110,6 +113,12 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
       return {
         ...state,
         scAccount: action.payload,
+      };
+
+    case MetamaskActions.SetSmartAccountActivity:
+      return {
+        ...state,
+        smartAccountActivity: action.payload,
       };
 
     case MetamaskActions.SetWalletListener:
@@ -157,6 +166,16 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
           bundlerUrl: '',
         },
       };
+    case MetamaskActions.SetClearSmartAccountActivity:
+      return {
+        ...state,
+      smartAccountActivity: {
+        userOpHashesPending: [],
+        userOpHashesConfirmed: [],
+        userOperationReceipts: [],
+        scIndex: 0,
+      },
+    };
 
     default:
       return state;

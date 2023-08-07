@@ -7,7 +7,7 @@ import {
 import { remove0x } from '@metamask/utils';
 
 // Get a private key for the ETH coin type. Ethereum uses the following derivation path: m/44'/60'/account'/change/index - ex: m/44'/60'/0'/0/0 -  account 0 in MetaMask wallet
-export const getPrivateKey = async (addressIndex: number) => {
+const getPrivateKey = async (addressIndex: number) => {
   const coinTypeNode = (await snap.request({
     method: 'snap_getBip44Entropy',
     params: {

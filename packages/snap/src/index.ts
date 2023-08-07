@@ -17,21 +17,12 @@ import {
   storeUserOpHashConfirmed,
   storeUserOpHashPending,
 } from './state';
-import { SendUserOpParams, SmartAccountActivityParams, SmartAccountParams, UserOperationReceipt } from './types';
-
-
-const debug = (data: any) => {
-  return snap.request({
-    method: 'snap_dialog',
-    params: {
-      type: 'alert',
-      content: panel([
-        heading('Debug'),
-        text(`Data: ${JSON.stringify(data)}`),
-      ]),
-    },
-  });
-}
+import {
+  SendUserOpParams,
+  SmartAccountActivityParams,
+  SmartAccountParams,
+  UserOperationReceipt,
+} from './types';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -68,9 +59,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       const params: SmartAccountParams = (
         request.params as any[]
       )[0] as SmartAccountParams;
-      
+
       eoaIndex = await findAccountIndex(params.scOwnerAddress);
-      scOwnerAddress = params.scOwnerAddress
+      scOwnerAddress = params.scOwnerAddress;
       scAccount = await getSimpleScAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
@@ -82,7 +73,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       const [balance, nonce, deposit] = await Promise.all([
         await getBalance(scAddress),
         await scAccount.getNonce(),
-        await getDeposit(scAddress, rpcClient.getEntryPointAddr())
+        await getDeposit(scAddress, rpcClient.getEntryPointAddr()),
       ]);
 
       result = JSON.stringify({
@@ -98,12 +89,13 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
       return result;
     }
+
     case 'eth_sendUserOperation': {
       const params: SendUserOpParams = (
         request.params as any[]
       )[0] as SendUserOpParams;
-      const target = params.target;
-      const data = params.data;
+      const { target } = params;
+      const { data } = params;
       eoaIndex = await findAccountIndex(params.scOwnerAddress);
       scAccount = await getSimpleScAccount(
         rpcClient.getEntryPointAddr(),
@@ -130,8 +122,13 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         })
       ) {
         // create user operation and send it on success confirmation
-        const userOp: UserOperationStruct = await scAccount.createSignedUserOp({ target, data });
-        const hexifiedUserOp: UserOperationStruct = deepHexlify(await resolveProperties(userOp));
+        const userOp: UserOperationStruct = await scAccount.createSignedUserOp({
+          target,
+          data,
+        });
+        const hexifiedUserOp: UserOperationStruct = deepHexlify(
+          await resolveProperties(userOp),
+        );
         const userOpHash = await rpcClient.send(request.method, [
           hexifiedUserOp,
           rpcClient.getEntryPointAddr(),
@@ -157,9 +154,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
                 text(
                   `Sent from Smart account: ${await scAccount.getAccountAddress()}`,
                 ),
-                text(
-                  `Signed by owner(EOA): ${params.scOwnerAddress}`,
-                ),
+                text(`Signed by owner(EOA): ${params.scOwnerAddress}`),
                 text(`To contract: ${target}`),
               ]),
             },
@@ -169,11 +164,12 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       }
       throw new Error('User cancelled the User Operation');
     }
+
     case 'smart_account_activity': {
       const params: SmartAccountActivityParams = (
         request.params as any[]
       )[0] as SmartAccountActivityParams;
-      
+
       eoaIndex = await findAccountIndex(params.scOwnerAddress);
       scIndex = params.scIndex;
       scAccount = await getSimpleScAccount(
@@ -188,8 +184,11 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         scIndex,
         chainId as string,
       );
-      const userOpHashsPending: string[] = await getUserOpHashsPending(eoaIndex, scIndex, chainId as string)
-
+      const userOpHashsPending: string[] = await getUserOpHashsPending(
+        eoaIndex,
+        scIndex,
+        chainId as string,
+      );
 
       // TODO: Add pagination
       // send confirmed user operation hashes to bundler to get user operation receipts
@@ -200,7 +199,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         },
       );
 
-      const promisesResult: UserOperationReceipt[] = await Promise.all(userOperationReceiptPromises);
+      const promisesResult: UserOperationReceipt[] = await Promise.all(
+        userOperationReceiptPromises,
+      );
       promisesResult.forEach((userOperationReceipt) => {
         if (userOperationReceipt) {
           userOperationReceipts.push(
@@ -209,8 +210,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         }
       });
 
-      result = JSON.stringify(
-        {
+      result = JSON.stringify({
         userOpHashsPending,
         userOpHashesConfirmed,
         userOperationReceipts,

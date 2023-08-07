@@ -80,7 +80,7 @@ export const getScAccount = async (
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'sc_account', params: [{scOwnerAddress: ownerEoa }] },
+      request: { method: 'sc_account', params: [{ scOwnerAddress: ownerEoa }] },
     },
   });
 
@@ -112,7 +112,8 @@ export const getSmartAccountActivity = async (
           {
             scOwnerAddress,
             scIndex,
-          }],
+          },
+        ],
       },
     },
   });
@@ -188,7 +189,7 @@ export const sendUserOperation = async (
             target,
             data,
             scOwnerAddress,
-          }
+          },
         ],
       },
     },

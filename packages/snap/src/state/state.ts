@@ -69,10 +69,7 @@ const getState = async (
   }
 
   // if eoaIndex does not exist, initialize it
-  if (
-    state[eoaIndex] === undefined ||
-    state[eoaIndex] === null
-  ) {
+  if (state[eoaIndex] === undefined || state[eoaIndex] === null) {
     state[eoaIndex] = {
       scAccounts: {},
     };
@@ -99,7 +96,7 @@ const getState = async (
       '0x13881': {
         userOpHashesConfirmed: [],
       },
-    }
+    };
   }
 
   await snap.request({

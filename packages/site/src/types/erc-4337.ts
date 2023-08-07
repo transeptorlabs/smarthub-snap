@@ -33,10 +33,10 @@ export type SmartContractAccount = {
 
 export type SmartAccountActivity = {
   userOpHashsPending: string[];
-  userOpHashesConfirmed:  string[];
-  userOperationReceipts: UserOperationReceipt[]
+  userOpHashesConfirmed: string[];
+  userOperationReceipts: UserOperationReceipt[];
   scIndex: number;
-}
+};
 
 type UserOperationReceipt = {
   // / the request hash

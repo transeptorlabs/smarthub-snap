@@ -1,6 +1,6 @@
 {
-  "name": "erc-4337-snap",
-  "version": "0.1.0",
+  "name": "erc-4337-relayer-monorepo",
+  "version": "1.0.0",
   "private": true,
   "description": "A MetaMask snap the wraps ERC-4337 eth namespace methods.",
   "homepage": "https://github.com/transeptorlabs/erc-4337-snap#readme",
@@ -14,7 +14,7 @@
   "license": "(MIT-0 OR Apache-2.0)",
   "author": {
     "name": "Transeptor Labs",
-    "email": "bowmanidris95@gmail.com",
+    "email": "transeptorhq@gmail.com",
     "url": "https://transeptorlabs.io"
   },
   "workspaces": [
@@ -27,7 +27,7 @@
     "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write",
     "lint:misc": "prettier '**/*.json' '**/*.md' '!**/CHANGELOG.md' '**/*.yml' --ignore-path .gitignore",
     "start": "yarn workspaces foreach --parallel --interlaced --verbose run start",
-    "test": "echo \"TODO\""
+    "test": "yarn workspaces foreach --parallel --topological --verbose run test"
   },
   "devDependencies": {
     "@metamask/eslint-config": "^10.0.0",

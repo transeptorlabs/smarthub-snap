@@ -27,7 +27,7 @@ module.exports = {
       rules: {
         '@typescript-eslint/no-shadow': [
           'error',
-          { allow: ['describe', 'expect', 'it'] },
+          { allow: ['describe', 'expect', 'it', 'beforeEach'] },
         ],
         camelcase: 'off', // Disable the "is not in camel case" rule
       },

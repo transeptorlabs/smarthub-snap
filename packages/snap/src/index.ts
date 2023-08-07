@@ -59,10 +59,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   let eoaIndex: number;
   let scIndex: number;
 
-  let userOpHashesConfirmed: string[];
-  let userOpHashsPending: string[];
-  const userOperationReceipts: UserOperationReceipt[] = [];
-
   if (!request.params) {
     request.params = [];
   }
@@ -197,6 +193,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
       // TODO: Add pagination
       // send confirmed user operation hashes to bundler to get user operation receipts
+      const userOperationReceipts: UserOperationReceipt[] = [];
       const userOperationReceiptPromises = userOpHashesConfirmed.map(
         (userOpHash1) => {
           return rpcClient.send('eth_getUserOperationReceipt', [userOpHash1]);

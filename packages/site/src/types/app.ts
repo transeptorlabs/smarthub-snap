@@ -15,3 +15,13 @@ export const SupportedChainIdMap: { [chainId: string]: string } = {
 };
 
 export type BundlerUrls = { [chainId: string]: string };
+
+export type SmartAccountParams = {
+  scOwnerAddress: string;
+};
+
+export type SendUserOpParams = {
+  target: string;
+  data: string;
+  scOwnerAddress: string;
+};

@@ -1,4 +1,4 @@
-import { useContext, useEffect } from 'react';
+import { useContext } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
 import { EOA, SmartContractAccount } from "../types";
 import { connectWallet, getAccountBalance, getBundlerUrls, getChainId, getMMProvider, getScAccount, sendSupportedEntryPoints } from "../utils";
@@ -33,7 +33,7 @@ export const useAcount = () => {
     return scAccount;
   };
 
-  const refreshEOAState = async (newAccount: string) => {
+  const refreshEOAState = async (newAccount: string): Promise<EOA>  => {
     const changedeoa: EOA = {
       address: newAccount,
       balance: await getAccountBalance(newAccount),
@@ -43,7 +43,11 @@ export const useAcount = () => {
       type: MetamaskActions.SetEOA,
       payload: changedeoa,
     });
+
+    return changedeoa
   };
+
+  // TODO: Add account activity
 
   const setWalletListener = async () => {
     if (!state.isChainIdListener) {
@@ -74,6 +78,9 @@ export const useAcount = () => {
         provider.on('accountsChanged', async (accounts) => {
           await refreshEOAState((accounts as string[])[0]).catch((e) => {
             fatalError(e);
+          });  
+          await getScAccountState((accounts as string[])[0]).catch((e) => {
+            fatalError(e)
           });        
         });
 

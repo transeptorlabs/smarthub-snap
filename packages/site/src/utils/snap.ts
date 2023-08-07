@@ -73,18 +73,18 @@ export const connectErc4337Relayer = async (): Promise<boolean> => {
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
 
 // ERC-4337 account management *****************************************************
-export const getScAccount = async (ownerEoa: string): Promise<SmartContractAccount> => {
-  console.log('getScAccount ownerEoa:', ownerEoa);
+export const getScAccount = async (
+  ownerEoa: string,
+): Promise<SmartContractAccount> => {
   const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'sc_account', params: [ownerEoa] },
+      request: { method: 'sc_account', params: [{scOwnerAddress: ownerEoa }] },
     },
   });
 
   const parsedResult = JSON.parse(result as string);
-  console.log('getScAccount result:', parsedResult);
   return {
     address: parsedResult.address,
     balance: BigNumber.from(parsedResult.balance).toString(),
@@ -95,13 +95,12 @@ export const getScAccount = async (ownerEoa: string): Promise<SmartContractAccou
     deposit: BigNumber.from(parsedResult.deposit).toString(),
     connected: true,
     ownerAddress: parsedResult.ownerAddress,
-    userOperationReceipts: parsedResult.userOperationReceipts,
-    userOpHashesPending: parsedResult.userOpHashesPending,
   } as SmartContractAccount;
 };
 
 export const getConfirmedUserOperationReceipts = async (
   ownerEoa: string,
+  scIndex: number,
 ): Promise<UserOperationReceipt[]> => {
   const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
@@ -109,7 +108,11 @@ export const getConfirmedUserOperationReceipts = async (
       snapId: defaultSnapOrigin,
       request: {
         method: 'get_confirmed_userOperationReceipts',
-        params: [ownerEoa],
+        params: [
+          {
+            ownerEoa,
+            scIndex,
+          }],
       },
     },
   });
@@ -168,7 +171,7 @@ export const sendSupportedEntryPoints = async (): Promise<string[]> => {
 export const sendUserOperation = async (
   target: string,
   data: string,
-  index: string,
+  scOwnerAddress: string,
 ) => {
   return await getMMProvider().request({
     method: 'wallet_invokeSnap',
@@ -176,7 +179,13 @@ export const sendUserOperation = async (
       snapId: defaultSnapOrigin,
       request: {
         method: 'eth_sendUserOperation',
-        params: [target, data, index],
+        params: [
+          {
+            target,
+            data,
+            scOwnerAddress,
+          }
+        ],
       },
     },
   });

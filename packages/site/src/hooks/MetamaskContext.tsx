@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { AppTab, BundlerUrls, Snap } from '../types';
 import { isFlask, getSnap } from '../utils';
-import { EOA, SmartContractAccount } from '../types/erc-4337';
+import { EOA, SmartContractAccount, UserOperationReceipt } from '../types/erc-4337';
 
 export type MetamaskState = {
   isFlask: boolean;
@@ -21,6 +21,9 @@ export type MetamaskState = {
   chainId: string;
   activeTab: AppTab;
   bundlerUrls?: BundlerUrls;
+  userOpHashesPending: string[];
+  userOpHashesConfirmed: string[];
+  userOperationReceipts: UserOperationReceipt[];
 };
 
 const initialState: MetamaskState = {
@@ -31,6 +34,9 @@ const initialState: MetamaskState = {
   chainId: '',
   activeTab: AppTab.About,
   bundlerUrls: undefined,
+  userOpHashesPending: [],
+  userOpHashesConfirmed: [],
+  userOperationReceipts: [],
   eoa: {
     connected: false,
     address: '',
@@ -46,8 +52,6 @@ const initialState: MetamaskState = {
     deposit: '',
     factoryAddress: '',
     ownerAddress: '',
-    userOperationReceipts: [],
-    userOpHashesPending: [],
   },
 };
 

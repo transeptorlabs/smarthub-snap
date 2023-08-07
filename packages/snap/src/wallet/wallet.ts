@@ -6,16 +6,7 @@ import {
 } from '@metamask/key-tree';
 import { remove0x } from '@metamask/utils';
 
-/**
- Get a private key for the ETH coin type. Ethereum uses the following derivation path: m/44'/60'/account'/change/index
-  44': The BIP-44 constant for hardened derivation.
-  60': The coin type for Ethereum.
-  account': The account index.
-  change: Represents the external (0) or internal (1) chain for receiving and change addresses.
-  index: The index number representing the address within the account and change chain.
-  
-  ex: m/44'/60'/0'/0/0 -  account 0 in MetaMask wallet
- */
+// Get a private key for the ETH coin type. Ethereum uses the following derivation path: m/44'/60'/account'/change/index - ex: m/44'/60'/0'/0/0 -  account 0 in MetaMask wallet
 export const getPrivateKey = async (addressIndex: number) => {
   const coinTypeNode = (await snap.request({
     method: 'snap_getBip44Entropy',
@@ -30,7 +21,7 @@ export const getPrivateKey = async (addressIndex: number) => {
       await deriveBIP44AddressKey(coinTypeNode, {
         account: 0,
         change: 0,
-        address_index: addressIndex // change this to get different private keys
+        address_index: addressIndex, // change this to get different private keys
       })
     ).privateKey!,
   );
@@ -40,6 +31,11 @@ const getWallet = async (addressIndex: number): Promise<Wallet> => {
   const privKey = await getPrivateKey(addressIndex);
   const provider = new ethers.providers.Web3Provider(ethereum as any);
   return new Wallet(privKey).connect(provider);
+};
+
+export const getEoaAccount = async (addressIndex: number): Promise<string> => {
+  const privKey = await getPrivateKey(addressIndex);
+  return new Wallet(privKey).getAddress();
 };
 
 export const findAccountIndex = async (ethAddress: string): Promise<number> => {
@@ -53,15 +49,11 @@ export const findAccountIndex = async (ethAddress: string): Promise<number> => {
       foundIndex = i;
     }
   }
+
   if (!found) {
     throw new Error('Account not found');
   }
   return foundIndex;
-};
-
-export const getEoaAccount = async (addressIndex: number): Promise<string> => {
-  const privKey = await getPrivateKey(addressIndex);
-  return new Wallet(privKey).getAddress();
 };
 
 export const signMessageWithEoa = async (
@@ -76,7 +68,7 @@ export const getSimpleScAccount = async (
   entryPointAddress: string,
   factoryAddress: string,
   index: number,
-  smartIndex: number = 0,
+  smartIndex = 0,
 ): Promise<SimpleAccountAPI> => {
   const provider = new ethers.providers.Web3Provider(ethereum as any);
   const owner = await getWallet(index);

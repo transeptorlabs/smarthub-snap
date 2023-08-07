@@ -254,7 +254,7 @@ const Index = () => {
       await sendUserOperation(
         state.scAccount.entryPoint,
         encodedFunctionData,
-        state.scAccount.index,
+        state.eoa.address,
       );
 
       setWithdrawAmount('');

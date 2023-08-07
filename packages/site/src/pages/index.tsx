@@ -125,14 +125,15 @@ const Index = () => {
     let interval: any
     try {  
       interval = setInterval(async () => {
-        console.log('checking account state:', state.eoa, state.scAccount, state.smartAccountActivity);
         if (state.eoa.connected === true && state.scAccount.connected === true) {
-          await refreshEOAState(state.eoa.address);
-          await getScAccountState(state.eoa.address);
-          await getAccountActivity(state.eoa.address, Number(state.scAccount.index));
-          console.log('refreshing account state:', state.eoa, state.scAccount, state.smartAccountActivity);
+          await Promise.all([
+            refreshEOAState(state.eoa.address),
+            getScAccountState(state.eoa.address),
+            getAccountActivity(state.eoa.address, Number(state.scAccount.index)),
+          ]);
+          console.log('refreshing account state');
         }
-      }, 30000) // 30 seconds
+      }, 20000) // 20 seconds
   
       return () => {
         clearInterval(interval);

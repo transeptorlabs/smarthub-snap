@@ -33,7 +33,6 @@ const DEFAULT_STATE = {
 const getState = async (
   eoaIndex = 0,
   scIndex = 0,
-  chainId = '0x539',
 ): Promise<{
   bundlerUrls: { [chainId: string]: string };
   userOpHashesPending: { [key: string]: string }; // key = eoaIndex-scIndex-chainId
@@ -67,27 +66,46 @@ const getState = async (
   if (state === null) {
     // initialize state if empty and set default data
     state = DEFAULT_STATE;
-    await snap.request({
-      method: 'snap_manageState',
-      params: { operation: 'update', newState: state },
-    });
   }
 
-
-  // if index does not exist, initialize it
+  // if eoaIndex does not exist, initialize it
   if (
-    state[eoaIndex].scAccounts[scIndex][chainId] === undefined ||
-    state[eoaIndex].scAccounts[scIndex][chainId] === null
+    state[eoaIndex] === undefined ||
+    state[eoaIndex] === null
   ) {
-    state[eoaIndex].scAccounts[scIndex][chainId] = {
-      userOpHashesConfirmed: [],
+    state[eoaIndex] = {
+      scAccounts: {},
     };
-
-    await snap.request({
-      method: 'snap_manageState',
-      params: { operation: 'update', newState: state },
-    });
   }
+
+  // if scIndex does not exist, initialize it
+  if (
+    state[eoaIndex].scAccounts[scIndex] === undefined ||
+    state[eoaIndex].scAccounts[scIndex] === null
+  ) {
+    state[eoaIndex].scAccounts[scIndex] = {
+      '0x539': {
+        userOpHashesConfirmed: [],
+      },
+      '0x1': {
+        userOpHashesConfirmed: [],
+      },
+      '0x5': {
+        userOpHashesConfirmed: [],
+      },
+      '0x89': {
+        userOpHashesConfirmed: [],
+      },
+      '0x13881': {
+        userOpHashesConfirmed: [],
+      },
+    }
+  }
+
+  await snap.request({
+    method: 'snap_manageState',
+    params: { operation: 'update', newState: state },
+  });
 
   return state;
 };
@@ -97,7 +115,7 @@ export const getUserOpHashsConfirmed = async (
   scIndex: number,
   chainId: string,
 ): Promise<string[]> => {
-  const state = await getState(eoaIndex, scIndex, chainId);
+  const state = await getState(eoaIndex, scIndex);
 
   // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
   return Array.from(
@@ -157,7 +175,7 @@ export const storeUserOpHashConfirmed = async (
   scIndex: number,
   chainId: string,
 ): Promise<boolean> => {
-  const state = await getState(eoaIndex, scIndex, chainId);
+  const state = await getState(eoaIndex, scIndex);
 
   state[eoaIndex].scAccounts[scIndex][chainId].userOpHashesConfirmed.push(
     userOpHash,

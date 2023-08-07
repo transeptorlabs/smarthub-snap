@@ -94,10 +94,10 @@ export const Header = ({
       
       const ownerEoa = await getEoa();
       const smartAccount = await getScAccountState(ownerEoa.address);
-      const accountActivity = await getAccountActivity(ownerEoa.address, Number(smartAccount.index));
-      await setWalletListener();
-
-      console.log('handleConnectClick(done):', ownerEoa, smartAccount, accountActivity);
+      await Promise.all([
+        getAccountActivity(ownerEoa.address, Number(smartAccount.index)),
+        setWalletListener(),
+      ]);
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
       dispatch({ type: MetamaskActions.SetClearAccount, payload: true});

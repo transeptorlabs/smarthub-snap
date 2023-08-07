@@ -29,7 +29,7 @@
     "lint:misc": "prettier '**/*.json' '**/*.md' '!CHANGELOG.md' --ignore-path .gitignore",
     "serve": "mm-snap serve",
     "start": "mm-snap watch",
-    "test": "jest",
+    "test": "jest --coverage",
     "test:cov": "jest --coverage",
     "test:watch": "jest --watch"
   },

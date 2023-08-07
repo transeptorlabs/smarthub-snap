@@ -4,10 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: ['main']
-    types:
-      - opened
-      - synchronize
+    branches:
+      - '**'
 
 jobs:
   build-lint-test:
@@ -15,7 +13,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        node-version: [16.x, 18.x]
+        node-version: [16.x]
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
@@ -37,6 +35,10 @@ jobs:
       - run: yarn build
       - run: yarn lint
       - run: yarn test
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - name: Require clean working directory
         shell: bash
         run: |

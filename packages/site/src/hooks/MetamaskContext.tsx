@@ -33,8 +33,8 @@ const initialState: MetamaskState = {
   activeTab: AppTab.About,
   bundlerUrls: undefined,
   smartAccountActivity: {
-    userOpHashsPending: [],
-    userOpHashesConfirmed: [],
+    pendingUserOpHashes: [],
+    confirmedUserOpHashes: [],
     userOperationReceipts: [],
     scIndex: 0,
   },
@@ -170,8 +170,8 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
       return {
         ...state,
       smartAccountActivity: {
-        userOpHashesPending: [],
-        userOpHashesConfirmed: [],
+        pendingUserOpHashes: [],
+        confirmedUserOpHashes: [],
         userOperationReceipts: [],
         scIndex: 0,
       },

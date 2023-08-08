@@ -25,7 +25,15 @@ The snap adds extra features to MetaMask by including RPC methods that work with
 
 ## Snaps is pre-release software
 
-To interact with (your) Snaps, you will need to install [MetaMask Flask](https://metamask.io/flask/), a canary distribution for developers that provides access to upcoming features.
+To interact with the Snaps, you must install [MetaMask Flask](https://metamask.io/flask/), a canary distribution for developers that provides access to upcoming features.
+
+### Requirements
+
+**Note: This snap is not compatible with latest stable version of MetaMask Flask**
+
+- Change the version of MetaMask Flask to `10.33.1-flask.0` in `chrome://extensions/` to use this snap.
+- Uses this page to [Revert back to earlier version flask](https://support.metamask.io/hc/en-us/articles/360016336611-Revert-back-to-earlier-version-or-add-custom-build-to-Chrome):
+- Used MetaMask Extension [releases page](https://github.com/MetaMask/metamask-extension/releases) to download a `10.33.1-flask.0` version of flask.
 
 ## Contributing
 
@@ -37,7 +45,7 @@ The snap requires a connection to ERC4337 Bundler. We will use Transeptor Bundle
 
 ### Running ERC 4337 Bundler node locally
 
-The first things you need to do are cloning this repository and installing its
+The first things you need to do are clone this repository and install its
 dependencies:
 
 ```sh
@@ -78,7 +86,7 @@ npm run bundler
 
 The Bundler will start running on [http://localhost:3000/rpc](http://localhost:3000/rpc). You will
 need to have [Metamask Flask](https://metamask.io/flask/) installed and listening to
-`localhost 8545`.
+`localhost:8545`.
 
 #### Troubleshooting
 

@@ -131,9 +131,8 @@ const Index = () => {
             getScAccountState(state.eoa.address),
             getAccountActivity(state.eoa.address, Number(state.scAccount.index)),
           ]);
-          console.log('refreshing account state');
         }
-      }, 20000) // 20 seconds
+      }, 10000) // 10 seconds
   
       return () => {
         clearInterval(interval);
@@ -248,7 +247,9 @@ const Index = () => {
 
       setWithdrawAmount('');
       setWithDrawAddr('');
+      await refreshEOAState(state.eoa.address);
       await getScAccountState(state.eoa.address);
+      await getAccountActivity(state.eoa.address, Number(state.scAccount.index))
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
@@ -519,7 +520,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Activity',
-                userOperationReceipts: state.smartAccountActivity.userOperationReceipts,
+                smartAccountActivity: state.smartAccountActivity,
               }}
               disabled={!state.isFlask}
               fullWidth

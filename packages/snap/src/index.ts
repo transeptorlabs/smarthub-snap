@@ -18,6 +18,7 @@ import {
   storeUserOpHashPending,
 } from './state';
 import {
+  GetUserOpParams,
   SendUserOpParams,
   SmartAccountActivityParams,
   SmartAccountParams,
@@ -129,15 +130,15 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         const hexifiedUserOp: UserOperationStruct = deepHexlify(
           await resolveProperties(userOp),
         );
-        const userOpHash = await rpcClient.send(request.method, [
+        const rpcResult = await rpcClient.send(request.method, [
           hexifiedUserOp,
           rpcClient.getEntryPointAddr(),
         ]);
 
-        if (userOpHash) {
+        if (rpcResult.sucess === true) {
           if (
             !(await storeUserOpHashPending(
-              userOpHash,
+              rpcResult.data as string,
               eoaIndex,
               scIndex,
               chainId as string,
@@ -154,18 +155,31 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
                 text(
                   `Sent from Smart account: ${await scAccount.getAccountAddress()}`,
                 ),
+                text(`User operation hash: ${rpcResult.data}`),
                 text(`Signed by owner(EOA): ${params.scOwnerAddress}`),
                 text(`To contract: ${target}`),
               ]),
             },
           });
         }
-        throw new Error('User Operation failed');
+        return snap.request({
+          method: 'snap_dialog',
+          params: {
+            type: 'alert',
+            content: panel([
+              heading('Failed to send User Operation'),
+              text(
+                `Sent from Smart account: ${await scAccount.getAccountAddress()}`,
+              ),
+              text(`Error Message: ${rpcResult.data}`),
+            ]),
+          },
+        });
       }
       throw new Error('User cancelled the User Operation');
     }
 
-    case 'smart_account_activity': {
+    case 'confirmed_UserOperation': {
       const params: SmartAccountActivityParams = (
         request.params as any[]
       )[0] as SmartAccountActivityParams;
@@ -178,46 +192,37 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         eoaIndex,
       );
 
-      // get confirmed and pending user operation hashes
       const userOpHashesConfirmed: string[] = await getUserOpHashsConfirmed(
         eoaIndex,
         scIndex,
         chainId as string,
       );
-      const userOpHashsPending: string[] = await getUserOpHashsPending(
+      result = userOpHashesConfirmed;
+      return result;
+    }
+
+    case 'pending_UserOperation': {
+      const params: SmartAccountActivityParams = (
+        request.params as any[]
+      )[0] as SmartAccountActivityParams;
+
+      eoaIndex = await findAccountIndex(params.scOwnerAddress);
+      scIndex = params.scIndex;
+      scAccount = await getSimpleScAccount(
+        rpcClient.getEntryPointAddr(),
+        rpcClient.getAccountFactoryAddr(),
+        eoaIndex,
+      );
+
+      const userOpHashesPending: string[] = await getUserOpHashsPending(
         eoaIndex,
         scIndex,
         chainId as string,
       );
-
-      // TODO: Add pagination
-      // send confirmed user operation hashes to bundler to get user operation receipts
-      const userOperationReceipts: UserOperationReceipt[] = [];
-      const userOperationReceiptPromises = userOpHashesConfirmed.map(
-        (userOpHash1) => {
-          return rpcClient.send('eth_getUserOperationReceipt', [userOpHash1]);
-        },
-      );
-
-      const promisesResult: UserOperationReceipt[] = await Promise.all(
-        userOperationReceiptPromises,
-      );
-      promisesResult.forEach((userOperationReceipt) => {
-        if (userOperationReceipt) {
-          userOperationReceipts.push(
-            userOperationReceipt as UserOperationReceipt,
-          );
-        }
-      });
-
-      result = JSON.stringify({
-        userOpHashsPending,
-        userOpHashesConfirmed,
-        userOperationReceipts,
-        scIndex,
-      });
+      result = userOpHashesPending;
       return result;
     }
+
     case 'add_bundler_url':
       result = await storeBundlerUrl(
         (request.params as any[])[0],
@@ -235,14 +240,37 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         throw new Error('Failed to clear activity data');
       }
       return result;
-    case 'eth_getUserOperationReceipt':
-      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_getUserOperationReceipt': {
+      const params: GetUserOpParams = (
+        request.params as any[]
+      )[0] as GetUserOpParams;
+      const rpcResult = await rpcClient.send(request.method, [
+        params.userOpHash,
+      ]);
+      if (rpcResult.sucess === true && rpcResult.data !== null) {
+        result = JSON.stringify(rpcResult.data);
+        return result;
+      }
+      return rpcResult.data;
+    }
+
     case 'eth_supportedEntryPoints':
       return await rpcClient.send(request.method, []);
     case 'eth_estimateUserOperationGas':
       return await rpcClient.send(request.method, request.params as any[]);
-    case 'eth_getUserOperationByHash':
-      return await rpcClient.send(request.method, request.params as any[]);
+    case 'eth_getUserOperationByHash': {
+      const params: GetUserOpParams = (
+        request.params as any[]
+      )[0] as GetUserOpParams;
+      const rpcResult = await rpcClient.send(request.method, [
+        params.userOpHash,
+      ]);
+      if (rpcResult.sucess === true && rpcResult.data !== null) {
+        result = JSON.stringify(rpcResult.data);
+        return result;
+      }
+      return rpcResult.data;
+    }
     case 'web3_clientVersion':
       return await rpcClient.send(request.method, request.params as any[]);
     case 'debug_bundler_clearState':
@@ -276,7 +304,7 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
     let firstkey: string;
 
     switch (request.method) {
-      case 'checkUserOperationReceiptReady':
+      case 'checkUserOperationReceiptReady': {
         allUserOpHashesPending = await getAllUserOpHashsPending();
         if (Object.keys(allUserOpHashesPending).length === 0) {
           return null;
@@ -290,15 +318,19 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
           firstkey.split('-')[2] as string,
         );
 
-        userOperationReceipt = await rpcClient.send(
-          'eth_getUserOperationReceipt',
-          [userOpHash],
-        );
+        const rpcResult = await rpcClient.send('eth_getUserOperationReceipt', [
+          userOpHash,
+        ]);
 
-        if (!userOperationReceipt) {
+        if (rpcResult.sucess === false) {
           return null;
         }
 
+        if (rpcResult.data === null) {
+          return null;
+        }
+
+        userOperationReceipt = rpcResult.data as UserOperationReceipt;
         await storeUserOpHashConfirmed(
           userOpHash,
           Number(firstkey.split('-')[0]),
@@ -326,6 +358,7 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
             ]),
           },
         });
+      }
       default:
         throw new Error('Method not found.');
     }
@@ -336,6 +369,7 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
     ) {
       return null;
     }
+    console.log('error from cronjob:', error);
     throw error;
   }
 };

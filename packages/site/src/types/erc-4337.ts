@@ -1,4 +1,4 @@
-import type { BigNumberish, ethers } from 'ethers';
+import type { BigNumberish, BytesLike, ethers } from 'ethers';
 
 export type ReputationEntry = {
   address: string;
@@ -32,13 +32,13 @@ export type SmartContractAccount = {
 };
 
 export type SmartAccountActivity = {
-  userOpHashsPending: string[];
-  userOpHashesConfirmed: string[];
+  pendingUserOpHashes: string[];
+  confirmedUserOpHashes: string[];
   userOperationReceipts: UserOperationReceipt[];
   scIndex: number;
 };
 
-type UserOperationReceipt = {
+export type UserOperationReceipt = {
   // / the request hash
   userOpHash: string;
   // / the account sending this UserOperation
@@ -60,4 +60,18 @@ type UserOperationReceipt = {
 
   // the transaction receipt for this transaction (of entire bundle, not only this UserOperation)
   receipt: ethers.providers.TransactionReceipt;
+};
+
+export type UserOperation = {
+  sender: string;
+  nonce: BigNumberish;
+  initCode: BytesLike;
+  callData: BytesLike;
+  callGasLimit: BigNumberish;
+  verificationGasLimit: BigNumberish;
+  preVerificationGas: BigNumberish;
+  maxFeePerGas: BigNumberish;
+  maxPriorityFeePerGas: BigNumberish;
+  paymasterAndData: BytesLike;
+  signature: BytesLike;
 };

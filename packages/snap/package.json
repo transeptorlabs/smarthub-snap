@@ -30,7 +30,7 @@
     "serve": "mm-snap serve",
     "start": "mm-snap watch",
     "test": "jest --coverage",
-    "test:cov": "jest --coverage",
+    "test:no-cov": "jest",
     "test:watch": "jest --watch"
   },
   "jest": {

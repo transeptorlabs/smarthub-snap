@@ -1,4 +1,4 @@
-import { DEFAULT_STATE } from "./state.contants";
+import { DEFAULT_STATE } from './state.contants';
 
 export const getState = async (
   eoaIndex = 0,

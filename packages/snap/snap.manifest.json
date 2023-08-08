@@ -7,7 +7,7 @@
     "url": "https://github.com/transeptorlabs/erc-4337-snap.git"
   },
   "source": {
-    "shasum": "7DWSvHDC7yaM2uP1LbAp3bzQE36gdjgv8K+47N5rxsM=",
+    "shasum": "SBthQut8eLQ5sXaXbiwiwtcpT71WefqMPG7r2L7v+q0=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",

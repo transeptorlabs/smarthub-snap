@@ -2,7 +2,7 @@ import { ReactNode, useContext } from 'react';
 import styled from 'styled-components';
 import { FaCopy } from "react-icons/fa";
 import { trimAccount } from '../utils/eth';
-import { SupportedChainIdMap, UserOperationReceipt } from '../types';
+import { SmartAccountActivity, SupportedChainIdMap, UserOperation, UserOperationReceipt } from '../types';
 import { BigNumber } from 'ethers';
 import { BlockieEoa, BlockieSc } from './blockie';
 import { MetaMaskContext } from '../hooks';
@@ -21,7 +21,7 @@ type CardProps = {
       value: string;
     }[];
     form?: ReactNode[];
-    userOperationReceipts?: UserOperationReceipt[]
+    smartAccountActivity?: SmartAccountActivity
     custom?: ReactNode
   };
   disabled?: boolean;
@@ -183,6 +183,10 @@ const ActivitySuccess = styled.span`
   color: ${({ theme }) => theme.colors.success.alternative};
 `
 
+const ActivityPending = styled.span`
+  color: ${({ theme }) => theme.colors.pending.alternative};
+`
+
 const ActivityFailed = styled.span`
   color: ${({ theme }) => theme.colors.error.alternative};
 `
@@ -201,7 +205,7 @@ const Network = styled.span`
 export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount, isEoa, isSC}: CardProps) => {
   const [state] = useContext(MetaMaskContext);
 
-  const { title, description, descriptionBold, button, listItems, form, stats, userOperationReceipts, custom} = content;
+  const { title, description, descriptionBold, button, listItems, form, stats, smartAccountActivity, custom} = content;
 
   const handleCopyToClipboard = (event: any, text: string) => {
     event.preventDefault();
@@ -296,8 +300,30 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
         </FormContainer>
       </FlexContainer>
 
-      {userOperationReceipts && (
-        userOperationReceipts.map((item: UserOperationReceipt) => (
+      {smartAccountActivity && (
+        smartAccountActivity.pendingUserOpHashes.map((item: string) => (
+          <ActivityItemContainer key={`${item}`}>
+            <ActivityItem>
+              <p>Status:</p>
+              <p><ActivityPending>Pending</ActivityPending></p>
+            </ActivityItem>
+
+            <ActivityItem>
+              <p>UserOp hash:</p>
+              <FlexRowNoMargin>
+                <p>{trimAccount(item)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item)}>
+                  <FaCopy />
+                </ActivityCopy>
+              </FlexRowNoMargin>
+            </ActivityItem> 
+        
+          </ActivityItemContainer>
+        ))
+      )}
+
+      {smartAccountActivity && (
+        smartAccountActivity.userOperationReceipts.map((item: UserOperationReceipt) => (
           <ActivityItemContainer key={`${item.sender}-${item.nonce.toString()}-${item.receipt.transactionHash}`}>
             <ActivityItem>
               <p>Status:</p>
@@ -346,15 +372,25 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
               <p>{BigNumber.from(item.actualGasCost).toNumber()}</p>
             </ActivityItem>
 
-              <ActivityItem>
-                <p>Transaction hash:</p>
-                <FlexRowNoMargin>
-                  <p>{trimAccount(item.receipt.transactionHash)}</p>
-                  <ActivityCopy onClick={e => handleCopyToClipboard(e, item.receipt.transactionHash)}>
-                    <FaCopy />
-                  </ActivityCopy>
-                </FlexRowNoMargin>
-              </ActivityItem>      
+            <ActivityItem>
+              <p>UserOp hash:</p>
+              <FlexRowNoMargin>
+                <p>{trimAccount(item.userOpHash)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.userOpHash)}>
+                  <FaCopy />
+                </ActivityCopy>
+              </FlexRowNoMargin>
+            </ActivityItem>  
+
+            <ActivityItem>
+              <p>Transaction hash:</p>
+              <FlexRowNoMargin>
+                <p>{trimAccount(item.receipt.transactionHash)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.receipt.transactionHash)}>
+                  <FaCopy />
+                </ActivityCopy>
+              </FlexRowNoMargin>
+            </ActivityItem>     
           </ActivityItemContainer>
         ))
       )}

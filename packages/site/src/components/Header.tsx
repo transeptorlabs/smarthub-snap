@@ -70,7 +70,7 @@ export const Header = ({
 }) => {
   const theme = useTheme();
   const [state, dispatch] = useContext(MetaMaskContext);
-  const {getEoa, getScAccountState, getAccountActivity, setWalletListener} = useAcount();
+  const {getEoa, getScAccountState, getAccountActivity, setWalletListener, updateChain} = useAcount();
 
   const handleConnectClick = async () => {
     try {
@@ -92,12 +92,11 @@ export const Header = ({
         });
       }
       
+      await updateChain();
       const ownerEoa = await getEoa();
       const smartAccount = await getScAccountState(ownerEoa.address);
-      await Promise.all([
-        getAccountActivity(ownerEoa.address, Number(smartAccount.index)),
-        setWalletListener(),
-      ]);
+      await getAccountActivity(ownerEoa.address, Number(smartAccount.index));
+      await setWalletListener();
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
       dispatch({ type: MetamaskActions.SetClearAccount, payload: true});

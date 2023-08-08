@@ -7,6 +7,8 @@ import {
   SmartContractAccount,
   BundlerUrls,
   SmartAccountActivity,
+  UserOperation,
+  UserOperationReceipt,
 } from '../types';
 import { getMMProvider } from './metamask';
 
@@ -98,16 +100,16 @@ export const getScAccount = async (
   } as SmartContractAccount;
 };
 
-export const getSmartAccountActivity = async (
+export const getConfirmedUserOperation = async (
   scOwnerAddress: string,
   scIndex: number,
-): Promise<SmartAccountActivity> => {
-  const result = await getMMProvider().request({
+): Promise<string[]> => {
+  return (await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
       request: {
-        method: 'smart_account_activity',
+        method: 'confirmed_UserOperation',
         params: [
           {
             scOwnerAddress,
@@ -116,14 +118,69 @@ export const getSmartAccountActivity = async (
         ],
       },
     },
+  })) as string[];
+};
+
+export const getPendingUserOperation = async (
+  scOwnerAddress: string,
+  scIndex: number,
+): Promise<string[]> => {
+  return (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: {
+        method: 'pending_UserOperation',
+        params: [
+          {
+            scOwnerAddress,
+            scIndex,
+          },
+        ],
+      },
+    },
+  })) as string[];
+};
+
+export const getUserOperationReceipt = async (
+  userOpHash: string,
+): Promise<UserOperationReceipt> => {
+  const result = (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: {
+        method: 'eth_getUserOperationReceipt',
+        params: [{ userOpHash }],
+      },
+    },
+  })) as string;
+  const parsedResult = JSON.parse(result as string);
+  return parsedResult as UserOperationReceipt;
+};
+
+export const getSmartAccountActivity = async (
+  scOwnerAddress: string,
+  scIndex: number,
+): Promise<SmartAccountActivity> => {
+  const [confirmedUserOpHashes, pendingUserOpHashes] = await Promise.all([
+    getConfirmedUserOperation(scOwnerAddress, scIndex),
+    getPendingUserOperation(scOwnerAddress, scIndex),
+  ]);
+
+  const userOperationReceipts: UserOperationReceipt[] = [];
+  confirmedUserOpHashes.forEach(async (confirmedUserOpHash) => {
+    const receipt = await getUserOperationReceipt(confirmedUserOpHash);
+    if (receipt !== undefined || receipt !== null) {
+      userOperationReceipts.push(receipt);
+    }
   });
 
-  const parsedResult = JSON.parse(result as string);
   return {
-    userOpHashsPending: parsedResult.userOpHashsPending,
-    userOpHashesConfirmed: parsedResult.userOpHashesConfirmed,
-    userOperationReceipts: parsedResult.userOperationReceipts,
-    scIndex: parsedResult.scIndex,
+    pendingUserOpHashes,
+    confirmedUserOpHashes,
+    userOperationReceipts,
+    scIndex,
   } as SmartAccountActivity;
 };
 
@@ -177,8 +234,8 @@ export const sendUserOperation = async (
   target: string,
   data: string,
   scOwnerAddress: string,
-) => {
-  return await getMMProvider().request({
+): Promise<string> => {
+  return (await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
@@ -193,25 +250,37 @@ export const sendUserOperation = async (
         ],
       },
     },
-  });
+  })) as string;
 };
 
-export const sendEstimateUserOperationGas = async () => {
+export const getUserOperationByHash = async (
+  userOpHash: string,
+): Promise<UserOperation> => {
+  const result = await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: {
+        method: 'eth_getUserOperationByHash',
+        params: [
+          {
+            userOpHash,
+          },
+        ],
+      },
+    },
+  });
+
+  const parsedResult = JSON.parse(result as string);
+  return parsedResult as UserOperation;
+};
+
+export const estimateUserOperationGas = async () => {
   return await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
       request: { method: 'eth_estimateUserOperationGas' },
-    },
-  });
-};
-
-export const sendGetUserOperationReceipt = async (userOpHash: string) => {
-  return await getMMProvider().request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: { method: 'eth_getUserOperationReceipt', params: [userOpHash] },
     },
   });
 };
@@ -268,7 +337,7 @@ export const sendDebugBundlerSetBundlingMode = async (
   });
 };
 
-export const sednDebugBundlerSetReputation = async (
+export const sendDebugBundlerSetReputation = async (
   reputations: ReputationEntry[],
   supportedEntryPoints: string,
 ) => {

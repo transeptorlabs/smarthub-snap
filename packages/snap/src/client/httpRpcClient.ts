@@ -1,6 +1,14 @@
 import { ethers } from 'ethers';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 
+type BundlerRPCError = {
+  jsonrpc: string;
+  id: number | string;
+  error: {
+    code: number;
+    message: string;
+  };
+};
 export class HttpRpcClient {
   private readonly provider: ethers.providers.JsonRpcProvider;
 
@@ -47,9 +55,22 @@ export class HttpRpcClient {
     return this.bundlerUrl;
   }
 
-  public async send(method: string, params: any[]): Promise<any> {
-    const result = await this.provider.send(method, params);
-    // TODO: parse result and throw error if any
-    return result;
+  public async send(
+    method: string,
+    params: any[],
+  ): Promise<{ sucess: boolean; data: any }> {
+    try {
+      const result = await this.provider.send(method, params);
+      return {
+        sucess: true,
+        data: result,
+      };
+    } catch (e) {
+      const errorBody = JSON.parse(e.body) as BundlerRPCError;
+      return {
+        sucess: false,
+        data: errorBody.error.message,
+      };
+    }
   }
 }

@@ -15,6 +15,14 @@ export const useAcount = () => {
     return eoa;
   };
 
+  const updateChain = async () => {
+    const chainId = await getChainId();
+    dispatch({
+      type: MetamaskActions.SetChainId,
+      payload: chainId,
+    });
+  };
+
   const getScAccountState = async (ownerEoa: string): Promise<SmartContractAccount> => {
     const [scAccount, supportedEntryPoints] = await Promise.all([
       getScAccount(ownerEoa),
@@ -67,13 +75,7 @@ export const useAcount = () => {
   };
 
   const setWalletListener = async () => {
-    if (!state.isChainIdListener) {
-      const chainId = await getChainId();
-      dispatch({
-        type: MetamaskActions.SetChainId,
-        payload: chainId,
-      });
-      
+    if (!state.isChainIdListener) {   
       const provider = getMMProvider()
       if (provider) {
         provider.on('chainChanged', async (chainId) => {
@@ -130,5 +132,6 @@ export const useAcount = () => {
     setWalletListener,
     getAccountActivity,
     getBundlerUrls,
+    updateChain,
   }
 }

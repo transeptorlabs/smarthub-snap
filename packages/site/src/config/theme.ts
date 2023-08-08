@@ -75,6 +75,11 @@ export const light: DefaultTheme = {
       alternative: '#109133',
       muted: '#bff5ce',
     },
+    pending: {
+      default: '#3245ae',
+      alternative: '#3245ae',
+      muted: '#bff5ce',
+    },
   },
   ...theme,
 };

@@ -39,4 +39,3 @@ This policy applies to all systems and projects provided by Transeptor Labs. Thi
 For any questions or concerns regarding this security policy, don't hesitate to contact us at [transeptorhq@gmail.com](mailto:transeptorhq@gmail.com).
 
 Thank you for helping us keep our systems secure.
-

@@ -116,7 +116,7 @@ type FormProps = {
   onSubmitClick(e: any): unknown;
 };
 
-export const TokenInputForm = ({
+export const CommonInputForm = ({
   buttonText,
   inputs,
   onSubmitClick,

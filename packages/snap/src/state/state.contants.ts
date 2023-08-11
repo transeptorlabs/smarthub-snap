@@ -1,4 +1,8 @@
 export const DEFAULT_STATE = {
+  keyringState: {
+    wallets: {},
+    requests: {},
+  },
   bundlerUrls: {
     '0x539': 'http://localhost:3000/rpc', // 1337
     '0x1': '', // ethereum mainnet

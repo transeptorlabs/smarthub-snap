@@ -1,9 +1,11 @@
+import { KeyringState } from '../keyring';
 import { DEFAULT_STATE } from './state.contants';
 
 export const getState = async (
   eoaIndex = 0,
   scIndex = 0,
 ): Promise<{
+  keyringState: KeyringState,
   bundlerUrls: { [chainId: string]: string };
   userOpHashesPending: { [key: string]: string }; // key = eoaIndex-scIndex-chainId
   [eoaIndex: number]: {
@@ -20,6 +22,7 @@ export const getState = async (
     method: 'snap_manageState',
     params: { operation: 'get' },
   })) as {
+    keyringState: KeyringState,
     bundlerUrls: { [chainId: string]: string };
     userOpHashesPending: { [key: string]: string };
     [eoaIndex: number]: {
@@ -197,4 +200,20 @@ export const clearState = async (): Promise<boolean> => {
     params: { operation: 'clear' },
   });
   return true;
+};
+
+export const storeKeyRing = async (keyring:KeyringState): Promise<boolean> => {
+  const state = await getState();
+  state.keyringState = keyring;
+
+  await snap.request({
+    method: 'snap_manageState',
+    params: { operation: 'update', newState: state },
+  });
+  return true;
+};
+
+export const getKeyRing = async (): Promise<KeyringState> => {
+  const state = await getState();
+  return Object.assign({}, state.keyringState);
 };

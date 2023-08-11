@@ -16,19 +16,21 @@ import {
   clearActivityData,
   parseChainId,
   addBundlerUrl,
+  getKeyringClient,
 } from '../utils';
 import {
   ConnectSnapButton,
   InstallFlaskButton,
   ReconnectButton,
   Card,
-  TokenInputForm,
+  CommonInputForm,
   SimpleButton,
   TabMenu,
   BundlerInputForm,
 } from '../components';
 import { BigNumber, ethers } from 'ethers';
 import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
+import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
 const Container = styled.div`
   display: flex;
@@ -42,16 +44,6 @@ const Container = styled.div`
     padding-right: 2.4rem;
     margin-bottom: 2rem;
     width: auto;
-  }
-`;
-
-const Subtitle = styled.p`
-  font-size: ${({ theme }) => theme.fontSizes.large};
-  font-weight: 500;
-  margin-top: 0;
-  margin-bottom: 0;
-  ${({ theme }) => theme.mediaQueries.small} {
-    font-size: ${({ theme }) => theme.fontSizes.text};
   }
 `;
 
@@ -118,8 +110,11 @@ const Index = () => {
   const [withDrawAddr, setWithDrawAddr] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [formBundlerUrls, setFormBundlerUrls] = useState({} as BundlerUrls);
+  const [accountName, setAccountName] = useState('');
+  const [accountId, setAccountId] = useState('');
 
   const {refreshEOAState, getScAccountState, getAccountActivity, getBundlerUrls} = useAcount();
+  const client: KeyringSnapRpcClient = getKeyringClient();
 
   useEffect(() => {
     let interval: any
@@ -148,6 +143,7 @@ const Index = () => {
     try {  
       if (state.installedSnap) {
         handleFetchBundlerUrls()
+        getSnapKeyringAccounts()
       }
       return () => {
       };
@@ -156,6 +152,20 @@ const Index = () => {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     } 
   }, [state.installedSnap]);
+
+  const getSnapKeyringAccounts = async () => {
+    const accounts = await client.listAccounts();
+    const pendingRequests = await client.listRequests();
+    console.log('accounts(client):', accounts);
+    console.log('pendingRequests(client):', pendingRequests);
+    dispatch({ 
+      type: MetamaskActions.SetSnapKeyring,
+      payload: {
+        accounts,
+        pendingRequests,
+      } 
+    });
+  }
 
   const handleReConnectSnapClick = async () => {
     try {
@@ -174,6 +184,40 @@ const Index = () => {
   const handleFetchBundlerUrls = async () => {
     const urls = await getBundlerUrls();
     setFormBundlerUrls(urls);
+  };
+
+  const createBundlerUrlForm = () => {
+    return (
+      <div>
+        {Object.entries(formBundlerUrls).map(([chainId, url]) => (
+          <BundlerInputForm
+            key={chainId}
+            onSubmitClick={(e)=> handleBundlerUrlSubmit(e, chainId)}
+            buttonText="Save"
+            onInputChange={(e)=> handleBundlerUrlChange(e, chainId)}
+            inputValue={url}
+            inputPlaceholder="Enter url"
+            networkName={SupportedChainIdMap[chainId] ? SupportedChainIdMap[chainId] : 'Unknown'}
+            chainId={parseChainId(chainId).toString()}
+        />
+        ))}
+      </div>
+    );
+  }
+
+  // Form submit handlers
+  const handleCreateAccount = async () => {
+    console.log('Creating account');
+    const newAccount = await client.createAccount('test');
+    console.log('newAccount result:', newAccount);
+    await getSnapKeyringAccounts()
+  };
+
+  const handleDeleteAccount = async () => {
+    console.log('Delete account');
+    const result = await client.deleteAccount(accountId);
+    console.log('delete result:', result);
+    await getSnapKeyringAccounts()
   };
 
   const handleDepositSubmit = async (e: any) => {
@@ -255,6 +299,19 @@ const Index = () => {
     }
   }
 
+  const handleClearActivity = async (e: any) => {
+    e.preventDefault();
+    await clearActivityData();
+    await handleFetchBundlerUrls();
+  }
+
+  const handleBundlerUrlSubmit = async (e: any, chainId: string) => {
+    e.preventDefault();
+    await addBundlerUrl(chainId, formBundlerUrls[chainId]);
+    await handleFetchBundlerUrls();
+  }
+
+  // Input handlers
   const handleDepositAmountChange = async (e: any) => {
     // Regular expression to match only numbers
     const inputValue = e.target.value;
@@ -281,18 +338,6 @@ const Index = () => {
     }
   }
 
-  const handleClearActivity = async (e: any) => {
-    e.preventDefault();
-    await clearActivityData();
-    await handleFetchBundlerUrls();
-  }
-
-  const handleBundlerUrlSubmit = async (e: any, chainId: string) => {
-    e.preventDefault();
-    await addBundlerUrl(chainId, formBundlerUrls[chainId]);
-    await handleFetchBundlerUrls();
-  }
-
   const handleBundlerUrlChange = async (e: any, chainId: string) => {
     const inputValue = e.target.value;
     setFormBundlerUrls({
@@ -301,23 +346,12 @@ const Index = () => {
     })
   }
 
-  const createBundlerUrlForm = () => {
-    return (
-      <div>
-        {Object.entries(formBundlerUrls).map(([chainId, url]) => (
-          <BundlerInputForm
-            key={chainId}
-            onSubmitClick={(e)=> handleBundlerUrlSubmit(e, chainId)}
-            buttonText="Save"
-            onInputChange={(e)=> handleBundlerUrlChange(e, chainId)}
-            inputValue={url}
-            inputPlaceholder="Enter url"
-            networkName={SupportedChainIdMap[chainId] ? SupportedChainIdMap[chainId] : 'Unknown'}
-            chainId={parseChainId(chainId).toString()}
-        />
-        ))}
-      </div>
-    );
+  const handleAccountNameChange = async (e: any) => {
+    setAccountName(e.target.value);
+  }
+
+  const handleAccountIdChange = async (e: any) => {
+    setAccountId(e.target.value);
   }
 
   return (
@@ -436,6 +470,56 @@ const Index = () => {
       {/* Account tab (eoa details, smart account details, smart account activity)*/}
       {state.activeTab === AppTab.Account && (
         <CardContainer>
+          {state.installedSnap && (
+            <Card
+              content={{
+                description: `Use Keyring API to create an account.`,
+                form: [
+                  <CommonInputForm
+                    key={"create"}
+                    buttonText="Create"
+                    onSubmitClick={handleCreateAccount}
+                    inputs={[
+                      {
+                        id: "1",
+                        onInputChange: handleAccountNameChange,
+                        inputValue: accountName,
+                        inputPlaceholder:"Enter account name"
+                      }
+                    ]}
+                  />,
+                ],
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+
+          {state.installedSnap && (
+            <Card
+              content={{
+                description: `Use Keyring API to delete an account.`,
+                form: [
+                  <CommonInputForm
+                    key={"delete"}
+                    buttonText="delete"
+                    onSubmitClick={handleDeleteAccount}
+                    inputs={[
+                      {
+                        id: "1",
+                        onInputChange: handleAccountIdChange,
+                        inputValue: accountId,
+                        inputPlaceholder:"Enter accountId"
+                      }
+                    ]}
+                  />,
+                ],
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+
           {state.eoa.connected && (
             <Card
               content={{
@@ -449,7 +533,7 @@ const Index = () => {
                   },
                 ],
                 form: [
-                  <TokenInputForm
+                  <CommonInputForm
                     key={"deposit"}
                     buttonText="Add Deposit"
                     onSubmitClick={handleDepositSubmit}
@@ -486,7 +570,7 @@ const Index = () => {
                   },
                 ],
                 form: [
-                  <TokenInputForm
+                  <CommonInputForm
                   key={"withdraw"}
                   onSubmitClick={handleWithdrawSubmit}
                   buttonText="Withdraw Deposit"

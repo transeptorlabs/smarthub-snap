@@ -7,7 +7,7 @@ import {
   useReducer,
 } from 'react';
 import { AppTab, BundlerUrls, Snap } from '../types';
-import { isFlask, getSnap } from '../utils';
+import { isFlask, getSnap, KeyringState } from '../utils';
 import { EOA, SmartAccountActivity, SmartContractAccount } from '../types/erc-4337';
 
 export type MetamaskState = {
@@ -22,6 +22,7 @@ export type MetamaskState = {
   activeTab: AppTab;
   bundlerUrls?: BundlerUrls;
   smartAccountActivity: SmartAccountActivity;
+  snapKeyring: KeyringState;
 };
 
 const initialState: MetamaskState = {
@@ -54,6 +55,10 @@ const initialState: MetamaskState = {
     factoryAddress: '',
     ownerAddress: '',
   },
+  snapKeyring: {
+    pendingRequests: [],
+    accounts: [],
+  }
 };
 
 type MetamaskDispatch = { type: MetamaskActions; payload: any };
@@ -81,6 +86,7 @@ export enum MetamaskActions {
   SetBundlerUrls = 'SetBundlerUrls',
   SetSmartAccountActivity = 'SetSmartAccountActivity',
   SetClearSmartAccountActivity = 'SetClearSmartAccountActivity',
+  SetSnapKeyring = 'SetSnapKeyring',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -145,6 +151,12 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         bundlerUrls: action.payload,
       };
 
+    case MetamaskActions.SetSnapKeyring:
+      return {
+        ...state,
+        snapKeyring: action.payload,
+      };
+      
     case MetamaskActions.SetClearAccount:
       return {
         ...state,

@@ -29,6 +29,8 @@ import { v4 as uuid } from 'uuid';
 import { SigningMethods } from './permissions';
 import { isEvmChain, serializeTransaction, isUniqueAccountName } from '../utils';
 import { storeKeyRing } from '../state/state';
+import { SimpleAccountAPI } from '@account-abstraction/sdk';
+import { Wallet as EthersWallet, ethers } from 'ethers';
 
 export type KeyringState = {
   wallets: Record<string, Wallet>;
@@ -62,7 +64,7 @@ export class SimpleKeyring implements Keyring {
     name: string,
     options: Record<string, Json> | null = null,
   ): Promise<KeyringAccount> {
-    const { privateKey, address } = this.#generateKeyPair();
+    const { privateKey, address } = await this.#generateKeyPair(name);
 
     if (!isUniqueAccountName(name, Object.values(this.#wallets))) {
       throw new Error(`Account name already in use: ${name}`);
@@ -84,7 +86,7 @@ export class SimpleKeyring implements Keyring {
         'eth_signTypedData',
         'personal_sign',
       ],
-      type: 'eip155:eoa',
+      type: 'eip155:erc4337',
     };
 
     this.#wallets[account.id] = { account, privateKey };
@@ -194,14 +196,16 @@ export class SimpleKeyring implements Keyring {
     return walletMatch;
   }
 
-  #generateKeyPair(): {
-    privateKey: string;
-    address: string;
-  } {
-    // eslint-disable-next-line no-restricted-globals
-    const pk = Buffer.from(crypto.getRandomValues(new Uint8Array(32)));
-    const address = toChecksumAddress(Address.fromPrivateKey(pk).toString());
-    return { privateKey: pk.toString('hex'), address };
+  async #generateKeyPair(name: string): Promise<{ privateKey: string; address: string; }> {
+    const privKey = await snap.request({
+      method: 'snap_getEntropy',
+      params: {
+        version: 1,
+        salt: name,
+      },
+    });
+    const address = await new EthersWallet(privKey).getAddress()
+    return { privateKey: privKey, address };
   }
 
   #handleSigningRequest(method: string, params: Json): Json {
@@ -321,4 +325,26 @@ export class SimpleKeyring implements Keyring {
       requests: this.#requests,
     } as KeyringState);
   }
+
+  async getSmartAccount(
+    entryPointAddress: string,
+    factoryAddress: string,
+    keyringAccountId: string,
+  ): Promise<SimpleAccountAPI> {
+    const provider = new ethers.providers.Web3Provider(ethereum as any);
+    const pk = this.#wallets[keyringAccountId].privateKey;
+    if (!pk) {
+      throw new Error(`Cannot find wallet for id: ${keyringAccountId}`);
+    }
+
+    const owner = new EthersWallet(pk).connect(provider);
+    const aa = new SimpleAccountAPI({
+      provider,
+      entryPointAddress,
+      owner,
+      factoryAddress,
+      index: 0, // nonce value used when creating multiple accounts for the same owner
+    });
+    return aa;
+  };
 }

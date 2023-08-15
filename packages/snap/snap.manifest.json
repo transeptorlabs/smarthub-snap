@@ -7,7 +7,7 @@
     "url": "https://github.com/transeptorlabs/erc-4337-snap.git"
   },
   "source": {
-    "shasum": "FHGcEDIZ4ZewrQGt0Z64ajYyPMiznWA8JJrwNv5RgBk=",
+    "shasum": "xG923C/cq4p/Vil2gdkN16OVG+EmjggnUmCv3Jy72BQ=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
@@ -36,11 +36,8 @@
         }
       ]
     },
-    "snap_getBip44Entropy": [
-      {
-        "coinType": 60
-      }
-    ]
+    "snap_manageAccounts": {},
+    "snap_getEntropy": {}
   },
   "manifestVersion": "0.1"
 }

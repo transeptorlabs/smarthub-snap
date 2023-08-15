@@ -76,13 +76,13 @@ export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
 
 // ERC-4337 account management *****************************************************
 export const getScAccount = async (
-  ownerEoa: string,
+  keyringAccountId: string,
 ): Promise<SmartContractAccount> => {
   const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'sc_account', params: [{ scOwnerAddress: ownerEoa }] },
+      request: { method: 'sc_account', params: [{ keyringAccountId }] },
     },
   });
 
@@ -101,8 +101,7 @@ export const getScAccount = async (
 };
 
 export const getConfirmedUserOperation = async (
-  scOwnerAddress: string,
-  scIndex: number,
+  keyringAccountId: string,
 ): Promise<string[]> => {
   return (await getMMProvider().request({
     method: 'wallet_invokeSnap',
@@ -112,8 +111,7 @@ export const getConfirmedUserOperation = async (
         method: 'confirmed_UserOperation',
         params: [
           {
-            scOwnerAddress,
-            scIndex,
+            keyringAccountId,
           },
         ],
       },
@@ -122,8 +120,7 @@ export const getConfirmedUserOperation = async (
 };
 
 export const getPendingUserOperation = async (
-  scOwnerAddress: string,
-  scIndex: number,
+  keyringAccountId: string,
 ): Promise<string[]> => {
   return (await getMMProvider().request({
     method: 'wallet_invokeSnap',
@@ -133,8 +130,7 @@ export const getPendingUserOperation = async (
         method: 'pending_UserOperation',
         params: [
           {
-            scOwnerAddress,
-            scIndex,
+            keyringAccountId,
           },
         ],
       },
@@ -160,12 +156,11 @@ export const getUserOperationReceipt = async (
 };
 
 export const getSmartAccountActivity = async (
-  scOwnerAddress: string,
-  scIndex: number,
+  keyringAccountId: string,
 ): Promise<SmartAccountActivity> => {
   const [confirmedUserOpHashes, pendingUserOpHashes] = await Promise.all([
-    getConfirmedUserOperation(scOwnerAddress, scIndex),
-    getPendingUserOperation(scOwnerAddress, scIndex),
+    getConfirmedUserOperation(keyringAccountId),
+    getPendingUserOperation(keyringAccountId),
   ]);
 
   const userOperationReceipts: UserOperationReceipt[] = [];
@@ -180,7 +175,6 @@ export const getSmartAccountActivity = async (
     pendingUserOpHashes,
     confirmedUserOpHashes,
     userOperationReceipts,
-    scIndex,
   } as SmartAccountActivity;
 };
 

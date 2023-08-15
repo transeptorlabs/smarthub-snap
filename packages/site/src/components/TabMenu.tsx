@@ -30,14 +30,11 @@ export const TabMenu = () => {
 
   return (
     <TabMenuContainer>
-      <TabMenuItem active={activeTab === AppTab.About} onClick={() => handleTabClick(AppTab.About)}>
-        {AppTab.About}
+      <TabMenuItem active={activeTab === AppTab.Account} onClick={() => handleTabClick(AppTab.Account)}>
+        {AppTab.Account}
       </TabMenuItem>
       <TabMenuItem active={activeTab === AppTab.Install} onClick={() => handleTabClick(AppTab.Install)}>
         {AppTab.Install}
-      </TabMenuItem>
-      <TabMenuItem active={activeTab === AppTab.Account} onClick={() => handleTabClick(AppTab.Account)}>
-        {AppTab.Account}
       </TabMenuItem>
       <TabMenuItem active={activeTab === AppTab.Build} onClick={() => handleTabClick(AppTab.Build)}>
         {AppTab.Build}

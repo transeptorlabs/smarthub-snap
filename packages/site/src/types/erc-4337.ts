@@ -13,12 +13,6 @@ export enum ReputationStatus {
   BANNED,
 }
 
-export type EOA = {
-  address: string;
-  balance: string;
-  connected: boolean;
-};
-
 export type SmartContractAccount = {
   address: string;
   ownerAddress: string;
@@ -35,7 +29,6 @@ export type SmartAccountActivity = {
   pendingUserOpHashes: string[];
   confirmedUserOpHashes: string[];
   userOperationReceipts: UserOperationReceipt[];
-  scIndex: number;
 };
 
 export type UserOperationReceipt = {

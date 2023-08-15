@@ -1,11 +1,12 @@
-import { useContext } from 'react';
+import { useContext, useRef, useState } from 'react';
 import styled, { useTheme } from 'styled-components';
-import { MetamaskActions, MetaMaskContext, useAcount } from '../hooks';
+import { MetamaskActions, MetaMaskContext } from '../hooks';
 import { connectSnap, getThemePreference, getSnap, connectErc4337Relayer } from '../utils';
 import { HeaderButtons } from './Buttons';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
-import { getChainId } from '../utils/eth';
+import { SupportedChainIdMap } from '../types';
+import { Modal } from './Modal';
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -27,7 +28,7 @@ const Title = styled.p`
   }
 `;
 
-const LogoWrapper = styled.div`
+const ContainerWrapper = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -63,6 +64,18 @@ const Link = styled.a`
   }
 `;
 
+const Network = styled.div`
+  margin-left: auto;
+  color: ${(props) => props.theme.colors.text.default};
+  background-color: ${({ theme }) => theme.colors.card.default};
+  padding: 1rem;
+  border: 1px solid ${({ theme }) => theme.colors.border.default};
+  border-radius: 10px;
+  box-shadow: ${({ theme }) => theme.shadows.default};
+  width: fit-content;
+  height: fit-content;
+`
+
 export const Header = ({
   handleToggleClick,
 }: {
@@ -70,33 +83,27 @@ export const Header = ({
 }) => {
   const theme = useTheme();
   const [state, dispatch] = useContext(MetaMaskContext);
-  const {getEoa, getScAccountState, getAccountActivity, setWalletListener, updateChain} = useAcount();
+  const [modalOpenNetwork, setModalOpenNetwork] = useState(false);
+  const networkRef = useRef<any>(null);
 
   const handleConnectClick = async () => {
     try {
-      let installedSnap = await getSnap();
-      if (!installedSnap) {
+      if (!state.installedSnap) {
         // installing snap
         await connectSnap();
-        installedSnap = await getSnap();
+        const installedSnap = await getSnap();
         dispatch({
           type: MetamaskActions.SetInstalled,
           payload: installedSnap,
         });
-        return
       } else {
         // snap already installed
+        const installedSnap = await getSnap();
         dispatch({
           type: MetamaskActions.SetInstalled,
           payload: installedSnap,
         });
       }
-      
-      await updateChain();
-      const ownerEoa = await getEoa();
-      const smartAccount = await getScAccountState(ownerEoa.address);
-      await getAccountActivity(ownerEoa.address, Number(smartAccount.index));
-      await setWalletListener();
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
       dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
@@ -104,29 +111,31 @@ export const Header = ({
     }
   };
 
+  const openNetworkModal = () => {
+    setModalOpenNetwork(true);
+  };
+
+  const closeNetworkModal = () => {
+    setModalOpenNetwork(false);
+  };
+
   return (
-    <HeaderWrapper>
-      <LogoWrapper>
+    <HeaderWrapper >
+      {/* Network Modal*/}
+      <Modal isOpen={modalOpenNetwork} onClose={closeNetworkModal} title="Styled Modal Example" buttonRef={networkRef} right={20}>
+        <p>This is a modal 2 content.</p>
+      </Modal>
+
+      <ContainerWrapper>
         <SnapLogo color={theme.colors.icon.default} size={36} />
         <Title>ERC-4337 Relayer</Title>
-      </LogoWrapper>
+      </ContainerWrapper>
       <RightContainer>
-        <LogoWrapper>
-          <Link
-            href="https://github.com/transeptorlabs/erc-4337-snap"
-            target="_blank"
-          >
-            Github
-          </Link>
-
-          <Toggle
-            onToggle={handleToggleClick}
-            defaultChecked={getThemePreference()}
-          />
-        </LogoWrapper>
-        <LogoWrapper>
+        <ContainerWrapper >
+          <Toggle onToggle={handleToggleClick} defaultChecked={getThemePreference()}/>
           <HeaderButtons state={state} onConnectClick={handleConnectClick} />
-        </LogoWrapper>
+          <Network ref={networkRef} onClick={openNetworkModal}>{SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId] : 'Not Supported'}</Network>
+        </ContainerWrapper>
       </RightContainer>
     </HeaderWrapper>
   );

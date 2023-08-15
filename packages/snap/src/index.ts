@@ -4,9 +4,7 @@ import { UserOperationStruct } from '@account-abstraction/contracts';
 import { copyable, heading, panel, text } from '@metamask/snaps-ui';
 import { deepHexlify } from '@account-abstraction/utils';
 import { resolveProperties } from 'ethers/lib/utils';
-import { BigNumber } from 'ethers';
 import { HttpRpcClient, getBalance, getDeposit } from './client';
-import { findAccountIndex, getSimpleScAccount } from './wallet';
 import {
   clearState,
   getBundlerUrls,
@@ -26,6 +24,7 @@ import {
   UserOperationReceipt,
 } from './types';
 import {
+  KeyringAccount,
   MethodNotSupportedError,
   buildHandlersChain,
   handleKeyringRequest,
@@ -55,6 +54,15 @@ const permissionsHandler: OnRpcRequestHandler = async ({
   throw new MethodNotSupportedError(request.method);
 };
 
+const intitKeyRing = async () => {
+  if (!keyring) {
+    const keyringState: KeyringState = await getKeyRing();
+    if (!keyring) {
+      keyring = new SimpleKeyring(keyringState);
+    }
+  }
+}
+
 /**
  * Handle keyring requests.
  *
@@ -63,13 +71,7 @@ const permissionsHandler: OnRpcRequestHandler = async ({
  * @returns The execution result.
  */
 const keyringHandler: OnRpcRequestHandler = async ({ request }) => {
-  if (!keyring) {
-    const keyringState: KeyringState = await getKeyRing();
-    console.log('keyringState:', keyringState, 'request:', request);
-    if (!keyring) {
-      keyring = new SimpleKeyring(keyringState);
-    }
-  }
+  await intitKeyRing()
   return await handleKeyringRequest(keyring, request);
 };
 
@@ -93,11 +95,7 @@ const erc4337Handler: OnRpcRequestHandler = async ({
   ]);
   const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
   let result;
-  let scAccount: SimpleAccountAPI;
-  let scOwnerAddress: string;
-  let scAddress: string;
-  let eoaIndex: number;
-  let scIndex: number;
+  await intitKeyRing()
 
   if (!request.params) {
     request.params = [];
@@ -109,15 +107,17 @@ const erc4337Handler: OnRpcRequestHandler = async ({
         request.params as any[]
       )[0] as SmartAccountParams;
 
-      eoaIndex = await findAccountIndex(params.scOwnerAddress);
-      scOwnerAddress = params.scOwnerAddress;
-      scAccount = await getSimpleScAccount(
+      const ownerAccount: KeyringAccount | undefined = await keyring.getAccount(params.keyringAccountId);
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
+
+      const scAccount: SimpleAccountAPI = await keyring.getSmartAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
-        eoaIndex,
+        ownerAccount.id,
       );
-      scIndex = BigNumber.from(scAccount.index).toNumber();
-      scAddress = await scAccount.getCounterFactualAddress();
+      const scAddress = await scAccount.getCounterFactualAddress();
 
       const [balance, nonce, deposit] = await Promise.all([
         await getBalance(scAddress),
@@ -133,7 +133,7 @@ const erc4337Handler: OnRpcRequestHandler = async ({
         entryPoint: rpcClient.getEntryPointAddr(),
         factoryAddress: rpcClient.getAccountFactoryAddr(),
         deposit,
-        ownerAddress: scOwnerAddress,
+        ownerAddress: ownerAccount.address,
       });
 
       return result;
@@ -144,17 +144,13 @@ const erc4337Handler: OnRpcRequestHandler = async ({
         request.params as any[]
       )[0] as SmartAccountActivityParams;
 
-      eoaIndex = await findAccountIndex(params.scOwnerAddress);
-      scIndex = params.scIndex;
-      scAccount = await getSimpleScAccount(
-        rpcClient.getEntryPointAddr(),
-        rpcClient.getAccountFactoryAddr(),
-        eoaIndex,
-      );
+      const ownerAccount = await keyring.getAccount(params.keyringAccountId);
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
 
       const userOpHashesConfirmed: string[] = await getUserOpHashsConfirmed(
-        eoaIndex,
-        scIndex,
+        ownerAccount.id,
         chainId as string,
       );
       result = userOpHashesConfirmed;
@@ -166,17 +162,19 @@ const erc4337Handler: OnRpcRequestHandler = async ({
         request.params as any[]
       )[0] as SmartAccountActivityParams;
 
-      eoaIndex = await findAccountIndex(params.scOwnerAddress);
-      scIndex = params.scIndex;
-      scAccount = await getSimpleScAccount(
+      const ownerAccount = await keyring.getAccount(params.keyringAccountId);
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
+
+      const scAccount = await keyring.getSmartAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
-        eoaIndex,
+        ownerAccount.id,
       );
 
       const userOpHashesPending: string[] = await getUserOpHashsPending(
-        eoaIndex,
-        scIndex,
+        ownerAccount.id,
         chainId as string,
       );
       result = userOpHashesPending;
@@ -214,13 +212,20 @@ const erc4337Handler: OnRpcRequestHandler = async ({
       )[0] as SendUserOpParams;
       const { target } = params;
       const { data } = params;
-      eoaIndex = await findAccountIndex(params.scOwnerAddress);
-      scAccount = await getSimpleScAccount(
+      const ownerAccount = await keyring.getAccount(params.keyringAccountId);
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
+
+      if (ownerAccount.type !== 'eip155:erc4337') {
+        throw new Error('Account is not a ERC-4337 smart account');
+      }
+
+      const scAccount = await keyring.getSmartAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
-        eoaIndex as unknown as number,
+        ownerAccount.id,
       );
-      scIndex = BigNumber.from(scAccount.index).toNumber();
 
       if (
         await snap.request({
@@ -256,8 +261,7 @@ const erc4337Handler: OnRpcRequestHandler = async ({
           if (
             !(await storeUserOpHashPending(
               rpcResult.data as string,
-              eoaIndex,
-              scIndex,
+              ownerAccount.id,
               chainId as string,
             ))
           ) {
@@ -273,7 +277,7 @@ const erc4337Handler: OnRpcRequestHandler = async ({
                   `Sent from Smart account: ${await scAccount.getAccountAddress()}`,
                 ),
                 text(`User operation hash: ${rpcResult.data}`),
-                text(`Signed by owner(EOA): ${params.scOwnerAddress}`),
+                text(`Signed by owner(EOA): ${ownerAccount.address}`),
                 text(`To contract: ${target}`),
               ]),
             },
@@ -390,12 +394,12 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
           return null;
         }
 
-        firstkey = Object.keys(allUserOpHashesPending)[0]; // key = eoaIndex-scIndex-chainId-userOpHash
+        firstkey = Object.keys(allUserOpHashesPending)[0]; // key = keyringAccountId-chainId-userOpHash
         userOpHash = allUserOpHashesPending[firstkey];
 
         rpcClient = new HttpRpcClient(
           bundlerUrls,
-          firstkey.split('-')[2] as string,
+          firstkey.split('-')[1], // chainId
         );
 
         const rpcResult = await rpcClient.send('eth_getUserOperationReceipt', [
@@ -413,9 +417,8 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
         userOperationReceipt = rpcResult.data as UserOperationReceipt;
         await storeUserOpHashConfirmed(
           userOpHash,
-          Number(firstkey.split('-')[0]),
-          Number(firstkey.split('-')[1]),
-          firstkey.split('-')[2],
+          firstkey.split('-')[0], // keyringAccountId
+          firstkey.split('-')[1], // chainId
         );
 
         return snap.request({

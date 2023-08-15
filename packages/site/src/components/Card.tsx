@@ -28,8 +28,6 @@ type CardProps = {
   fullWidth?: boolean;
   copyDescription?: boolean;
   isAccount?: boolean;
-  isEoa?: boolean;
-  isSC?: boolean;
 };
 
 const CardWrapper = styled.div<{ fullWidth?: boolean; disabled: boolean }>`
@@ -190,19 +188,8 @@ const ActivityPending = styled.span`
 const ActivityFailed = styled.span`
   color: ${({ theme }) => theme.colors.error.alternative};
 `
-const Network = styled.span`
-  margin-left: auto;
-  color: ${(props) => props.theme.colors.text.default};
-  background-color: ${({ theme }) => theme.colors.card.default};
-  padding: 1rem;
-  border: 1px solid ${({ theme }) => theme.colors.border.default};
-  border-radius: 10px;
-  box-shadow: ${({ theme }) => theme.shadows.default};
-  width: fit-content;
-  height: fit-content;
-`
 
-export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount, isEoa, isSC}: CardProps) => {
+export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount}: CardProps) => {
   const [state] = useContext(MetaMaskContext);
 
   const { title, description, descriptionBold, button, listItems, form, stats, smartAccountActivity, custom} = content;
@@ -221,17 +208,10 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
       )}
 
       <FlexRow>
-        {isEoa && (
+        {isAccount && (
           <BlockieEoa></BlockieEoa>
           )
         }
-        {isSC && (
-          <BlockieSc></BlockieSc>
-          )
-        }
-        {isAccount && (
-          <Network>{SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId] : 'Not Supported'}</Network>
-        )}
       </FlexRow>
    
       {description && (   

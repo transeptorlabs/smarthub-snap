@@ -87,20 +87,11 @@ export const InstallFlaskButton = () => (
   </Link>
 );
 
-export const ConnectSnapButton = (props: ComponentProps<typeof Button>) => {
+export const InstallSnapButton = (props: ComponentProps<typeof Button>) => {
   return (
     <Button {...props}>
       <FlaskFox />
       <ButtonText>Install snap</ButtonText>
-    </Button>
-  );
-};
-
-export const ConnectWalletButton = (props: ComponentProps<typeof Button>) => {
-  return (
-    <Button {...props}>
-      <FlaskFox />
-      <ButtonText>Connect</ButtonText>
     </Button>
   );
 };
@@ -134,11 +125,7 @@ export const HeaderButtons = ({
   }
 
   if (!state.installedSnap) {
-    return <ConnectSnapButton onClick={onConnectClick} />;
-  }
-
-  if (!state.eoa.connected) {
-    return <ConnectWalletButton onClick={onConnectClick} />;
+    return <InstallSnapButton onClick={onConnectClick} />;
   }
 
   return (

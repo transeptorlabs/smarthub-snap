@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext, useAcount } from '../hooks';
 import {
@@ -16,10 +16,11 @@ import {
   clearActivityData,
   parseChainId,
   addBundlerUrl,
-  getKeyringClient,
+  switchChainId,
+  trimAccount,
 } from '../utils';
 import {
-  ConnectSnapButton,
+  InstallSnapButton,
   InstallFlaskButton,
   ReconnectButton,
   Card,
@@ -27,10 +28,11 @@ import {
   SimpleButton,
   TabMenu,
   BundlerInputForm,
+  Modal,
 } from '../components';
 import { BigNumber, ethers } from 'ethers';
 import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
-import { KeyringSnapRpcClient } from '@metamask/keyring-api';
+import { KeyringAccount } from "@metamask/keyring-api";
 
 const Container = styled.div`
   display: flex;
@@ -111,61 +113,60 @@ const Index = () => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [formBundlerUrls, setFormBundlerUrls] = useState({} as BundlerUrls);
   const [accountName, setAccountName] = useState('');
-  const [accountId, setAccountId] = useState('');
+  const [keyringAccountId, setKeyringAccountId] = useState('');
 
-  const {refreshEOAState, getScAccountState, getAccountActivity, getBundlerUrls} = useAcount();
-  const client: KeyringSnapRpcClient = getKeyringClient();
-
-  useEffect(() => {
-    let interval: any
-    try {  
-      interval = setInterval(async () => {
-        if (state.eoa.connected === true && state.scAccount.connected === true) {
-          await Promise.all([
-            refreshEOAState(state.eoa.address),
-            getScAccountState(state.eoa.address),
-            getAccountActivity(state.eoa.address, Number(state.scAccount.index)),
-          ]);
-        }
-      }, 10000) // 10 seconds
-  
-      return () => {
-        clearInterval(interval);
-      };
-
-    } catch (e) {
-      console.error('[ERROR] refreaher:', e.message);
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    } 
-  }, [state.eoa, state.scAccount, state.smartAccountActivity]);
+  const {
+    getKeyringSnapAccounts, 
+    createAccount, 
+    deleteAccount, 
+    selectKeyringSnapAccount,
+    getSmartAccount,
+    getAccountActivity,
+    getBundlerUrls,
+    updateChain,
+    setChainIdListener,
+  } = useAcount();
 
   useEffect(() => {
-    try {  
+    async function initApp() {
       if (state.installedSnap) {
-        handleFetchBundlerUrls()
-        getSnapKeyringAccounts()
+        const account = await getKeyringSnapAccounts()
+        await updateChain()
+        await setChainIdListener()
+        await handleFetchBundlerUrls()
+        if (account.length > 0) {
+          await selectKeyringSnapAccount(account[0]);
+          await getSmartAccount(account[0].id);
+          await getAccountActivity(account[0].id);
+        }
       }
-      return () => {
-      };
+    }
 
-    } catch (e) {
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    } 
+    initApp().catch((error) => dispatch({ type: MetamaskActions.SetError, payload: error }));
   }, [state.installedSnap]);
 
-  const getSnapKeyringAccounts = async () => {
-    const accounts = await client.listAccounts();
-    const pendingRequests = await client.listRequests();
-    console.log('accounts(client):', accounts);
-    console.log('pendingRequests(client):', pendingRequests);
-    dispatch({ 
-      type: MetamaskActions.SetSnapKeyring,
-      payload: {
-        accounts,
-        pendingRequests,
-      } 
-    });
-  }
+  // useEffect(() => {
+  //   let interval: any
+  //   try {  
+  //     interval = setInterval(async () => {
+  //       if (state.eoa.connected === true && state.scAccount.connected === true) {
+  //         await Promise.all([
+  //           refreshEOAState(state.eoa.address),
+  //           getScAccountState(state.eoa.address),
+  //           getAccountActivity(state.eoa.address, Number(state.scAccount.index)),
+  //         ]);
+  //       }
+  //     }, 10000) // 10 seconds
+  
+  //     return () => {
+  //       clearInterval(interval);
+  //     };
+
+  //   } catch (e) {
+  //     console.error('[ERROR] refreaher:', e.message);
+  //     dispatch({ type: MetamaskActions.SetError, payload: e });
+  //   } 
+  // }, [state.eoa, state.scAccount, state.smartAccountActivity]);
 
   const handleReConnectSnapClick = async () => {
     try {
@@ -203,101 +204,95 @@ const Index = () => {
         ))}
       </div>
     );
-  }
+  };
 
   // Form submit handlers
   const handleCreateAccount = async () => {
-    console.log('Creating account');
-    const newAccount = await client.createAccount('test');
-    console.log('newAccount result:', newAccount);
-    await getSnapKeyringAccounts()
+    await createAccount(accountName)
   };
 
   const handleDeleteAccount = async () => {
-    console.log('Delete account');
-    const result = await client.deleteAccount(accountId);
-    console.log('delete result:', result);
-    await getSnapKeyringAccounts()
+    await deleteAccount(keyringAccountId)
   };
 
-  const handleDepositSubmit = async (e: any) => {
-    e.preventDefault();
-    const depositInWei = convertToWei(depositAmount);
+  // const handleDepositSubmit = async (e: any) => {
+  //   e.preventDefault();
+  //   const depositInWei = convertToWei(depositAmount);
 
-    // check the owner account has enough balance
-    if (BigNumber.from(state.eoa.balance).lt(depositInWei)) {
-      dispatch({ type: MetamaskActions.SetError, payload: new Error('EOA has, insufficient funds.') });
-      return;
-    }
+  //   // check the owner account has enough balance
+  //   if (BigNumber.from(state.eoa.balance).lt(depositInWei)) {
+  //     dispatch({ type: MetamaskActions.SetError, payload: new Error('EOA has, insufficient funds.') });
+  //     return;
+  //   }
     
-    const entryPointContract = getEntryPointContract(state.scAccount.entryPoint);
+  //   const entryPointContract = getEntryPointContract(state.scAccount.entryPoint);
 
-    // estimate gas
-    const encodedFunctionData = await encodeFunctionData(
-      getEntryPointContract(state.scAccount.entryPoint),
-      'depositTo',
-      [state.scAccount.address]
-    );
-    const estimateGasAmount = await estimateGas(
-      state.eoa.address,
-      state.scAccount.entryPoint,
-      encodedFunctionData,
-    );
+  //   // estimate gas
+  //   const encodedFunctionData = await encodeFunctionData(
+  //     getEntryPointContract(state.scAccount.entryPoint),
+  //     'depositTo',
+  //     [state.scAccount.address]
+  //   );
+  //   const estimateGasAmount = await estimateGas(
+  //     state.eoa.address,
+  //     state.scAccount.entryPoint,
+  //     encodedFunctionData,
+  //   );
 
-    const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+  //   const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
 
-    const overrides = {
-      value: depositInWei.toString(),
-      gasPrice: await provider.getGasPrice(),
-      gasLimit: estimateGasAmount.toNumber(),
-    };
-    const result = await entryPointContract.depositTo(state.scAccount.address, overrides).catch((error: any) => dispatch({ type: MetamaskActions.SetError, payload: error }));
-    if (!result) {
-      return;
-    }
-    const rep = await result.wait();
+  //   const overrides = {
+  //     value: depositInWei.toString(),
+  //     gasPrice: await provider.getGasPrice(),
+  //     gasLimit: estimateGasAmount.toNumber(),
+  //   };
+  //   const result = await entryPointContract.depositTo(state.scAccount.address, overrides).catch((error: any) => dispatch({ type: MetamaskActions.SetError, payload: error }));
+  //   if (!result) {
+  //     return;
+  //   }
+  //   const rep = await result.wait();
     
-    // refresh account balances
-    setDepositAmount('');
-    await refreshEOAState(state.eoa.address);
-    await getScAccountState(state.eoa.address);
-  }
+  //   // refresh account balances
+  //   setDepositAmount('');
+  //   await refreshEOAState(state.eoa.address);
+  //   await getScAccountState(state.eoa.address);
+  // }
 
-  const handleWithdrawSubmit = async (e: any) => {
-    e.preventDefault();
-    const withdrawAmountInWei = convertToWei(withdrawAmount);
-    if (!isValidAddress(withDrawAddr)) {
-      dispatch({ type: MetamaskActions.SetError, payload: new Error('Invalid address') });
-      return;
-    }
+  // const handleWithdrawSubmit = async (e: any) => {
+  //   e.preventDefault();
+  //   const withdrawAmountInWei = convertToWei(withdrawAmount);
+  //   if (!isValidAddress(withDrawAddr)) {
+  //     dispatch({ type: MetamaskActions.SetError, payload: new Error('Invalid address') });
+  //     return;
+  //   }
 
-    if (BigNumber.from(state.scAccount.deposit).lt(withdrawAmountInWei)) {
-      dispatch({ type: MetamaskActions.SetError, payload: new Error('Smart contract account, insufficient deposit') });
-      return;
-    }
+  //   if (BigNumber.from(state.scAccount.deposit).lt(withdrawAmountInWei)) {
+  //     dispatch({ type: MetamaskActions.SetError, payload: new Error('Smart contract account, insufficient deposit') });
+  //     return;
+  //   }
 
-    try {
-      const encodedFunctionData = await encodeFunctionData(
-        getEntryPointContract(state.scAccount.entryPoint),
-        'withdrawTo',
-        [state.eoa.address, withdrawAmountInWei.toString()]
-      );
+  //   try {
+  //     const encodedFunctionData = await encodeFunctionData(
+  //       getEntryPointContract(state.scAccount.entryPoint),
+  //       'withdrawTo',
+  //       [state.eoa.address, withdrawAmountInWei.toString()]
+  //     );
 
-      await sendUserOperation(
-        state.scAccount.entryPoint,
-        encodedFunctionData,
-        state.eoa.address,
-      );
+  //     await sendUserOperation(
+  //       state.scAccount.entryPoint,
+  //       encodedFunctionData,
+  //       state.eoa.address,
+  //     );
 
-      setWithdrawAmount('');
-      setWithDrawAddr('');
-      await refreshEOAState(state.eoa.address);
-      await getScAccountState(state.eoa.address);
-      await getAccountActivity(state.eoa.address, Number(state.scAccount.index))
-    } catch (e) {
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
-  }
+  //     setWithdrawAmount('');
+  //     setWithDrawAddr('');
+  //     await refreshEOAState(state.eoa.address);
+  //     await getScAccountState(state.eoa.address);
+  //     await getAccountActivity(state.eoa.address, Number(state.scAccount.index))
+  //   } catch (e) {
+  //     dispatch({ type: MetamaskActions.SetError, payload: e });
+  //   }
+  // }
 
   const handleClearActivity = async (e: any) => {
     e.preventDefault();
@@ -351,7 +346,7 @@ const Index = () => {
   }
 
   const handleAccountIdChange = async (e: any) => {
-    setAccountId(e.target.value);
+    setKeyringAccountId(e.target.value);
   }
 
   return (
@@ -365,37 +360,9 @@ const Index = () => {
           <b>An error happened:</b> {state.error.message}
         </ErrorMessage>
       )}
-
-      {/* About tab */}
-      {state.activeTab === AppTab.About && (
-        <CardContainer>
-          <Card
-            content={{
-              title: 'Why',
-              description: `ERC-4337: Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.`,
-            }}
-            fullWidth
-          />
-          <Card
-            content={{
-              title: 'What',
-              description: `ERC-4337 Relayer is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.`,
-            }}
-            fullWidth
-          />
-          <Card
-            content={{
-              title: 'How',
-              description:
-                'The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components.',
-            }}
-            fullWidth
-          />
-        </CardContainer>
-      )}
       
       {/* Install tab */}
-      {state.activeTab !== AppTab.About && (
+      {state.activeTab === AppTab.Install && (
         <CardContainer>
           {!state.isFlask && (
             <Card
@@ -421,7 +388,7 @@ const Index = () => {
                   'Manage stake an deposit with supported entrypoint contracts',
                 ],
                 button: (
-                  <ConnectSnapButton
+                  <InstallSnapButton
                     onClick={handleReConnectSnapClick}
                     disabled={!state.isFlask}
                   />
@@ -470,6 +437,105 @@ const Index = () => {
       {/* Account tab (eoa details, smart account details, smart account activity)*/}
       {state.activeTab === AppTab.Account && (
         <CardContainer>
+          {state.selectedSnapKeyringAccount.address && (
+            <Card
+              content={{
+                descriptionBold: 'Selected EOA(owner)',
+                description: `${state.selectedSnapKeyringAccount.address}`,
+                stats: [
+                  // {
+                  //   id: `1`,
+                  //   title: 'Balance',
+                  //   value: `${convertToEth(state.eoa.balance)} ETH`,
+                  // },
+                ],
+                // form: [
+                //   <CommonInputForm
+                //     key={"deposit"}
+                //     buttonText="Add Deposit"
+                //     onSubmitClick={handleDepositSubmit}
+                //     inputs={[
+                //       {
+                //         id: "1",
+                //         onInputChange: handleDepositAmountChange,
+                //         inputValue: depositAmount,
+                //         inputPlaceholder:"Enter amount"
+                //       }
+                //     ]}
+              
+                //   />,
+                // ],
+              }}
+              disabled={!state.isFlask}
+              copyDescription
+              isAccount
+              fullWidth
+            />
+          )}
+
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                description: `${state.scAccount.address}`,
+                descriptionBold: 'Smart Account',
+                stats: [
+                  {
+                    id: `0`,
+                    title: 'owner',
+                    value: `${trimAccount(state.scAccount.ownerAddress)}`,
+                  },
+                  {
+                    id: `1`,
+                    title: 'Deposit',
+                    value: `${convertToEth(state.scAccount.deposit)} ETH`,
+                  },
+                  {
+                    id: `2`,
+                    title: 'Nonce',
+                    value: `${(state.scAccount.nonce)}`,
+                  },
+                ],
+                // form: [
+                //   <CommonInputForm
+                //   key={"withdraw"}
+                //   onSubmitClick={handleWithdrawSubmit}
+                //   buttonText="Withdraw Deposit"
+                //   inputs={[
+                //       {
+                //         id: "1",
+                //         onInputChange: handleWithdrawAddrChange,
+                //         inputValue: withDrawAddr,
+                //         inputPlaceholder:"Enter address"
+                //       },
+                //       {
+                //         id: "2",
+                //         onInputChange: handleWithdrawAmountChange,
+                //         inputValue: withdrawAmount,
+                //         inputPlaceholder:"Enter amount"
+                //       }
+                //     ]
+                //   }
+                // />
+                // ]
+              }}
+              disabled={!state.isFlask}
+              copyDescription
+              isAccount
+              fullWidth
+            />
+          )}
+          
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'Activity',
+                smartAccountActivity: state.smartAccountActivity,
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+
           {state.installedSnap && (
             <Card
               content={{
@@ -508,7 +574,7 @@ const Index = () => {
                       {
                         id: "1",
                         onInputChange: handleAccountIdChange,
-                        inputValue: accountId,
+                        inputValue: keyringAccountId,
                         inputPlaceholder:"Enter accountId"
                       }
                     ]}
@@ -520,96 +586,6 @@ const Index = () => {
             />
           )}
 
-          {state.eoa.connected && (
-            <Card
-              content={{
-                descriptionBold: 'Connected EOA(owner)',
-                description: `${state.eoa.address}`,
-                stats: [
-                  {
-                    id: `1`,
-                    title: 'Balance',
-                    value: `${convertToEth(state.eoa.balance)} ETH`,
-                  },
-                ],
-                form: [
-                  <CommonInputForm
-                    key={"deposit"}
-                    buttonText="Add Deposit"
-                    onSubmitClick={handleDepositSubmit}
-                    inputs={[
-                      {
-                        id: "1",
-                        onInputChange: handleDepositAmountChange,
-                        inputValue: depositAmount,
-                        inputPlaceholder:"Enter amount"
-                      }
-                    ]}
-              
-                  />,
-                ],
-              }}
-              disabled={!state.isFlask}
-              copyDescription
-              isAccount
-              fullWidth
-              isEoa
-            />
-          )}
-
-          {state.scAccount.connected && state.installedSnap && (
-            <Card
-              content={{
-                description: `${state.scAccount.address}`,
-                descriptionBold: 'Smart Account',
-                stats: [
-                  {
-                    id: `0`,
-                    title: 'Deposit',
-                    value: `${convertToEth(state.scAccount.deposit)} ETH`,
-                  },
-                ],
-                form: [
-                  <CommonInputForm
-                  key={"withdraw"}
-                  onSubmitClick={handleWithdrawSubmit}
-                  buttonText="Withdraw Deposit"
-                  inputs={[
-                      {
-                        id: "1",
-                        onInputChange: handleWithdrawAddrChange,
-                        inputValue: withDrawAddr,
-                        inputPlaceholder:"Enter address"
-                      },
-                      {
-                        id: "2",
-                        onInputChange: handleWithdrawAmountChange,
-                        inputValue: withdrawAmount,
-                        inputPlaceholder:"Enter amount"
-                      }
-                    ]
-                  }
-                />
-                ]
-              }}
-              disabled={!state.isFlask}
-              copyDescription
-              isAccount
-              fullWidth
-              isSC
-            />
-          )}
-
-          {state.scAccount.connected && state.installedSnap && (
-            <Card
-              content={{
-                title: 'Activity',
-                smartAccountActivity: state.smartAccountActivity,
-              }}
-              disabled={!state.isFlask}
-              fullWidth
-            />
-          )}
         </CardContainer>
       )}
 

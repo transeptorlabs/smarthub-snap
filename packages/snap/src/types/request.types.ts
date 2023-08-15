@@ -1,5 +1,5 @@
 export type SmartAccountParams = {
-  scOwnerAddress: string;
+  keyringAccountId: string;
 };
 
 export type GetUserOpParams = {
@@ -9,10 +9,9 @@ export type GetUserOpParams = {
 export type SendUserOpParams = {
   target: string;
   data: string;
-  scOwnerAddress: string;
+  keyringAccountId: string;
 };
 
 export type SmartAccountActivityParams = {
-  scOwnerAddress: string;
-  scIndex: number;
+  keyringAccountId: string;
 };

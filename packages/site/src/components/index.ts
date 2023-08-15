@@ -9,3 +9,4 @@ export * from './Toggle';
 export * from './Form';
 export * from './blockie';
 export * from './TabMenu';
+export * from './Modal';

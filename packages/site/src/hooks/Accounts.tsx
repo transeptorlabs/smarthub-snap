@@ -1,31 +1,56 @@
 import { useContext } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
-import { BundlerUrls, EOA, SmartAccountActivity, SmartContractAccount } from "../types";
-import { bundlerUrls, connectWallet, getAccountBalance, getChainId, getMMProvider, getScAccount, getSmartAccountActivity, sendSupportedEntryPoints } from "../utils";
+import { BundlerUrls, SmartAccountActivity, SmartContractAccount } from "../types";
+import { bundlerUrls, getChainId, getKeyringClient, getMMProvider, getScAccount, getSmartAccountActivity, sendSupportedEntryPoints } from "../utils";
+import { KeyringAccount } from "@metamask/keyring-api";
+import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
 export const useAcount = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
+  const client: KeyringSnapRpcClient = getKeyringClient();
 
-  const getEoa = async (): Promise<EOA> => {
-    let eoa = await connectWallet()
-    dispatch({
-      type: MetamaskActions.SetEOA,
-      payload: eoa,
+  const getKeyringSnapAccounts = async (): Promise<KeyringAccount[]> => {
+    const accounts = await client.listAccounts();
+    const pendingRequests = await client.listRequests();
+    console.log('snap accounts:', accounts);
+    console.log('snap pendingRequests:', pendingRequests);
+    dispatch({ 
+      type: MetamaskActions.SetSnapKeyring,
+      payload: {
+        accounts,
+        pendingRequests,
+      } 
     });
-    return eoa;
+    return accounts;
+  }
+
+  const selectKeyringSnapAccount = async (selectedKeyringAccount: KeyringAccount): Promise<KeyringAccount> => {
+    dispatch({
+      type: MetamaskActions.SetSelectedSnapKeyringAccount,
+      payload: selectedKeyringAccount,
+    });
+    console.log('selectedKeyringAccount:', selectedKeyringAccount);
+    return selectedKeyringAccount;
   };
 
-  const updateChain = async () => {
-    const chainId = await getChainId();
-    dispatch({
-      type: MetamaskActions.SetChainId,
-      payload: chainId,
-    });
+  const createAccount = async (accountName: string) => {
+    console.log('Creating account:', accountName);
+    const newAccount = await client.createAccount(accountName);
+    console.log('newAccount result:', newAccount);
+    await getKeyringSnapAccounts()
+    return newAccount
   };
 
-  const getScAccountState = async (ownerEoa: string): Promise<SmartContractAccount> => {
+  const deleteAccount = async (keyringAccountId: string) => {
+    console.log('Delete account');
+    const result = await client.deleteAccount(keyringAccountId);
+    console.log('delete result:', result);
+    await getKeyringSnapAccounts()
+  };
+
+  const getSmartAccount = async (keyringAccountId: string): Promise<SmartContractAccount> => {
     const [scAccount, supportedEntryPoints] = await Promise.all([
-      getScAccount(ownerEoa),
+      getScAccount(keyringAccountId),
       sendSupportedEntryPoints(),
     ]);
 
@@ -41,22 +66,9 @@ export const useAcount = () => {
     return scAccount;
   };
 
-  const refreshEOAState = async (newAccount: string): Promise<EOA>  => {
-    const changedeoa: EOA = {
-      address: newAccount,
-      balance: await getAccountBalance(newAccount),
-      connected: true,
-    }
-    dispatch({
-      type: MetamaskActions.SetEOA,
-      payload: changedeoa,
-    });
-
-    return changedeoa
-  };
-
-  const getAccountActivity = async (ownerEoa: string, scIndex: number): Promise<SmartAccountActivity> => {
-    const result: SmartAccountActivity = await getSmartAccountActivity(ownerEoa, scIndex);
+  const getAccountActivity = async (keyringAccountId: string): Promise<SmartAccountActivity> => {
+    const result: SmartAccountActivity = await getSmartAccountActivity(keyringAccountId);
+    console.log('getAccountActivity result:', result);
     dispatch({
       type: MetamaskActions.SetSmartAccountActivity,
       payload: result,
@@ -74,42 +86,25 @@ export const useAcount = () => {
     return urls
   };
 
-  const setWalletListener = async () => {
+  const updateChain = async () => {
+    const chainId = await getChainId();
+    console.log('setting chainId:', chainId);
+    dispatch({
+      type: MetamaskActions.SetChainId,
+      payload: chainId,
+    });
+  };
+
+  const setChainIdListener = async () => {
     if (!state.isChainIdListener) {   
       const provider = getMMProvider()
       if (provider) {
         provider.on('chainChanged', async (chainId) => {
+          console.log('chainChanged:', chainId);
           dispatch({
             type: MetamaskActions.SetChainId,
             payload: chainId,
           });
-    
-          const ownerEoa = await getEoa().catch((e) => {
-            fatalError(e)
-          });
-          if (!ownerEoa) return;
-          const smartAccount = await getScAccountState(ownerEoa.address).catch((e) => {
-            fatalError(e)
-          });  
-          if (!smartAccount) return;   
-          
-          await getAccountActivity(ownerEoa.address, Number(smartAccount.index)).catch((e) => {
-            fatalError(e)
-          });
-        });
-     
-        provider.on('accountsChanged', async (accounts) => {
-          await refreshEOAState((accounts as string[])[0]).catch((e) => {
-            fatalError(e);
-          });  
-          const smartAccount = await getScAccountState((accounts as string[])[0]).catch((e) => {
-            fatalError(e)
-          }); 
-          if (!smartAccount) return;   
-  
-          await getAccountActivity((accounts as string[])[0], Number(smartAccount.index)).catch((e) => {
-            fatalError(e)
-          });     
         });
 
         dispatch({
@@ -126,10 +121,12 @@ export const useAcount = () => {
   }
 
   return {
-    getEoa,
-    getScAccountState,
-    refreshEOAState,
-    setWalletListener,
+    getKeyringSnapAccounts,
+    selectKeyringSnapAccount,
+    getSmartAccount,
+    createAccount,
+    deleteAccount,
+    setChainIdListener,
     getAccountActivity,
     getBundlerUrls,
     updateChain,

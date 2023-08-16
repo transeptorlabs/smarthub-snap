@@ -1,6 +1,5 @@
 import { ComponentProps } from 'react';
 import styled from 'styled-components';
-import { MetamaskState } from '../hooks';
 import { ReactComponent as FlaskFox } from '../assets/flask_fox.svg';
 
 const Link = styled.a`
@@ -58,28 +57,6 @@ const ButtonText = styled.span`
   margin-left: 1rem;
 `;
 
-const ConnectedContainer = styled.div`
-  display: flex;
-  align-self: flex-start;
-  align-items: center;
-  justify-content: center;
-  font-size: ${(props) => props.theme.fontSizes.small};
-  border-radius: ${(props) => props.theme.radii.button};
-  border: 1px solid ${(props) => props.theme.colors.background.inverse};
-  background-color: ${(props) => props.theme.colors.background.inverse};
-  color: ${(props) => props.theme.colors.text.inverse};
-  font-weight: bold;
-  padding: 1.2rem;
-`;
-
-const ConnectedIndicator = styled.div`
-  content: ' ';
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: green;
-`;
-
 export const InstallFlaskButton = () => (
   <Link href="https://metamask.io/flask/" target="_blank">
     <FlaskFox />
@@ -91,7 +68,7 @@ export const InstallSnapButton = (props: ComponentProps<typeof Button>) => {
   return (
     <Button {...props}>
       <FlaskFox />
-      <ButtonText>Install snap</ButtonText>
+      <ButtonText>Install ERC-4337 Relayer</ButtonText>
     </Button>
   );
 };
@@ -113,25 +90,3 @@ export const SimpleButton = (props: ComponentProps<typeof Button>) => {
   );
 };
 
-export const HeaderButtons = ({
-  state,
-  onConnectClick,
-}: {
-  state: MetamaskState;
-  onConnectClick(): unknown;
-}) => {
-  if (!state.isFlask) {
-    return <InstallFlaskButton />;
-  }
-
-  if (!state.installedSnap) {
-    return <InstallSnapButton onClick={onConnectClick} />;
-  }
-
-  return (
-    <ConnectedContainer>
-      <ConnectedIndicator />
-      <ButtonText>Connected</ButtonText>
-    </ConnectedContainer>
-  );
-};

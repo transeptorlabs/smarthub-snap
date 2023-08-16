@@ -18,19 +18,14 @@ const ModalWrapper = styled.div`
 const ModalContent = styled.div`
   position: absolute;
   background-color: white;
-  padding: 20px;
+  padding: 2rem;
   border-radius: 8px;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-`;
-
-const ModalTitle = styled.h2`
-  margin-top: 0;
 `;
 
 type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
   children: React.ReactNode;
   buttonRef?: React.RefObject<HTMLButtonElement>;
   top?: number;
@@ -40,7 +35,6 @@ type ModalProps = {
 export const Modal = ({
     isOpen, 
     onClose, 
-    title, 
     children,
     buttonRef,
     top,
@@ -69,7 +63,7 @@ export const Modal = ({
     useEffect(() => {
         if (isOpen && buttonRef && buttonRef.current) {
             const buttonRect = buttonRef.current.getBoundingClientRect();
-            const newTop = buttonRect.bottom + 5;
+            const newTop = buttonRect.bottom;
             const newRight = buttonRect.right - buttonRect.width;
             setModalPosition({ top: top ? top : newTop, right: right ? right : newRight });
         }
@@ -106,7 +100,6 @@ export const Modal = ({
     return (
     <ModalWrapper>
         <ModalContent style={{ ...modalPosition }} ref={modalContentRef}>
-        <ModalTitle>{title}</ModalTitle>
         {children}
         </ModalContent>
     </ModalWrapper>

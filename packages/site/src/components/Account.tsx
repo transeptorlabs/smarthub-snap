@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { trimAccount } from '../utils';
 import { FaCloudDownloadAlt, FaRegLightbulb } from 'react-icons/fa';
 import { InstallFlaskButton, InstallSnapButton } from './Buttons';
+import { SupportedChainIdMap } from '../types';
 
 const FlexRowWrapper = styled.div`
   display: flex;
@@ -11,7 +12,13 @@ const FlexRowWrapper = styled.div`
   align-items: center;
 `
 
-const FlexColWrapper = styled.div`
+const FlexColWrapperCenter = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`
+
+const FlexColWrapperLeft = styled.div`
   display: flex;
   flex-direction: column;
   align-items: left;
@@ -22,13 +29,22 @@ const IconContainer = styled.div`
 `;
 
 const PrimaryText = styled.p`
+  color: ${(props) => props.theme.colors.text.default};
   margin: 0; 
   margin-bottom: 0.5rem;
   font-weight: bold;
+
+  ${({ theme }) => theme.mediaQueries.small} {
+    display: none;
+  }
 `;
 
 const SecondaryText = styled.p`
+  color: ${(props) => props.theme.colors.text.default};
   margin: 0; 
+  ${({ theme }) => theme.mediaQueries.small} {
+    display: none;
+  }
 `;
 
 const LineBreak = styled.hr`
@@ -37,15 +53,30 @@ const LineBreak = styled.hr`
   width: 100%;
 `;
 
-const InstalBodyTop = styled.div`
+const FeatureBody = styled.div`
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  width: 300px;
+
+  ${({ theme }) => theme.mediaQueries.small} {
+    width: 250px;
+  }
 `;
 
-const InstallBodyBottom = styled.div`
+const ButtonBody = styled.div`
+  display: flex;
+  flex-direction: column;
   align-items: center;
-
 `;
+
+const TextBold = styled.p`
+  color: ${(props) => props.theme.colors.text.default};
+  font-weight: bold;
+  margin: 0;
+`; 
 
 const Text = styled.p`
+  color: ${(props) => props.theme.colors.text.default};
   margin: 0;
 `;  
 
@@ -85,10 +116,10 @@ export const AccountHeaderDisplay = ({
           <IconContainer>
             <FaCloudDownloadAlt  style={{ width: '3rem', height: '3rem' }} />
           </IconContainer>
-          <FlexColWrapper>
-            <PrimaryText>Enable smart account capabilities</PrimaryText>
+          <FlexColWrapperLeft>
+          <PrimaryText>MetaMask @ {SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId].name : 'Not Supported'}</PrimaryText>
             <SecondaryText>Install ERC-4337 Relayer</SecondaryText>
-          </FlexColWrapper>
+          </FlexColWrapperLeft>
         </FlexRowWrapper>
       );
     }
@@ -97,17 +128,17 @@ export const AccountHeaderDisplay = ({
       <FlexRowWrapper>
       <IconContainer>
         <FlaskFox />
-        <ConnectedIndicator />
+        {/* <ConnectedIndicator /> */}
       </IconContainer>
-      <FlexColWrapper>
-        <PrimaryText>MetaMask @ ERC-4337 Relayer</PrimaryText>
+      <FlexColWrapperLeft>
+        <PrimaryText>MetaMask @ {SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId].name : 'Not Supported'}</PrimaryText>
         <SecondaryText> 
           {state.selectedSnapKeyringAccount.address === '' ? 
             'No account selected' :
             '(owner) ' + trimAccount(state.selectedSnapKeyringAccount.address)
           }
           </SecondaryText>
-      </FlexColWrapper>
+      </FlexColWrapperLeft>
     </FlexRowWrapper>
     );
 };
@@ -119,37 +150,65 @@ export const AccountModalDisplay = ({
   state: MetamaskState;
   onConnectClick(): unknown;
 }) => {
+  const featureList: {feature: string; description: string }[] = [
+    {
+      feature: "Smart account capabilities",
+      description: `Access and control smart accounts with MetaMask. Enjoy smart contract functionality with ease and convenience.`
+    },
+    {
+      feature: "Feature B",
+      description: `Short description of what it is, how it works and why it’s exciting to end-users`
+    },
+    {
+      feature: "Feature C",
+      description: `Short description of what it is, how it works and why it’s exciting to end-users`
+    },
+  ];
+
   if (!state.isFlask) {
     return (
-      <FlexColWrapper>
-        <InstallFlaskButton/>
-      </FlexColWrapper>
+      <FlexColWrapperCenter>
+        <TextBold>Install</TextBold>
+        <FeatureBody>
+          <Text>Discover the full potential of our Snap powered by MetaMask! To get started, make sure to install MetaMask for a seamless and enhanced Snap experience.</Text>
+        </FeatureBody>
+        <LineBreak></LineBreak>
+        <ButtonBody>
+          <InstallFlaskButton/>
+        </ButtonBody>
+      </FlexColWrapperCenter>
     );
   }
 
   if (!state.installedSnap) {
     return (
-      <FlexColWrapper>
-        <InstalBodyTop>
-          <Text>Install ERC-4337 Relayer</Text>
-          <div>
-            <div>
-              
-            </div>
-          </div>
-        </InstalBodyTop>
+      <FlexColWrapperCenter>
+        <TextBold>Install</TextBold>
+        <FlexColWrapperLeft>
+          {featureList.map((props, idx) => (
+            <FeatureBody key={idx}>
+              <FlexRowWrapper>
+                <IconContainer>
+                  <FaRegLightbulb style={{ width: '2rem', height: '2rem' }} />
+                </IconContainer>
+                <TextBold>{props.feature}</TextBold>
+              </FlexRowWrapper>
+              <Text>{props.description}</Text>
+            </FeatureBody>
+          ))}
+        </FlexColWrapperLeft>
         <LineBreak></LineBreak>
-        <InstallBodyBottom>
-          <InstallSnapButton onClick={onConnectClick} />
-          <TextSmall>Manage smart accounts using MetaMask</TextSmall>
-        </InstallBodyBottom>
-      </FlexColWrapper>
+        <ButtonBody>
+          <InstallSnapButton onClick={onConnectClick}/>
+          <TextSmall>Manage smart accounts with MetaMask</TextSmall>
+        </ButtonBody>
+      </FlexColWrapperCenter>
     );
   }
 
   return (
-    <FlexColWrapper>
-      <Text>Selcect an account</Text>
-    </FlexColWrapper>
+    <FlexColWrapperLeft>
+      <Text>Select an account</Text>
+    </FlexColWrapperLeft>
   );
 };

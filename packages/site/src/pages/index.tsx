@@ -128,11 +128,20 @@ const Index = () => {
   } = useAcount();
 
   useEffect(() => {
+    async function initNetwork() {
+      if (state.isFlask) {
+        await updateChain()
+        await setChainIdListener()
+      }
+    }
+
+    initNetwork().catch((error) => dispatch({ type: MetamaskActions.SetError, payload: error }));
+  }, [state.isFlask]);
+
+  useEffect(() => {
     async function initApp() {
       if (state.installedSnap) {
         const account = await getKeyringSnapAccounts()
-        await updateChain()
-        await setChainIdListener()
         await handleFetchBundlerUrls()
         if (account.length > 0) {
           await selectKeyringSnapAccount(account[0]);
@@ -144,6 +153,7 @@ const Index = () => {
 
     initApp().catch((error) => dispatch({ type: MetamaskActions.SetError, payload: error }));
   }, [state.installedSnap]);
+
 
   // useEffect(() => {
   //   let interval: any
@@ -198,7 +208,7 @@ const Index = () => {
             onInputChange={(e)=> handleBundlerUrlChange(e, chainId)}
             inputValue={url}
             inputPlaceholder="Enter url"
-            networkName={SupportedChainIdMap[chainId] ? SupportedChainIdMap[chainId] : 'Unknown'}
+            networkName={SupportedChainIdMap[chainId] ? SupportedChainIdMap[chainId].name : 'Unknown'}
             chainId={parseChainId(chainId).toString()}
         />
         ))}

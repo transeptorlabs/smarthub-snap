@@ -51,6 +51,7 @@ export const connectSnap = async (
 export const getSnap = async (version?: string): Promise<Snap | undefined> => {
   try {
     const snaps = await getSnaps();
+    console.log('Installed snaps', snaps);
 
     return Object.values(snaps).find(
       (snap) =>

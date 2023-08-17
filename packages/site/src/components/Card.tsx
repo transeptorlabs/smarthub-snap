@@ -190,8 +190,6 @@ const ActivityFailed = styled.span`
 `
 
 export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount}: CardProps) => {
-  const [state] = useContext(MetaMaskContext);
-
   const { title, description, descriptionBold, button, listItems, form, stats, smartAccountActivity, custom} = content;
 
   const handleCopyToClipboard = (event: any, text: string) => {

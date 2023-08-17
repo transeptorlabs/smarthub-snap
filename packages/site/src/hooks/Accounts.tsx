@@ -86,13 +86,16 @@ export const useAcount = () => {
     return urls
   };
 
-  const updateChain = async () => {
-    const chainId = await getChainId();
+  const updateChainId = async (chainId?: string) => {
     console.log('setting chainId:', chainId);
     dispatch({
       type: MetamaskActions.SetChainId,
-      payload: chainId,
+      payload: chainId ? chainId : await getChainId(),
     });
+  };
+
+  const getWalletChainId = async (chainId?: string): Promise<string> => {
+    return await getChainId()
   };
 
   const setChainIdListener = async () => {
@@ -129,6 +132,7 @@ export const useAcount = () => {
     setChainIdListener,
     getAccountActivity,
     getBundlerUrls,
-    updateChain,
+    updateChainId,
+    getWalletChainId,
   }
 }

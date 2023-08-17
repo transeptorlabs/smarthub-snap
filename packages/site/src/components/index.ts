@@ -11,3 +11,4 @@ export * from './blockie';
 export * from './TabMenu';
 export * from './Modal';
 export * from './Account';
+export * from './Network';

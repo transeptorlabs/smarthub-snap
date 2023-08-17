@@ -1,3 +1,5 @@
+import SnapLogoAsset from '../assets/logo-2.png';
+
 export const SnapLogo = ({ color, size }: { color: string; size: number }) => (
   <svg
     width={size}
@@ -11,4 +13,13 @@ export const SnapLogo = ({ color, size }: { color: string; size: number }) => (
       fill={color}
     />
   </svg>
+);
+
+export const SnapLogo2 = ({ size }: { size: number }) => (
+  <img
+  src={SnapLogoAsset}
+  width={size}
+  height={size}
+  alt={'snap logo'}
+/>
 );

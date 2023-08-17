@@ -1,13 +1,14 @@
 import { useContext, useRef, useState } from 'react';
 import styled, { useTheme } from 'styled-components';
-import { MetamaskActions, MetaMaskContext, useAcount } from '../hooks';
-import { connectSnap, getThemePreference, getSnap } from '../utils';
+import { MetaMaskContext } from '../hooks';
+import { getThemePreference } from '../utils';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
 import { SupportedChainIdMap } from '../types';
 import { Modal } from './Modal';
 import { FaCaretDown, FaCaretUp } from "react-icons/fa";
-import { AccountHeaderDisplay, AccountModalDisplay } from './Account';
+import { AccountHeaderDisplay, AccountModalDropdown } from './Account';
+import { NetworkModalDropdown } from './Network';
 
 const HeaderWrapper = styled.header`
   display: flex;
@@ -60,37 +61,11 @@ export const Header = ({
   handleToggleClick(): void;
 }) => {
   const theme = useTheme();
-  const [state, dispatch] = useContext(MetaMaskContext);
+  const [state] = useContext(MetaMaskContext);
   const [modalOpenNetwork, setModalOpenNetwork] = useState(false);
   const [modalOpenAccount, setModalOpenAccount] = useState(false);
   const networkRef = useRef<any>(null);
   const accountRef = useRef<any>(null);
-
-  const handleConnectClick = async () => {
-    try {
-      if (!state.installedSnap) {
-        // installing snap
-        await connectSnap();
-        const installedSnap = await getSnap();
-        dispatch({
-          type: MetamaskActions.SetInstalled,
-          payload: installedSnap,
-        });
-      } else {
-        // snap already installed
-        const installedSnap = await getSnap();
-        dispatch({
-          type: MetamaskActions.SetInstalled,
-          payload: installedSnap,
-        });
-      }
-      closeAccountModal();
-    } catch (e) {
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-      dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
-      dispatch({ type: MetamaskActions.SetClearSmartAccountActivity, payload: true});
-    }
-  };
 
   const openNetworkModal = () => {
     setModalOpenNetwork(true);
@@ -111,15 +86,16 @@ export const Header = ({
   return (
     <HeaderWrapper >
       {/* Network Modal*/}
-      <Modal isOpen={modalOpenNetwork} onClose={closeNetworkModal} buttonRef={networkRef} right={20}>
-        <p>This is a modal 1 content.</p>
+      <Modal isOpen={modalOpenNetwork} onClose={closeNetworkModal} buttonRef={networkRef} right={5}>
+        <NetworkModalDropdown closeModal={closeNetworkModal}/>
       </Modal>
 
       {/* Account Modal*/}
-      <Modal isOpen={modalOpenAccount} onClose={closeAccountModal} buttonRef={accountRef} right={100}>
-        <AccountModalDisplay state={state} onConnectClick={handleConnectClick}/>
+      <Modal isOpen={modalOpenAccount} onClose={closeAccountModal} buttonRef={accountRef} right={80}>
+        <AccountModalDropdown closeModal={closeAccountModal}/>
       </Modal>
 
+      {/* Logo Display*/}
       <FlexRowWrapper>
         <LogoContainer>
           <SnapLogo color={theme.colors.icon.default} size={36} />
@@ -130,23 +106,27 @@ export const Header = ({
       <FlexRowWrapper>
         <Toggle onToggle={handleToggleClick} defaultChecked={getThemePreference()}/>
         
+        {/* Account Display */}
         <HeaderItemContainer ref={accountRef} onClick={openAccountModal}>
-          <AccountHeaderDisplay state={state} />
+          <AccountHeaderDisplay />
           {modalOpenAccount? <IconContainer><FaCaretUp /></IconContainer> : <IconContainer><FaCaretDown /></IconContainer> }
         </HeaderItemContainer>
 
+        {/* Network Display */}
         {state.isFlask && (
           <HeaderItemContainer ref={networkRef} onClick={openNetworkModal}>
-          <FlexRowWrapper>
-            <img
-              src={SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId].icon : SupportedChainIdMap[''].icon}
-              width={38}
-              height={38}
-              alt={SupportedChainIdMap[state.chainId] ? `${SupportedChainIdMap[state.chainId].name} logo` : 'Network not supported logo'}
-            />
-            {modalOpenNetwork ? <IconContainer><FaCaretUp /></IconContainer> : <IconContainer><FaCaretDown /></IconContainer> }
-          </FlexRowWrapper>
-        </HeaderItemContainer>
+            <FlexRowWrapper>
+              {SupportedChainIdMap[state.chainId]  && (
+                  <img
+                  src={SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId].icon : SupportedChainIdMap[''].icon}
+                  width={38}
+                  height={38}
+                  alt={SupportedChainIdMap[state.chainId] ? `${SupportedChainIdMap[state.chainId].name} logo` : 'Network not supported logo'}
+                />
+              )}
+              {modalOpenNetwork ? <IconContainer><FaCaretUp /></IconContainer> : <IconContainer><FaCaretDown /></IconContainer> }
+            </FlexRowWrapper>
+          </HeaderItemContainer>
         )}
       </FlexRowWrapper>
     </HeaderWrapper>

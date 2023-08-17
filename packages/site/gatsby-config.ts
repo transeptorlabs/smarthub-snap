@@ -12,7 +12,7 @@ const config: GatsbyConfig = {
       options: {
         name: 'ERC-4337 Relayer',
         icon: 'src/assets/logo.svg',
-        theme_color: '#3245ae',
+        theme_color: '#8093ff',
         background_color: '#FFFFFF',
         display: 'standalone',
       },

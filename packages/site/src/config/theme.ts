@@ -59,7 +59,7 @@ export const light: DefaultTheme = {
       default: '#BBC0C5',
     },
     primary: {
-      default: '#3245ae',
+      default: '#8093ff',
       inverse: '#FFFFFF',
     },
     card: {
@@ -76,8 +76,8 @@ export const light: DefaultTheme = {
       muted: '#bff5ce',
     },
     pending: {
-      default: '#3245ae',
-      alternative: '#3245ae',
+      default: '#8093ff',
+      alternative: '#8093ff',
       muted: '#bff5ce',
     },
   },
@@ -108,7 +108,7 @@ export const dark: DefaultTheme = {
       default: '#848C96',
     },
     primary: {
-      default: '#3245ae',
+      default: '#8093ff',
       inverse: '#FFFFFF',
     },
     card: {

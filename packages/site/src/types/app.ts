@@ -11,15 +11,22 @@ export enum AppTab {
   Settings = 'Settings',
 }
 
-export const SupportedChainIdMap: { [chainId: string]: {name: string, icon: any} } = {
-  '': { name: 'Not connected', icon: PrivateLogo },
-  '0x1': {name: 'Ethereum', icon: EthereumLogo },
-  '0x5': { name: 'Goerli testnet' , icon: PrivateLogo},
-  '0x539': { name: 'Private' , icon: PrivateLogo},
-  '0x89': { name: 'Polygon', icon: PolygonLogo},
-  '0x13881': { name: 'Polygon Mumbai', icon: PolygonLogo},
-  '0xa4b1': { name: 'Arbitrum', icon: ArbitrumLogo},
-  '0xa': { name: 'Optimism', icon: OptimismLogo},
+export const SupportedChainIdMap: { [chainId: string]: {name: string, icon: any, id: string} } = {
+  '0x1': {name: 'Ethereum', icon: EthereumLogo, id: '0x1'},
+  '0x5': { name: 'Goerli' , icon: PrivateLogo,  id: '0x5'},
+  '0x539': { name: 'Private' , icon: PrivateLogo, id: '0x539'},
+  '0x89': { name: 'Polygon', icon: PolygonLogo,   id: '0x89'},
+  '0x13881': { name: 'Polygon Mumbai', icon: PolygonLogo, id: '0x13881'},
+  '0xa4b1': { name: 'Arbitrum', icon: ArbitrumLogo, id: '0xa4b1'},
+  '0xa': { name: 'Optimism', icon: OptimismLogo, id: '0xa'},
+};
+
+export const getSupportedChainIdsArray = () => {
+  return Object.entries(SupportedChainIdMap).map(([, { name, icon, id }]) => ({
+    name,
+    icon,
+    id,
+  }));
 };
 
 export type BundlerUrls = { [chainId: string]: string };

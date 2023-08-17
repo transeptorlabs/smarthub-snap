@@ -123,14 +123,14 @@ const Index = () => {
     getSmartAccount,
     getAccountActivity,
     getBundlerUrls,
-    updateChain,
+    updateChainId,
     setChainIdListener,
   } = useAcount();
 
   useEffect(() => {
     async function initNetwork() {
       if (state.isFlask) {
-        await updateChain()
+        await updateChainId()
         await setChainIdListener()
       }
     }
@@ -139,7 +139,7 @@ const Index = () => {
   }, [state.isFlask]);
 
   useEffect(() => {
-    async function initApp() {
+    async function initAccounts() {
       if (state.installedSnap) {
         const account = await getKeyringSnapAccounts()
         await handleFetchBundlerUrls()
@@ -151,7 +151,7 @@ const Index = () => {
       }
     }
 
-    initApp().catch((error) => dispatch({ type: MetamaskActions.SetError, payload: error }));
+    initAccounts().catch((error) => dispatch({ type: MetamaskActions.SetError, payload: error }));
   }, [state.installedSnap]);
 
 
@@ -178,19 +178,6 @@ const Index = () => {
   //   } 
   // }, [state.eoa, state.scAccount, state.smartAccountActivity]);
 
-  const handleReConnectSnapClick = async () => {
-    try {
-      await connectSnap();
-      const installedSnap = await getSnap();
-      dispatch({
-        type: MetamaskActions.SetInstalled,
-        payload: installedSnap,
-      });
-
-    } catch (e) {
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
-  };
 
   const handleFetchBundlerUrls = async () => {
     const urls = await getBundlerUrls();
@@ -216,12 +203,32 @@ const Index = () => {
     );
   };
 
-  // Form submit handlers
-  const handleCreateAccount = async () => {
-    await createAccount(accountName)
+  // Click handlers
+  const handleReConnectSnapClick = async (event: any) => {
+    try {
+      event.preventDefault();
+      await connectSnap();
+      const installedSnap = await getSnap();
+      dispatch({
+        type: MetamaskActions.SetInstalled,
+        payload: installedSnap,
+      });
+
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   };
 
-  const handleDeleteAccount = async () => {
+  const handleCreateAccount = async (event: any) => {
+    event.preventDefault();
+    const newAccount = await createAccount(accountName)
+    await selectKeyringSnapAccount(newAccount);
+    await getSmartAccount(newAccount.id);
+    setAccountName('')
+  };
+
+  const handleDeleteAccount = async (event: any) => {
+    event.preventDefault();
     await deleteAccount(keyringAccountId)
   };
 
@@ -447,42 +454,6 @@ const Index = () => {
       {/* Account tab (eoa details, smart account details, smart account activity)*/}
       {state.activeTab === AppTab.Account && (
         <CardContainer>
-          {state.selectedSnapKeyringAccount.address && (
-            <Card
-              content={{
-                descriptionBold: 'Selected EOA(owner)',
-                description: `${state.selectedSnapKeyringAccount.address}`,
-                stats: [
-                  // {
-                  //   id: `1`,
-                  //   title: 'Balance',
-                  //   value: `${convertToEth(state.eoa.balance)} ETH`,
-                  // },
-                ],
-                // form: [
-                //   <CommonInputForm
-                //     key={"deposit"}
-                //     buttonText="Add Deposit"
-                //     onSubmitClick={handleDepositSubmit}
-                //     inputs={[
-                //       {
-                //         id: "1",
-                //         onInputChange: handleDepositAmountChange,
-                //         inputValue: depositAmount,
-                //         inputPlaceholder:"Enter amount"
-                //       }
-                //     ]}
-              
-                //   />,
-                // ],
-              }}
-              disabled={!state.isFlask}
-              copyDescription
-              isAccount
-              fullWidth
-            />
-          )}
-
           {state.scAccount.connected && state.installedSnap && (
             <Card
               content={{
@@ -503,6 +474,11 @@ const Index = () => {
                     id: `2`,
                     title: 'Nonce',
                     value: `${(state.scAccount.nonce)}`,
+                  },
+                  {
+                    id: `3`,
+                    title: 'Name',
+                    value: `${(state.selectedSnapKeyringAccount.name)}`,
                   },
                 ],
                 // form: [

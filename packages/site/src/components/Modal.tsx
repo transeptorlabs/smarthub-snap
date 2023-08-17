@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
 const ModalWrapper = styled.div`
-
   position: fixed;
   display: flex;
   justify-content: center;
@@ -19,9 +18,9 @@ const ModalWrapper = styled.div`
 const ModalContent = styled.div`
   background-color: ${({ theme }) => theme.colors.background.default};
   position: absolute;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: ${({ theme }) => theme.radii.default};
+  box-shadow: ${({ theme }) => theme.shadows.default};
+
 `;
 
 type ModalProps = {

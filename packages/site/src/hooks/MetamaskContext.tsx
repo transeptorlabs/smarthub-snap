@@ -16,6 +16,7 @@ export type MetamaskState = {
   installedSnap?: Snap;
   error?: Error;
   isChainIdListener: boolean;
+  isDappChainIdInSync: boolean;
   chainId: string;
   activeTab: AppTab;
   snapKeyring: KeyringState;
@@ -30,6 +31,7 @@ const initialState: MetamaskState = {
   error: undefined,
   installedSnap: undefined,
   isChainIdListener: false,
+  isDappChainIdInSync: false,
   chainId: '',
   activeTab: AppTab.Account,
   snapKeyring: {
@@ -89,6 +91,7 @@ export enum MetamaskActions {
   SetClearAccount = 'SetClearAccount',
   SetBundlerUrls = 'SetBundlerUrls',
   SetSupportedEntryPoints = 'SetSupportedEntryPoints',
+  SetDappChainIdInSync = 'SetDappChainIdInSync'
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -151,6 +154,12 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
       return {
         ...state,
         chainId: action.payload,
+      };
+
+    case MetamaskActions.SetDappChainIdInSync:
+      return {
+        ...state,
+        isDappChainIdInSync: action.payload
       };
 
     case MetamaskActions.SetBundlerUrls:

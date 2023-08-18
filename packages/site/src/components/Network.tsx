@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import styled from 'styled-components';
 import { MetaMaskContext, MetamaskActions, useAcount } from '../hooks';
 import { SupportedChainIdMap, getSupportedChainIdsArray } from '../types';
+import { switchChainId } from '../utils';
 
 interface DropdownItemProps {
   selected: boolean;
@@ -41,22 +42,21 @@ export const NetworkModalDropdown = ({
 }: {
   closeModal(): unknown;
 }) => {
-  const [state, dispatch] = useContext(MetaMaskContext);
-  const {getWalletChainId} = useAcount();
+  const [state] = useContext(MetaMaskContext);
   const [selectedNetwork, setSelectedNetwork] = useState<{name: string; icon: any; id: string}>(SupportedChainIdMap[state.chainId]);
-
+  const {getSmartAccount, getAccountActivity} = useAcount()
+  
   const handleNetworkChange = async (network: {name: string; icon: any; id: string}) => {
-    setSelectedNetwork(network);
-    dispatch({
-      type: MetamaskActions.SetChainId,
-      payload: network.id,
-    });
-
-    dispatch({
-      type: MetamaskActions.SetDappChainIdInSync,
-      payload: await getWalletChainId() === network.id,
-    });
+    const result = await switchChainId(network.id)
     closeModal()
+    if (result === true) {
+      setSelectedNetwork(network);
+      // refresh selected smart account
+      if(state.scAccount.connected && state.selectedSnapKeyringAccount.id !== '') {
+        await getSmartAccount(state.selectedSnapKeyringAccount.id)
+        await getAccountActivity(state.selectedSnapKeyringAccount.id)
+      }
+    }
   };
 
   return (

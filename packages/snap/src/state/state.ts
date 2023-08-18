@@ -1,5 +1,5 @@
 import { KeyringState } from '../keyring';
-import { DEFAULT_STATE } from './state.contants';
+import { DEFAULT_BUNDLER_URLS, DEFAULT_STATE } from './state.contants';
 
 export const getState = async (keyringAccountId?: string): Promise<{
   keyringState: KeyringState,
@@ -172,10 +172,23 @@ export const storeBundlerUrl = async (
   return true;
 };
 
-export const clearState = async (): Promise<boolean> => {
+const clearState = async (): Promise<boolean> => {
   await snap.request({
     method: 'snap_manageState',
     params: { operation: 'clear' },
+  });
+  return true;
+};
+
+export const clearActivityData = async (): Promise<boolean> => {
+  const state = await getState();
+  state.bundlerUrls = DEFAULT_BUNDLER_URLS
+  state.userOpHashesPending = {}
+  state.smartAccountActivity = {}
+
+  await snap.request({
+    method: 'snap_manageState',
+    params: { operation: 'update', newState: state },
   });
   return true;
 };

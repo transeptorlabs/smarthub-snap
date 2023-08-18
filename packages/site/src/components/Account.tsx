@@ -1,14 +1,15 @@
 import { MetaMaskContext, MetamaskActions, MetamaskState, useAcount } from '../hooks';
 import styled from 'styled-components';
-import { connectSnap, getSnap, trimAccount } from '../utils';
+import { connectSnap, getSnap, getSnaps, trimAccount } from '../utils';
 import { FaCloudDownloadAlt, FaRegLightbulb } from 'react-icons/fa';
-import { InstallFlaskButton, InstallSnapButton } from './Buttons';
+import { InstallFlaskButton, ConnectSnapButton } from './Buttons';
 import { SupportedChainIdMap } from '../types';
 import { useContext, useState } from 'react';
 import { KeyringAccount } from "@metamask/keyring-api";
 import { ReactComponent as FlaskFox } from '../assets/flask_fox_account.svg';
 import { BlockieAccountModal } from './blockie';
 import { FaCopy, FaInfoCircle } from "react-icons/fa";
+import { CommonInputForm } from './Form';
 
 const Body = styled.div`
   padding: 2rem;
@@ -51,7 +52,7 @@ const IconContainerLeftShort = styled.div`
 const PrimaryText = styled.p`
   color: ${(props) => props.theme.colors.text.default};
   margin: 0; 
-  margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
   font-weight: bold;
 
   ${({ theme }) => theme.mediaQueries.small} {
@@ -156,7 +157,7 @@ export const AccountHeaderDisplay = () => {
           </IconContainer>
           <FlexColWrapperLeft>
           <PrimaryText>MetaMask @ {SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId].name : 'Not Supported'}</PrimaryText>
-            <SecondaryText>Install ERC-4337 Relayer</SecondaryText>
+            <SecondaryText>Connect ERC-4337 Relayer</SecondaryText>
           </FlexColWrapperLeft>
         </FlexRowWrapper>
       );
@@ -169,13 +170,13 @@ export const AccountHeaderDisplay = () => {
         {/* <ConnectedIndicator /> */}
       </IconContainer>
       <FlexColWrapperLeft>
-        <PrimaryText>MetaMask @ {SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId].name : 'Not Supported'}</PrimaryText>
-        <SecondaryText> 
+        <SecondaryText>MetaMask @ {SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId].name : 'Not Supported'}</SecondaryText>
+        <PrimaryText> 
           {state.selectedSnapKeyringAccount.address === '' ? 
             'No account selected' :
-            '(owner) ' + trimAccount(state.selectedSnapKeyringAccount.address)
+            state.selectedSnapKeyringAccount.name
           }
-        </SecondaryText>
+        </PrimaryText>
       </FlexColWrapperLeft>
     </FlexRowWrapper>
     );
@@ -188,7 +189,8 @@ export const AccountModalDropdown  = ({
 }) => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const [selectedAccount, setSelectedAccount] = useState<KeyringAccount>(state.selectedSnapKeyringAccount);
-  const {selectKeyringSnapAccount, getSmartAccount} = useAcount();
+  const {selectKeyringSnapAccount, getSmartAccount, createAccount} = useAcount();
+  const [accountName, setAccountName] = useState('');
 
   const featureList: {feature: string; description: string }[] = [
     {
@@ -196,40 +198,29 @@ export const AccountModalDropdown  = ({
       description: `Access and control smart accounts with MetaMask. Enjoy smart contract functionality with ease and convenience.`
     },
     {
-      feature: "Feature B",
-      description: `Short description of what it is, how it works and why it’s exciting to end-users`
+      feature: "Manage Smart Account",
+      description: `Manage ERC-4337 accounts(create, sign, send, transfer funds).`
     },
     {
       feature: "Feature C",
-      description: `Short description of what it is, how it works and why it’s exciting to end-users`
+      description: `Manage stake and deposit with supported entrypoint contracts`
     },
   ];
 
-  const handleInstallClick = async (event: any) => {
+  const handleConnectClick = async (event: any) => {
     try {
       event.preventDefault();
+      await connectSnap();
+      const installedSnap = await getSnap();
 
-      if (!state.installedSnap) {
-        // installing snap
-        await connectSnap();
-        const installedSnap = await getSnap();
-        dispatch({
-          type: MetamaskActions.SetInstalled,
-          payload: installedSnap,
-        });
-      } else {
-        // snap already installed
-        const installedSnap = await getSnap();
-        dispatch({
-          type: MetamaskActions.SetInstalled,
-          payload: installedSnap,
-        });
-      }
+      dispatch({
+        type: MetamaskActions.SetInstalled,
+        payload: installedSnap,
+      });
       closeModal();
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
       dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
-      dispatch({ type: MetamaskActions.SetClearSmartAccountActivity, payload: true});
     }
   };
 
@@ -240,6 +231,20 @@ export const AccountModalDropdown  = ({
     await getSmartAccount(account.id);
     closeModal();
   }
+
+  const handleCreateAccount = async (event: any) => {
+    event.preventDefault();
+    const newAccount = await createAccount(accountName)
+    await selectKeyringSnapAccount(newAccount);
+    await getSmartAccount(newAccount.id);
+    setAccountName('')
+    closeModal();
+  };
+
+  const handleAccountNameChange = async (e: any) => {
+    setAccountName(e.target.value);
+  }
+
 
   if (!state.isFlask) {
     return (
@@ -262,7 +267,7 @@ export const AccountModalDropdown  = ({
     return (
       <Body>
         <FlexColWrapperCenter>
-            <TextBold>Install</TextBold>
+            <TextBold>Connect</TextBold>
             <FlexColWrapperLeft>
               {featureList.map((props, idx) => (
                 <FeatureBody key={idx}>
@@ -278,7 +283,7 @@ export const AccountModalDropdown  = ({
             </FlexColWrapperLeft>
             <LineBreak></LineBreak>
             <ButtonBody>
-              <InstallSnapButton onClick={handleInstallClick}/>
+              <ConnectSnapButton onClick={handleConnectClick}/>
               <TextSmall>Manage smart accounts with MetaMask</TextSmall>
             </ButtonBody>
           </FlexColWrapperCenter>
@@ -291,6 +296,26 @@ export const AccountModalDropdown  = ({
       <FlexColWrapperCenter>
         <TextBold>Select a Smart Account</TextBold>
       </FlexColWrapperCenter>
+
+      {state.snapKeyring.accounts.length === 0 && 
+        (
+          <Body>
+            <CommonInputForm
+              key={"create"}
+              buttonText="Create"
+              onSubmitClick={handleCreateAccount}
+              inputs={[
+                {
+                  id: "1",
+                  onInputChange: handleAccountNameChange,
+                  inputValue: accountName,
+                  inputPlaceholder:"Enter account name"
+                }
+              ]}
+              />
+          </Body>
+        )
+      } 
       <DropdownList>
       {state.snapKeyring.accounts.map((account: KeyringAccount) => (
         <DropdownItem
@@ -308,7 +333,7 @@ export const AccountModalDropdown  = ({
                     </IconContainerLeft>
                 </FlexRowWrapper>
                 <FlexRowWrapper>
-                  <Text>(owner):{trimAccount(account.address)}</Text>
+                  <Text>{account.name}</Text>
                 </FlexRowWrapper>
 
             </FlexColWrapperLeft>

@@ -16,7 +16,6 @@ export type MetamaskState = {
   installedSnap?: Snap;
   error?: Error;
   isChainIdListener: boolean;
-  isDappChainIdInSync: boolean;
   chainId: string;
   activeTab: AppTab;
   snapKeyring: KeyringState;
@@ -31,9 +30,8 @@ const initialState: MetamaskState = {
   error: undefined,
   installedSnap: undefined,
   isChainIdListener: false,
-  isDappChainIdInSync: false,
   chainId: '',
-  activeTab: AppTab.Account,
+  activeTab: AppTab.SmartAccount,
   snapKeyring: {
     pendingRequests: [],
     accounts: [],
@@ -87,11 +85,9 @@ export enum MetamaskActions {
   SetSelectedSnapKeyringAccount = "SetSelectedKeyringAccount",
   SetScAccount = "SetScAccount",
   SetSmartAccountActivity = 'SetSmartAccountActivity',
-  SetClearSmartAccountActivity = 'SetClearSmartAccountActivity',
   SetClearAccount = 'SetClearAccount',
   SetBundlerUrls = 'SetBundlerUrls',
   SetSupportedEntryPoints = 'SetSupportedEntryPoints',
-  SetDappChainIdInSync = 'SetDappChainIdInSync'
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -156,12 +152,6 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         chainId: action.payload,
       };
 
-    case MetamaskActions.SetDappChainIdInSync:
-      return {
-        ...state,
-        isDappChainIdInSync: action.payload
-      };
-
     case MetamaskActions.SetBundlerUrls:
       return {
         ...state,
@@ -177,10 +167,13 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
     case MetamaskActions.SetClearAccount:
       return {
         ...state,
-        eoa: {
-          connected: false,
+        selectedSnapKeyringAccount: {
+          id: '',
+          name: '',
           address: '',
-          balance: '',  // in wei
+          options: {},
+          supportedMethods: [],
+          type: 'eip155:erc4337',
         },
         scAccount: {
           connected: false,
@@ -192,20 +185,13 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
           deposit: '',
           factoryAddress: '',
           ownerAddress: '',
-          bundlerUrl: '',
+        },
+        smartAccountActivity: {
+          pendingUserOpHashes: [],
+          confirmedUserOpHashes: [],
+          userOperationReceipts: [],
         },
       };
-    case MetamaskActions.SetClearSmartAccountActivity:
-      return {
-        ...state,
-      smartAccountActivity: {
-        pendingUserOpHashes: [],
-        confirmedUserOpHashes: [],
-        userOperationReceipts: [],
-        scIndex: 0,
-      },
-    };
-
     default:
       return state;
   }

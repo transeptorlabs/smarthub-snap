@@ -20,7 +20,7 @@ import {
   trimAccount,
 } from '../utils';
 import {
-  InstallSnapButton,
+  ConnectSnapButton,
   InstallFlaskButton,
   ReconnectButton,
   Card,
@@ -29,6 +29,7 @@ import {
   TabMenu,
   BundlerInputForm,
   Modal,
+  AccountModalDropdown,
 } from '../components';
 import { BigNumber, ethers } from 'ethers';
 import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
@@ -113,7 +114,7 @@ const Index = () => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [formBundlerUrls, setFormBundlerUrls] = useState({} as BundlerUrls);
   const [accountName, setAccountName] = useState('');
-  const [keyringAccountId, setKeyringAccountId] = useState('');
+  const [accountNameDelete, setAccountNameDelete] = useState('');
 
   const {
     getKeyringSnapAccounts, 
@@ -229,7 +230,30 @@ const Index = () => {
 
   const handleDeleteAccount = async (event: any) => {
     event.preventDefault();
-    await deleteAccount(keyringAccountId)
+    let keyringAccountIdFound = ''
+    state.snapKeyring.accounts.forEach(account => {
+      if (account.name === accountNameDelete)
+      keyringAccountIdFound =  account.id
+    })
+
+    if (keyringAccountIdFound === '') {
+      dispatch({ type: MetamaskActions.SetError, payload: new Error('Account name not found.') });
+    } else {
+      await deleteAccount(keyringAccountIdFound)
+
+      // update selected to first account when the deleted account it the current selected account
+      if(keyringAccountIdFound === state.selectedSnapKeyringAccount.id) {
+        const accounts = await getKeyringSnapAccounts()
+        if (accounts.length > 0) {
+          await selectKeyringSnapAccount(accounts[0]);
+          await getSmartAccount(accounts[0].id);
+          await getAccountActivity(accounts[0].id);
+        } else {
+          dispatch({ type: MetamaskActions.SetClearAccount, payload: true })
+        }
+      }
+      setAccountNameDelete('')
+    }
   };
 
   // const handleDepositSubmit = async (e: any) => {
@@ -362,8 +386,8 @@ const Index = () => {
     setAccountName(e.target.value);
   }
 
-  const handleAccountIdChange = async (e: any) => {
-    setKeyringAccountId(e.target.value);
+  const handleAccountNameDelete = async (e: any) => {
+    setAccountNameDelete(e.target.value);
   }
 
   return (
@@ -371,94 +395,53 @@ const Index = () => {
       <TabMenu></TabMenu>
       <LineBreak></LineBreak>
 
+      {/* Init state */}
+      <CardContainer>
+        {!state.isFlask && (
+          <Card
+            content={{
+              title: 'Install',
+              description:
+                'Snaps is pre-release software only available in MetaMask Flask, a canary distribution for developers with access to upcoming features.',
+              button: <InstallFlaskButton />,
+            }}
+            fullWidth
+          />
+        )}
+
+        {!state.installedSnap && (
+          <Card
+            content={{
+              title: 'Connect ERC-4337 Relayer',
+              description: 'Features include:',
+              listItems: [
+                'Access and control smart accounts with MetaMask. Enjoy smart contract functionality with ease and convenience.',
+                'Manage ERC-4337 accounts(create, sign, send, transfer funds)',
+                'Manage stake and deposit with supported entrypoint contracts',
+              ],
+              button: <ConnectSnapButton onClick={handleReConnectSnapClick}/>
+            }}
+            disabled={!state.isFlask}
+            fullWidth
+          />
+        )}
+      </CardContainer>
+  
       {/* Error message */}
       {state.error && (
         <ErrorMessage>
           <b>An error happened:</b> {state.error.message}
         </ErrorMessage>
       )}
-      
-      {/* Install tab */}
-      {state.activeTab === AppTab.Install && (
-        <CardContainer>
-          {!state.isFlask && (
-            <Card
-              content={{
-                title: 'Install',
-                description:
-                  'Snaps is pre-release software only available in MetaMask Flask, a canary distribution for developers with access to upcoming features.',
-                button: <InstallFlaskButton />,
-              }}
-              fullWidth
-            />
-          )}
-
-          {!state.installedSnap && (
-            <Card
-              content={{
-                title: 'Enable ERC-4337: Account Abstraction capabilities',
-                description: 'Features include:',
-                listItems: [
-                  'Relay user operations inside of MetaMask',
-                  'Manage ERC-4337 accounts(create, sign, send, transfer funds)',
-                  'Wraps all eth ERC-4337 namespace rpc methods',
-                  'Manage stake an deposit with supported entrypoint contracts',
-                ],
-                button: (
-                  <InstallSnapButton
-                    onClick={handleReConnectSnapClick}
-                    disabled={!state.isFlask}
-                  />
-                ),
-              }}
-              disabled={!state.isFlask}
-              fullWidth
-            />
-          )}
-        </CardContainer>
-      )}
-
-      {state.activeTab === AppTab.Install && (
-        <CardContainer>
-          {state.installedSnap && (
-            <Card
-              content={{
-                title: 'ERC-4337 Relayer is installed and ready to use',
-                description: `Installed with v${state.installedSnap.version}. Use MetaMask settings page, to see the more details on the installed snap.`,
-              }}
-              disabled={!state.isFlask}
-              fullWidth
-            />
-          )}
-
-          {shouldDisplayReconnectButton(state.installedSnap) && (
-            <Card
-              content={{
-                title: 'Local dev - Reconnect snap',
-                description:
-                  'While connected to a local running snap this button will always be displayed in order to update the snap if a change is made.',
-                button: (
-                  <ReconnectButton
-                    onClick={handleReConnectSnapClick}
-                    disabled={!state.installedSnap}
-                  />
-                ),
-              }}
-              disabled={!state.installedSnap}
-              fullWidth
-            />
-          )}
-        </CardContainer>
-      )}
 
       {/* Account tab (eoa details, smart account details, smart account activity)*/}
-      {state.activeTab === AppTab.Account && (
+      {state.activeTab === AppTab.SmartAccount && (
         <CardContainer>
           {state.scAccount.connected && state.installedSnap && (
             <Card
               content={{
                 description: `${state.scAccount.address}`,
-                descriptionBold: 'Smart Account',
+                descriptionBold: `${state.selectedSnapKeyringAccount.name}`,
                 stats: [
                   {
                     id: `0`,
@@ -472,13 +455,13 @@ const Index = () => {
                   },
                   {
                     id: `2`,
-                    title: 'Nonce',
-                    value: `${(state.scAccount.nonce)}`,
+                    title: 'Balance',
+                    value: `${convertToEth(state.scAccount.balance)} ETH`,
                   },
                   {
                     id: `3`,
-                    title: 'Name',
-                    value: `${(state.selectedSnapKeyringAccount.name)}`,
+                    title: 'Nonce',
+                    value: `${(state.scAccount.nonce)}`,
                   },
                 ],
                 // form: [
@@ -522,10 +505,39 @@ const Index = () => {
             />
           )}
 
+          {state.installedSnap && state.snapKeyring.accounts.length === 0 && (
+            <Card
+              content={{
+                title: 'Create a Smart Account',
+                form: [
+                  <CommonInputForm
+                    key={"create"}
+                    buttonText="Create"
+                    onSubmitClick={handleCreateAccount}
+                    inputs={[
+                      {
+                        id: "1",
+                        onInputChange: handleAccountNameChange,
+                        inputValue: accountName,
+                        inputPlaceholder:"Enter account name"
+                      }
+                    ]}
+                  />,
+                ],
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+        </CardContainer>
+      )}
+
+      {state.activeTab === AppTab.Management && (
+        <CardContainer>
           {state.installedSnap && (
             <Card
               content={{
-                description: `Use Keyring API to create an account.`,
+                title: 'Create a Smart Account',
                 form: [
                   <CommonInputForm
                     key={"create"}
@@ -547,10 +559,10 @@ const Index = () => {
             />
           )}
 
-          {state.installedSnap && (
+          {state.installedSnap && state.snapKeyring.accounts.length > 0 && (
             <Card
               content={{
-                description: `Use Keyring API to delete an account.`,
+                title: 'Delete Smart Account',
                 form: [
                   <CommonInputForm
                     key={"delete"}
@@ -559,9 +571,9 @@ const Index = () => {
                     inputs={[
                       {
                         id: "1",
-                        onInputChange: handleAccountIdChange,
-                        inputValue: keyringAccountId,
-                        inputPlaceholder:"Enter accountId"
+                        onInputChange: handleAccountNameDelete,
+                        inputValue: accountNameDelete,
+                        inputPlaceholder:"Enter account name"
                       }
                     ]}
                   />,
@@ -571,29 +583,13 @@ const Index = () => {
               fullWidth
             />
           )}
-
-        </CardContainer>
-      )}
-
-      {/* Build tab */}
-      {state.activeTab === AppTab.Build && (
-        <CardContainer>
-          {state.scAccount.connected && state.installedSnap && (
-              <Card
-                content={{
-                  title: 'User Operations Builder',
-                  description: 'Coming soon...',
-                }}
-                disabled={!state.isFlask}
-                fullWidth
-              />
-          )}
         </CardContainer>
       )}
 
       {/* Setting tab */}
       {state.activeTab === AppTab.Settings && (
         <CardContainer>
+
           {state.installedSnap && (
             <Card
               content={{
@@ -607,8 +603,37 @@ const Index = () => {
           )}
 
           {state.installedSnap && (
+            <Card
+              content={{
+                title: 'ERC-4337 Relayer is installed and ready to use',
+                description: `Installed with v${state.installedSnap.version}. Use MetaMask settings page, to see the more details on the installed snap.`,
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+
+          {shouldDisplayReconnectButton(state.installedSnap) && (
+            <Card
+              content={{
+                title: 'Local dev - Reconnect snap',
+                description:
+                  'While connected to a local running snap this button will always be displayed in order to update the snap if a change is made.',
+                button: (
+                  <ReconnectButton
+                    onClick={handleReConnectSnapClick}
+                    disabled={!state.installedSnap}
+                  />
+                ),
+              }}
+              disabled={!state.installedSnap}
+              fullWidth
+            />
+          )}
+
+          {state.installedSnap && (
               <ErrorMessage>
-                <p>This resets your deposit account's activity and bundler Url data inside the snap. Your balances and incoming transactions won't change.</p>
+                <p>This resets your smart account's activity and bundler Url inside the Snap. Your balances and incoming transactions won't change.</p>
               <SimpleButton text={'Clear activity data'} onClick={handleClearActivity}></SimpleButton>
             </ErrorMessage>
           )}

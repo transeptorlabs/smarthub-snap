@@ -64,11 +64,11 @@ export const InstallFlaskButton = () => (
   </Link>
 );
 
-export const InstallSnapButton = (props: ComponentProps<typeof Button>) => {
+export const ConnectSnapButton = (props: ComponentProps<typeof Button>) => {
   return (
     <Button {...props}>
       <FlaskFox />
-      <ButtonText>Install ERC-4337 Relayer</ButtonText>
+      <ButtonText>Connect ERC-4337 Relayer</ButtonText>
     </Button>
   );
 };

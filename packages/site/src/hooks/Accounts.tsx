@@ -12,8 +12,6 @@ export const useAcount = () => {
   const getKeyringSnapAccounts = async (): Promise<KeyringAccount[]> => {
     const accounts = await client.listAccounts();
     const pendingRequests = await client.listRequests();
-    console.log('snap accounts:', accounts);
-    console.log('snap pendingRequests:', pendingRequests);
     dispatch({ 
       type: MetamaskActions.SetSnapKeyring,
       payload: {
@@ -29,22 +27,17 @@ export const useAcount = () => {
       type: MetamaskActions.SetSelectedSnapKeyringAccount,
       payload: selectedKeyringAccount,
     });
-    console.log('selectedKeyringAccount:', selectedKeyringAccount);
     return selectedKeyringAccount;
   };
 
   const createAccount = async (accountName: string) => {
-    console.log('Creating account:', accountName);
     const newAccount = await client.createAccount(accountName);
-    console.log('newAccount result:', newAccount);
     await getKeyringSnapAccounts()
     return newAccount
   };
 
   const deleteAccount = async (keyringAccountId: string) => {
-    console.log('Delete account');
-    const result = await client.deleteAccount(keyringAccountId);
-    console.log('delete result:', result);
+    await client.deleteAccount(keyringAccountId);
     await getKeyringSnapAccounts()
   };
 
@@ -68,7 +61,6 @@ export const useAcount = () => {
 
   const getAccountActivity = async (keyringAccountId: string): Promise<SmartAccountActivity> => {
     const result: SmartAccountActivity = await getSmartAccountActivity(keyringAccountId);
-    console.log('getAccountActivity result:', result);
     dispatch({
       type: MetamaskActions.SetSmartAccountActivity,
       payload: result,
@@ -87,14 +79,13 @@ export const useAcount = () => {
   };
 
   const updateChainId = async (chainId?: string) => {
-    console.log('setting chainId:', chainId);
     dispatch({
       type: MetamaskActions.SetChainId,
       payload: chainId ? chainId : await getChainId(),
     });
   };
 
-  const getWalletChainId = async (chainId?: string): Promise<string> => {
+  const getWalletChainId = async (): Promise<string> => {
     return await getChainId()
   };
 
@@ -103,7 +94,6 @@ export const useAcount = () => {
       const provider = getMMProvider()
       if (provider) {
         provider.on('chainChanged', async (chainId) => {
-          console.log('chainChanged:', chainId);
           dispatch({
             type: MetamaskActions.SetChainId,
             payload: chainId,
@@ -117,11 +107,6 @@ export const useAcount = () => {
       }
     }
   };
-
-  const fatalError = async (e: any) => {
-    dispatch({ type: MetamaskActions.SetError, payload: e });
-    dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
-  }
 
   return {
     getKeyringSnapAccounts,

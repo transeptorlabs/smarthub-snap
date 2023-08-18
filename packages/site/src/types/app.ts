@@ -5,9 +5,8 @@ import OptimismLogo from '../assets/icons/optimism.svg';
 import PrivateLogo from '../assets/icons/private-chain.svg';
 
 export enum AppTab {
-  Install = 'Install',
-  Account = 'Account',
-  Build = 'Build',
+  SmartAccount = 'Smart Account',
+  Management = 'Management',
   Settings = 'Settings',
 }
 

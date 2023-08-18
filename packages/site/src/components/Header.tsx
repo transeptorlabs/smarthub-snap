@@ -84,7 +84,7 @@ export const Header = ({
   };
 
   return (
-    <HeaderWrapper >
+    <HeaderWrapper>
       {/* Network Modal*/}
       <Modal isOpen={modalOpenNetwork} onClose={closeNetworkModal} buttonRef={networkRef} right={5}>
         <NetworkModalDropdown closeModal={closeNetworkModal}/>
@@ -109,7 +109,7 @@ export const Header = ({
         {/* Account Display */}
         <HeaderItemContainer ref={accountRef} onClick={openAccountModal}>
           <AccountHeaderDisplay />
-          {modalOpenAccount? <IconContainer><FaCaretUp /></IconContainer> : <IconContainer><FaCaretDown /></IconContainer> }
+          {modalOpenAccount ? <IconContainer><FaCaretUp /></IconContainer> : <IconContainer><FaCaretDown /></IconContainer> }
         </HeaderItemContainer>
 
         {/* Network Display */}

@@ -51,7 +51,6 @@ export const connectSnap = async (
 export const getSnap = async (version?: string): Promise<Snap | undefined> => {
   try {
     const snaps = await getSnaps();
-    console.log('Installed snaps', snaps);
 
     return Object.values(snaps).find(
       (snap) =>
@@ -61,16 +60,6 @@ export const getSnap = async (version?: string): Promise<Snap | undefined> => {
     console.log('Failed to obtain installed snap', e);
     return undefined;
   }
-};
-
-export const connectErc4337Relayer = async (): Promise<boolean> => {
-  return (await getMMProvider().request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: { method: 'connect_erc4337_relayer', params: [] },
-    },
-  })) as boolean;
 };
 
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');

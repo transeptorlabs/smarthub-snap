@@ -20,12 +20,13 @@ export const getChainId = async (): Promise<string> => {
   return chainId as string;
 };
 
-export const switchChainId = async (chainId: string): Promise<void> => {
+export const switchChainId = async (chainId: string): Promise<boolean> => {
   try {
     await getMMProvider().request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId }],
     });
+    return true
   } catch (switchError) {
     // This error code indicates that the chain has not been added to MetaMask.
     if (switchError.code === 4902) {
@@ -40,12 +41,13 @@ export const switchChainId = async (chainId: string): Promise<void> => {
             },
           ],
         });
+        return true
       } catch (error) {
         console.log(error);
-        // handle "add" error
+        return false
       }
     }
-    // handle other "switch" errors
+    return false
   }
 };
 

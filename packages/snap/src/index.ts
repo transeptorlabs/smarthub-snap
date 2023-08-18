@@ -6,7 +6,7 @@ import { deepHexlify } from '@account-abstraction/utils';
 import { resolveProperties } from 'ethers/lib/utils';
 import { HttpRpcClient, getBalance, getDeposit } from './client';
 import {
-  clearState,
+  clearActivityData,
   getBundlerUrls,
   getUserOpHashsConfirmed,
   getAllUserOpHashsPending,
@@ -167,12 +167,6 @@ const erc4337Handler: OnRpcRequestHandler = async ({
         throw new Error('Account not found');
       }
 
-      const scAccount = await keyring.getSmartAccount(
-        rpcClient.getEntryPointAddr(),
-        rpcClient.getAccountFactoryAddr(),
-        ownerAccount.id,
-      );
-
       const userOpHashesPending: string[] = await getUserOpHashsPending(
         ownerAccount.id,
         chainId as string,
@@ -195,7 +189,7 @@ const erc4337Handler: OnRpcRequestHandler = async ({
     }
 
     case InternalMethod.ClearActivityData: {
-      result = await clearState();
+      result = await clearActivityData();
       if (!result) {
         throw new Error('Failed to clear activity data');
       }

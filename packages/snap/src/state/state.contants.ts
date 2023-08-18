@@ -6,7 +6,7 @@ export const DEFAULT_BUNDLER_URLS = {
   '0x13881': '', // polygon mumbai
   '0xa4b1': '', // Arbitrum
   '0xa': '', // Optimism
-}
+};
 
 export const DEFAULT_STATE = {
   keyringState: {

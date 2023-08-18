@@ -202,7 +202,7 @@ export const AccountModalDropdown  = ({
       description: `Manage ERC-4337 accounts(create, sign, send, transfer funds).`
     },
     {
-      feature: "Feature C",
+      feature: "Entrypoint and Paymaster Configuration",
       description: `Manage stake and deposit with supported entrypoint contracts`
     },
   ];

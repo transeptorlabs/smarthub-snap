@@ -1,12 +1,7 @@
+import { Buffer } from 'buffer';
 import { Common, Hardfork } from '@ethereumjs/common';
 import { JsonTx, TransactionFactory } from '@ethereumjs/tx';
-import {
-  Address,
-  ecsign,
-  stripHexPrefix,
-  toBuffer,
-  toChecksumAddress,
-} from '@ethereumjs/util';
+import { ecsign, stripHexPrefix, toBuffer } from '@ethereumjs/util';
 import {
   SignTypedDataVersion,
   TypedDataV1,
@@ -23,14 +18,17 @@ import {
   SubmitRequestResponse,
 } from '@metamask/keyring-api';
 import type { Json, JsonRpcRequest } from '@metamask/utils';
-import { Buffer } from 'buffer';
 import { v4 as uuid } from 'uuid';
 
-import { SigningMethods } from './permissions';
-import { isEvmChain, serializeTransaction, isUniqueAccountName } from '../utils';
-import { storeKeyRing } from '../state/state';
 import { SimpleAccountAPI } from '@account-abstraction/sdk';
 import { Wallet as EthersWallet, ethers } from 'ethers';
+import {
+  isEvmChain,
+  serializeTransaction,
+  isUniqueAccountName,
+} from '../utils';
+import { storeKeyRing } from '../state/state';
+import { SigningMethods } from './permissions';
 
 export type KeyringState = {
   wallets: Record<string, Wallet>;
@@ -196,7 +194,9 @@ export class SimpleKeyring implements Keyring {
     return walletMatch;
   }
 
-  async #generateKeyPair(name: string): Promise<{ privateKey: string; address: string; }> {
+  async #generateKeyPair(
+    name: string,
+  ): Promise<{ privateKey: string; address: string }> {
     const privKey = await snap.request({
       method: 'snap_getEntropy',
       params: {
@@ -204,7 +204,7 @@ export class SimpleKeyring implements Keyring {
         salt: name,
       },
     });
-    const address = await new EthersWallet(privKey).getAddress()
+    const address = await new EthersWallet(privKey).getAddress();
     return { privateKey: privKey, address };
   }
 
@@ -346,5 +346,5 @@ export class SimpleKeyring implements Keyring {
       index: 0, // nonce value used when creating multiple accounts for the same owner
     });
     return aa;
-  };
+  }
 }

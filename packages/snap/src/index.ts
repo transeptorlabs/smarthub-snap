@@ -4,6 +4,12 @@ import { UserOperationStruct } from '@account-abstraction/contracts';
 import { copyable, heading, panel, text } from '@metamask/snaps-ui';
 import { deepHexlify } from '@account-abstraction/utils';
 import { resolveProperties } from 'ethers/lib/utils';
+import {
+  KeyringAccount,
+  MethodNotSupportedError,
+  buildHandlersChain,
+  handleKeyringRequest,
+} from '@metamask/keyring-api';
 import { HttpRpcClient, getBalance, getDeposit } from './client';
 import {
   clearActivityData,
@@ -24,12 +30,11 @@ import {
   UserOperationReceipt,
 } from './types';
 import {
-  KeyringAccount,
-  MethodNotSupportedError,
-  buildHandlersChain,
-  handleKeyringRequest,
-} from '@metamask/keyring-api';
-import { InternalMethod, KeyringState, PERMISSIONS, SimpleKeyring } from './keyring';
+  InternalMethod,
+  KeyringState,
+  PERMISSIONS,
+  SimpleKeyring,
+} from './keyring';
 
 let keyring: SimpleKeyring;
 
@@ -46,7 +51,9 @@ const permissionsHandler: OnRpcRequestHandler = async ({
   origin,
   request,
 }): Promise<never> => {
-  const hasPermission = Boolean(PERMISSIONS.get(origin)?.includes(request.method));
+  const hasPermission = Boolean(
+    PERMISSIONS.get(origin)?.includes(request.method),
+  );
   console.log('hasPermission:', hasPermission);
   if (!hasPermission) {
     throw new Error(`origin ${origin} cannot call method ${request.method}`);
@@ -61,7 +68,7 @@ const intitKeyRing = async () => {
       keyring = new SimpleKeyring(keyringState);
     }
   }
-}
+};
 
 /**
  * Handle keyring requests.
@@ -71,7 +78,7 @@ const intitKeyRing = async () => {
  * @returns The execution result.
  */
 const keyringHandler: OnRpcRequestHandler = async ({ request }) => {
-  await intitKeyRing()
+  await intitKeyRing();
   return await handleKeyringRequest(keyring, request);
 };
 
@@ -85,17 +92,14 @@ const keyringHandler: OnRpcRequestHandler = async ({ request }) => {
  * @returns The result of `snap_dialog`.
  * @throws If the request method is not valid for this snap.
  */
-const erc4337Handler: OnRpcRequestHandler = async ({
-  origin,
-  request,
-}) => {
+const erc4337Handler: OnRpcRequestHandler = async ({ origin, request }) => {
   const [bundlerUrls, chainId] = await Promise.all([
     getBundlerUrls(),
     ethereum.request({ method: 'eth_chainId' }),
   ]);
   const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
   let result;
-  await intitKeyRing()
+  await intitKeyRing();
 
   if (!request.params) {
     request.params = [];
@@ -107,7 +111,9 @@ const erc4337Handler: OnRpcRequestHandler = async ({
         request.params as any[]
       )[0] as SmartAccountParams;
 
-      const ownerAccount: KeyringAccount | undefined = await keyring.getAccount(params.keyringAccountId);
+      const ownerAccount: KeyringAccount | undefined = await keyring.getAccount(
+        params.keyringAccountId,
+      );
       if (!ownerAccount) {
         throw new Error('Account not found');
       }
@@ -333,7 +339,7 @@ const erc4337Handler: OnRpcRequestHandler = async ({
     case InternalMethod.Web3ClientVersion: {
       return await rpcClient.send(request.method, request.params as any[]);
     }
-    
+
     case InternalMethod.BundlerClearState: {
       return await rpcClient.send(request.method, request.params as any[]);
     }
@@ -349,7 +355,7 @@ const erc4337Handler: OnRpcRequestHandler = async ({
     case InternalMethod.BundlerSetBundlingMode: {
       return await rpcClient.send(request.method, request.params as any[]);
     }
-    
+
     case InternalMethod.BundlerSetReputation: {
       return await rpcClient.send(request.method, request.params as any[]);
     }
@@ -357,7 +363,7 @@ const erc4337Handler: OnRpcRequestHandler = async ({
     case InternalMethod.BundlerDumpReputation: {
       return await rpcClient.send(request.method, request.params as any[]);
     }
-    default: 
+    default:
       throw new Error('Method not found.');
   }
 };

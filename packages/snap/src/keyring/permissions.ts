@@ -29,7 +29,7 @@ export enum InternalMethod {
   EstimateUserOperationGas = 'eth_estimateUserOperationGas',
   GetUserOperationByHash = 'eth_getUserOperationByHash',
   Web3ClientVersion = 'web3_clientVersion',
-  
+
   // ERC-4337 methods debug namespace
   BundlerClearState = 'debug_bundler_clearState',
   BundlerDumpMempool = 'debug_bundler_dumpMempool',
@@ -81,10 +81,10 @@ export const PERMISSIONS = new Map<string, string[]>([
       RequestMethods.RejectRequest,
 
       // Smart account methods
-      InternalMethod.SmartAccount,      
+      InternalMethod.SmartAccount,
       InternalMethod.ConfirmedUserOps,
       InternalMethod.PendingUserOps,
-    
+
       // ERC-4337 methods eth namespace
       InternalMethod.SendUserOperation,
       InternalMethod.ChainId,
@@ -101,7 +101,7 @@ export const PERMISSIONS = new Map<string, string[]>([
       InternalMethod.BundlerSetBundlingMode,
       InternalMethod.BundlerSetReputation,
       InternalMethod.BundlerDumpReputation,
-    
+
       // Snap State management
       InternalMethod.AddBundlerUrl,
       InternalMethod.GetBundlerUrls,
@@ -123,7 +123,7 @@ export const PERMISSIONS = new Map<string, string[]>([
       RequestMethods.RejectRequest,
 
       // Smart account methods
-      InternalMethod.SmartAccount,      
+      InternalMethod.SmartAccount,
       InternalMethod.ConfirmedUserOps,
       InternalMethod.PendingUserOps,
 
@@ -143,7 +143,7 @@ export const PERMISSIONS = new Map<string, string[]>([
       InternalMethod.BundlerSetBundlingMode,
       InternalMethod.BundlerSetReputation,
       InternalMethod.BundlerDumpReputation,
-    
+
       // Snap State management
       InternalMethod.AddBundlerUrl,
       InternalMethod.GetBundlerUrls,

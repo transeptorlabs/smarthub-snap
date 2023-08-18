@@ -1,8 +1,10 @@
 import { KeyringState } from '../keyring';
 import { DEFAULT_BUNDLER_URLS, DEFAULT_STATE } from './state.contants';
 
-export const getState = async (keyringAccountId?: string): Promise<{
-  keyringState: KeyringState,
+export const getState = async (
+  keyringAccountId?: string,
+): Promise<{
+  keyringState: KeyringState;
   bundlerUrls: { [chainId: string]: string };
   userOpHashesPending: { [key: string]: string }; // key = keyringAccountId-chainId-userOpHash
   smartAccountActivity: {
@@ -13,13 +15,13 @@ export const getState = async (keyringAccountId?: string): Promise<{
         };
       };
     };
-  }
+  };
 }> => {
   let state = (await snap.request({
     method: 'snap_manageState',
     params: { operation: 'get' },
   })) as {
-    keyringState: KeyringState,
+    keyringState: KeyringState;
     bundlerUrls: { [chainId: string]: string };
     userOpHashesPending: { [key: string]: string };
     smartAccountActivity: {
@@ -30,7 +32,7 @@ export const getState = async (keyringAccountId?: string): Promise<{
           };
         };
       };
-    }
+    };
   } | null;
 
   if (state === null) {
@@ -40,28 +42,31 @@ export const getState = async (keyringAccountId?: string): Promise<{
 
   // if keyringAccountId does not exist, initialize it
   if (keyringAccountId !== undefined) {
-  if (state.smartAccountActivity[keyringAccountId] === undefined || state.smartAccountActivity[keyringAccountId] === null) {
-    state.smartAccountActivity[keyringAccountId] = {
-      scAccount: {
-        '0x539': {
-          userOpHashesConfirmed: [],
+    if (
+      state.smartAccountActivity[keyringAccountId] === undefined ||
+      state.smartAccountActivity[keyringAccountId] === null
+    ) {
+      state.smartAccountActivity[keyringAccountId] = {
+        scAccount: {
+          '0x539': {
+            userOpHashesConfirmed: [],
+          },
+          '0x1': {
+            userOpHashesConfirmed: [],
+          },
+          '0x5': {
+            userOpHashesConfirmed: [],
+          },
+          '0x89': {
+            userOpHashesConfirmed: [],
+          },
+          '0x13881': {
+            userOpHashesConfirmed: [],
+          },
         },
-        '0x1': {
-          userOpHashesConfirmed: [],
-        },
-        '0x5': {
-          userOpHashesConfirmed: [],
-        },
-        '0x89': {
-          userOpHashesConfirmed: [],
-        },
-        '0x13881': {
-          userOpHashesConfirmed: [],
-        },
-      },
-    };
+      };
+    }
   }
-}
 
   await snap.request({
     method: 'snap_manageState',
@@ -79,7 +84,8 @@ export const getUserOpHashsConfirmed = async (
 
   // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
   return Array.from(
-    state.smartAccountActivity[keyringAccountId].scAccount[chainId].userOpHashesConfirmed,
+    state.smartAccountActivity[keyringAccountId].scAccount[chainId]
+      .userOpHashesConfirmed,
   );
 };
 
@@ -126,9 +132,9 @@ export const storeUserOpHashConfirmed = async (
 ): Promise<boolean> => {
   const state = await getState(keyringAccountId);
 
-  state.smartAccountActivity[keyringAccountId].scAccount[chainId].userOpHashesConfirmed.push(
-    userOpHash,
-  );
+  state.smartAccountActivity[keyringAccountId].scAccount[
+    chainId
+  ].userOpHashesConfirmed.push(userOpHash);
 
   // remove userOpHash from pending
   delete state.userOpHashesPending[
@@ -172,19 +178,11 @@ export const storeBundlerUrl = async (
   return true;
 };
 
-const clearState = async (): Promise<boolean> => {
-  await snap.request({
-    method: 'snap_manageState',
-    params: { operation: 'clear' },
-  });
-  return true;
-};
-
 export const clearActivityData = async (): Promise<boolean> => {
   const state = await getState();
-  state.bundlerUrls = DEFAULT_BUNDLER_URLS
-  state.userOpHashesPending = {}
-  state.smartAccountActivity = {}
+  state.bundlerUrls = DEFAULT_BUNDLER_URLS;
+  state.userOpHashesPending = {};
+  state.smartAccountActivity = {};
 
   await snap.request({
     method: 'snap_manageState',
@@ -193,7 +191,7 @@ export const clearActivityData = async (): Promise<boolean> => {
   return true;
 };
 
-export const storeKeyRing = async (keyring:KeyringState): Promise<boolean> => {
+export const storeKeyRing = async (keyring: KeyringState): Promise<boolean> => {
   const state = await getState();
   state.keyringState = keyring;
 

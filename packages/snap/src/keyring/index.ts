@@ -1,2 +1,2 @@
-export * from './keyring'
-export * from './permissions'
+export * from './keyring';
+export * from './permissions';

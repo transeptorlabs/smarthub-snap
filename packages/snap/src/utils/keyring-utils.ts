@@ -1,8 +1,8 @@
 import { JsonTx } from '@ethereumjs/tx';
 import type { Json } from '@metamask/utils';
 
-import { Wallet } from '../keyring';
 import {
+  Wallet,
   InternalMethod,
   RequestMethods,
   SnapKeyringMethod,

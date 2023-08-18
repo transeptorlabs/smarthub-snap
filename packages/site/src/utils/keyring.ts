@@ -1,12 +1,16 @@
-import { KeyringAccount, KeyringRequest, KeyringSnapRpcClient } from "@metamask/keyring-api";
-import { getMMProvider } from "./metamask";
-import { defaultSnapOrigin } from "../config";
+import {
+  KeyringAccount,
+  KeyringRequest,
+  KeyringSnapRpcClient,
+} from '@metamask/keyring-api';
+import { defaultSnapOrigin } from '../config';
+import { getMMProvider } from './metamask';
 
 export type KeyringState = {
-    pendingRequests: KeyringRequest[];
-    accounts: KeyringAccount[];
+  pendingRequests: KeyringRequest[];
+  accounts: KeyringAccount[];
 };
 
 export const getKeyringClient = (): KeyringSnapRpcClient => {
-    return new KeyringSnapRpcClient(defaultSnapOrigin, getMMProvider());
+  return new KeyringSnapRpcClient(defaultSnapOrigin, getMMProvider());
 };

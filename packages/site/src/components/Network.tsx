@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import styled from 'styled-components';
-import { MetaMaskContext, MetamaskActions, useAcount } from '../hooks';
+import { MetaMaskContext, useAcount } from '../hooks';
 import { SupportedChainIdMap, getSupportedChainIdsArray } from '../types';
 import { switchChainId } from '../utils';
 

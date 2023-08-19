@@ -7,7 +7,7 @@ import { SupportedChainIdMap } from '../types';
 import { useContext, useState } from 'react';
 import { KeyringAccount } from "@metamask/keyring-api";
 import { ReactComponent as FlaskFox } from '../assets/flask_fox_account.svg';
-import { BlockieAccountModal } from './blockie';
+import { BlockieAccountModal } from './Blockie';
 import { FaCopy, FaInfoCircle } from "react-icons/fa";
 import { CommonInputForm } from './Form';
 

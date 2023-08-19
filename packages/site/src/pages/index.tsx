@@ -1,22 +1,14 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext, useAcount } from '../hooks';
 import {
   connectSnap,
   getSnap,
   shouldDisplayReconnectButton,
-  getMMProvider,
   convertToEth, 
-  convertToWei, 
-  estimateGas, 
-  isValidAddress, 
-  encodeFunctionData,
-  getEntryPointContract,
-  sendUserOperation,
   clearActivityData,
   parseChainId,
   addBundlerUrl,
-  switchChainId,
   trimAccount,
 } from '../utils';
 import {
@@ -28,12 +20,8 @@ import {
   SimpleButton,
   TabMenu,
   BundlerInputForm,
-  Modal,
-  AccountModalDropdown,
 } from '../components';
-import { BigNumber, ethers } from 'ethers';
 import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
-import { KeyringAccount } from "@metamask/keyring-api";
 
 const Container = styled.div`
   display: flex;

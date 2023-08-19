@@ -66,7 +66,6 @@
     "@metamask/snaps-types": "0.38.0-flask.1",
     "@metamask/snaps-ui": "^0.32.2",
     "@metamask/utils": "^3.3.0",
-    "@noble/bls12-381": "^1.2.0",
     "buffer": "^6.0.3",
     "eth-rpc-errors": "^4.0.3",
     "ethers": "^5.7.0",

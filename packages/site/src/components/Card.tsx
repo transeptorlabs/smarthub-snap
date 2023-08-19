@@ -2,10 +2,9 @@ import { ReactNode, useContext } from 'react';
 import styled from 'styled-components';
 import { FaCopy } from "react-icons/fa";
 import { trimAccount } from '../utils/eth';
-import { SmartAccountActivity, SupportedChainIdMap, UserOperation, UserOperationReceipt } from '../types';
+import { SmartAccountActivity, UserOperationReceipt } from '../types';
 import { BigNumber } from 'ethers';
-import { BlockieEoa, BlockieSc } from './blockie';
-import { MetaMaskContext } from '../hooks';
+import { BlockieEoa } from './Blockie';
 
 type CardProps = {
   content: {

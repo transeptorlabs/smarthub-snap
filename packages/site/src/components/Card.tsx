@@ -4,7 +4,7 @@ import { FaCopy } from "react-icons/fa";
 import { trimAccount } from '../utils/eth';
 import { SmartAccountActivity, UserOperationReceipt } from '../types';
 import { BigNumber } from 'ethers';
-import { BlockieEoa } from './Blockie';
+import { BlockieEoa } from './Blockie-Icon';
 
 type CardProps = {
   content: {

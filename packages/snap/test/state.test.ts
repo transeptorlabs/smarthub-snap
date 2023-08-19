@@ -1,4 +1,10 @@
-import { DEFAULT_STATE, getState, getUserOpHashsConfirmed } from '../src/state';
+import { v4 as uuid } from 'uuid';
+import {
+  DEFAULT_BUNDLER_URLS,
+  DEFAULT_STATE,
+  getState,
+  getUserOpHashsConfirmed,
+} from '../src/state';
 import { restoreGlobal, setupSnapMock } from './testUtils';
 
 describe('state module - State', () => {
@@ -14,7 +20,7 @@ describe('state module - State', () => {
     it('should return the default state when no state is retrieved', async () => {
       (global as any).snap.request.mockReturnValueOnce(Promise.resolve(null));
 
-      const result = await getState(0, 0);
+      const result = await getState();
 
       expect(JSON.stringify(result)).toStrictEqual(
         JSON.stringify(DEFAULT_STATE),
@@ -24,12 +30,22 @@ describe('state module - State', () => {
 
   describe('getUserOpHashsConfirmed', () => {
     it('should return an array of userOpHashesConfirmed', async () => {
+      const keyringAccountId = uuid();
       const mockState = {
-        0: {
-          scAccounts: {
-            0: {
-              '0x539': {
+        keyringState: {
+          wallets: {},
+          requests: {},
+        },
+        bundlerUrls: DEFAULT_BUNDLER_URLS,
+        userOpHashesPending: {},
+        smartAccountActivity: {
+          [keyringAccountId]: {
+            scAccount: {
+              '0x1': {
                 userOpHashesConfirmed: ['hash1', 'hash2'],
+              },
+              '0x5': {
+                userOpHashesConfirmed: ['hash3', 'hash4'],
               },
             },
           },
@@ -40,7 +56,7 @@ describe('state module - State', () => {
         Promise.resolve(mockState),
       );
 
-      const result = await getUserOpHashsConfirmed(0, 0, '0x539');
+      const result = await getUserOpHashsConfirmed(keyringAccountId, '0x1');
       expect(result).toStrictEqual(['hash1', 'hash2']);
     });
   });

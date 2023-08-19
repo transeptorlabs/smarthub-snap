@@ -1,31 +1,19 @@
+export const DEFAULT_BUNDLER_URLS = {
+  '0x539': 'http://localhost:3000/rpc', // 1337 - private
+  '0x1': '', // ethereum mainnet
+  '0x5': '', // goerli
+  '0x89': '', // polygon mainnet
+  '0x13881': '', // polygon mumbai
+  '0xa4b1': '', // Arbitrum
+  '0xa': '', // Optimism
+};
+
 export const DEFAULT_STATE = {
-  bundlerUrls: {
-    '0x539': 'http://localhost:3000/rpc', // 1337
-    '0x1': '', // ethereum mainnet
-    '0x5': '', // goerli
-    '0x89': '', // polygon mainnet
-    '0x13881': '', // polygon mumbai
+  keyringState: {
+    wallets: {},
+    requests: {},
   },
+  bundlerUrls: DEFAULT_BUNDLER_URLS,
   userOpHashesPending: {},
-  0: {
-    scAccounts: {
-      0: {
-        '0x539': {
-          userOpHashesConfirmed: [],
-        },
-        '0x1': {
-          userOpHashesConfirmed: [],
-        },
-        '0x5': {
-          userOpHashesConfirmed: [],
-        },
-        '0x89': {
-          userOpHashesConfirmed: [],
-        },
-        '0x13881': {
-          userOpHashesConfirmed: [],
-        },
-      },
-    },
-  },
+  smartAccountActivity: {},
 };

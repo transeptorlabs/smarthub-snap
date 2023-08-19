@@ -1,18 +1,20 @@
-import { useContext } from 'react';
+import { useContext, useRef, useState } from 'react';
 import styled, { useTheme } from 'styled-components';
-import { MetamaskActions, MetaMaskContext, useAcount } from '../hooks';
-import { connectSnap, getThemePreference, getSnap, connectErc4337Relayer } from '../utils';
-import { HeaderButtons } from './Buttons';
+import { MetaMaskContext } from '../hooks';
+import { getThemePreference } from '../utils';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
-import { getChainId } from '../utils/eth';
+import { SupportedChainIdMap } from '../types';
+import { Modal } from './Modal';
+import { FaCaretDown, FaCaretUp } from "react-icons/fa";
+import { AccountHeaderDisplay, AccountModalDropdown } from './Account';
+import { NetworkModalDropdown } from './Network';
 
 const HeaderWrapper = styled.header`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 2.4rem;
   border-bottom: 1px solid ${(props) => props.theme.colors.border.default};
 `;
 
@@ -22,46 +24,36 @@ const Title = styled.p`
   font-weight: bold;
   margin: 0;
   margin-left: 1.2rem;
+`;
+
+const FlexRowWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
+const IconContainer = styled.div`
+  margin-left: 1rem; 
+`;
+
+const HeaderItemContainer = styled.div`
+  border-left: 1px solid ${({ theme }) => theme.colors.border.default};
+  padding: 1rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  cursor: pointer;
+`
+
+const LogoContainer = styled.div`
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   ${({ theme }) => theme.mediaQueries.small} {
     display: none;
   }
-`;
-
-const LogoWrapper = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
-
-const RightContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
-
-const Link = styled.a`
-  display: flex;
-  align-self: flex-start;
-  align-items: center;
-  justify-content: center;
-  font-size: ${(props) => props.theme.fontSizes.large};
-  color: ${(props) => props.theme.colors.text.default};
-  text-decoration: none;
-  font-weight: bold;
-  padding: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-
-  &:hover {
-    background-color: transparent;
-    color: ${(props) => props.theme.colors.primary.default};
-  }
-
-  ${({ theme }) => theme.mediaQueries.small} {
-    width: 100%;
-    box-sizing: border-box;
-  }
-`;
+`
 
 export const Header = ({
   handleToggleClick,
@@ -69,65 +61,74 @@ export const Header = ({
   handleToggleClick(): void;
 }) => {
   const theme = useTheme();
-  const [state, dispatch] = useContext(MetaMaskContext);
-  const {getEoa, getScAccountState, getAccountActivity, setWalletListener, updateChain} = useAcount();
+  const [state] = useContext(MetaMaskContext);
+  const [modalOpenNetwork, setModalOpenNetwork] = useState(false);
+  const [modalOpenAccount, setModalOpenAccount] = useState(false);
+  const networkRef = useRef<any>(null);
+  const accountRef = useRef<any>(null);
 
-  const handleConnectClick = async () => {
-    try {
-      let installedSnap = await getSnap();
-      if (!installedSnap) {
-        // installing snap
-        await connectSnap();
-        installedSnap = await getSnap();
-        dispatch({
-          type: MetamaskActions.SetInstalled,
-          payload: installedSnap,
-        });
-        return
-      } else {
-        // snap already installed
-        dispatch({
-          type: MetamaskActions.SetInstalled,
-          payload: installedSnap,
-        });
-      }
-      
-      await updateChain();
-      const ownerEoa = await getEoa();
-      const smartAccount = await getScAccountState(ownerEoa.address);
-      await getAccountActivity(ownerEoa.address, Number(smartAccount.index));
-      await setWalletListener();
-    } catch (e) {
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-      dispatch({ type: MetamaskActions.SetClearAccount, payload: true});
-      dispatch({ type: MetamaskActions.SetClearSmartAccountActivity, payload: true});
-    }
+  const openNetworkModal = () => {
+    setModalOpenNetwork(true);
+  };
+
+  const closeNetworkModal = () => {
+    setModalOpenNetwork(false);
+  };
+
+  const openAccountModal = () => {
+    setModalOpenAccount(true);
+  };
+
+  const closeAccountModal = () => {
+    setModalOpenAccount(false);
   };
 
   return (
     <HeaderWrapper>
-      <LogoWrapper>
-        <SnapLogo color={theme.colors.icon.default} size={36} />
-        <Title>ERC-4337 Relayer</Title>
-      </LogoWrapper>
-      <RightContainer>
-        <LogoWrapper>
-          <Link
-            href="https://github.com/transeptorlabs/erc-4337-snap"
-            target="_blank"
-          >
-            Github
-          </Link>
+      {/* Network Modal*/}
+      <Modal isOpen={modalOpenNetwork} onClose={closeNetworkModal} buttonRef={networkRef} right={5}>
+        <NetworkModalDropdown closeModal={closeNetworkModal}/>
+      </Modal>
 
-          <Toggle
-            onToggle={handleToggleClick}
-            defaultChecked={getThemePreference()}
-          />
-        </LogoWrapper>
-        <LogoWrapper>
-          <HeaderButtons state={state} onConnectClick={handleConnectClick} />
-        </LogoWrapper>
-      </RightContainer>
+      {/* Account Modal*/}
+      <Modal isOpen={modalOpenAccount} onClose={closeAccountModal} buttonRef={accountRef} right={80}>
+        <AccountModalDropdown closeModal={closeAccountModal}/>
+      </Modal>
+
+      {/* Logo Display*/}
+      <FlexRowWrapper>
+        <LogoContainer>
+          <SnapLogo color={theme.colors.icon.default} size={36} />
+          <Title>ERC-4337 Relayer</Title>
+        </LogoContainer>
+      </FlexRowWrapper>
+
+      <FlexRowWrapper>
+        <Toggle onToggle={handleToggleClick} defaultChecked={getThemePreference()}/>
+        
+        {/* Account Display */}
+        <HeaderItemContainer ref={accountRef} onClick={openAccountModal}>
+          <AccountHeaderDisplay />
+          {modalOpenAccount ? <IconContainer><FaCaretUp /></IconContainer> : <IconContainer><FaCaretDown /></IconContainer> }
+        </HeaderItemContainer>
+
+        {/* Network Display */}
+        {state.isFlask && (
+          <HeaderItemContainer ref={networkRef} onClick={openNetworkModal}>
+            <FlexRowWrapper>
+              {SupportedChainIdMap[state.chainId]  && (
+                  <img
+                  src={SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId].icon : SupportedChainIdMap[''].icon}
+                  width={38}
+                  height={38}
+                  alt={SupportedChainIdMap[state.chainId] ? `${SupportedChainIdMap[state.chainId].name} logo` : 'Network not supported logo'}
+                />
+              )}
+              {modalOpenNetwork ? <IconContainer><FaCaretUp /></IconContainer> : <IconContainer><FaCaretDown /></IconContainer> }
+            </FlexRowWrapper>
+          </HeaderItemContainer>
+        )}
+      </FlexRowWrapper>
     </HeaderWrapper>
   );
 };

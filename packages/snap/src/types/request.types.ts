@@ -1,18 +1,25 @@
 export type SmartAccountParams = {
-  scOwnerAddress: string;
+  keyringAccountId: string;
+  chainId: string;
 };
 
 export type GetUserOpParams = {
   userOpHash: string;
+  chainId: string;
 };
 
 export type SendUserOpParams = {
   target: string;
   data: string;
-  scOwnerAddress: string;
+  keyringAccountId: string;
+  chainId: string;
 };
 
 export type SmartAccountActivityParams = {
-  scOwnerAddress: string;
-  scIndex: number;
+  keyringAccountId: string;
+  chainId: string;
+};
+
+export type BaseParams = {
+  chainId: string;
 };

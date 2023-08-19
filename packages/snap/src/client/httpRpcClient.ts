@@ -24,7 +24,10 @@ export class HttpRpcClient {
     const bundlerUrl = bundlerUrls[chainId];
     if (!bundlerUrl) {
       throw new Error(
-        `ChainId ${parseInt(chainId as string, 16)} not supported`,
+        `Bundler url not configure for chain Id ${parseInt(
+          chainId as string,
+          16,
+        )}. Please configure it in the snap's settings.`,
       );
     }
     this.bundlerUrl = bundlerUrl;

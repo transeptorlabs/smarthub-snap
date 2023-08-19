@@ -7,21 +7,22 @@ import {
   useReducer,
 } from 'react';
 import { AppTab, BundlerUrls, Snap } from '../types';
-import { isFlask, getSnap } from '../utils';
-import { EOA, SmartAccountActivity, SmartContractAccount } from '../types/erc-4337';
+import { isFlask, getSnap, KeyringState } from '../utils';
+import { SmartAccountActivity, SmartContractAccount } from '../types/erc-4337';
+import { KeyringAccount } from "@metamask/keyring-api";
 
 export type MetamaskState = {
   isFlask: boolean;
-  isChainIdListener: boolean;
   installedSnap?: Snap;
   error?: Error;
-  userOpsHash?: string;
-  eoa: EOA;
-  scAccount: SmartContractAccount;
+  isChainIdListener: boolean;
   chainId: string;
   activeTab: AppTab;
-  bundlerUrls?: BundlerUrls;
+  snapKeyring: KeyringState;
+  selectedSnapKeyringAccount: KeyringAccount;
+  scAccount: SmartContractAccount;
   smartAccountActivity: SmartAccountActivity;
+  bundlerUrls?: BundlerUrls;
 };
 
 const initialState: MetamaskState = {
@@ -30,18 +31,18 @@ const initialState: MetamaskState = {
   installedSnap: undefined,
   isChainIdListener: false,
   chainId: '',
-  activeTab: AppTab.About,
-  bundlerUrls: undefined,
-  smartAccountActivity: {
-    pendingUserOpHashes: [],
-    confirmedUserOpHashes: [],
-    userOperationReceipts: [],
-    scIndex: 0,
+  activeTab: AppTab.SmartAccount,
+  snapKeyring: {
+    pendingRequests: [],
+    accounts: [],
   },
-  eoa: {
-    connected: false,
+  selectedSnapKeyringAccount: {
+    id: '',
+    name: '',
     address: '',
-    balance: '',  // in wei
+    options: {},
+    supportedMethods: [],
+    type: 'eip155:erc4337',
   },
   scAccount: {
     connected: false,
@@ -54,6 +55,12 @@ const initialState: MetamaskState = {
     factoryAddress: '',
     ownerAddress: '',
   },
+  smartAccountActivity: {
+    pendingUserOpHashes: [],
+    confirmedUserOpHashes: [],
+    userOperationReceipts: [],
+  },
+  bundlerUrls: undefined,
 };
 
 type MetamaskDispatch = { type: MetamaskActions; payload: any };
@@ -71,16 +78,16 @@ export enum MetamaskActions {
   SetInstalled = 'SetInstalled',
   SetFlaskDetected = 'SetFlaskDetected',
   SetError = 'SetError',
-  SetEOA = "SetEOA",
-  SetScAccount = "SetScAccount",
-  SetSupportedEntryPoints = 'SetSupportedEntryPoints',
   SetWalletListener = 'SetWalletListener',
-  SetClearAccount = 'SetClearAccount',
   SetChainId = 'SetChainId',
   SetActiveTab = 'SetActiveTab',
-  SetBundlerUrls = 'SetBundlerUrls',
+  SetSnapKeyring = 'SetSnapKeyring',
+  SetSelectedSnapKeyringAccount = "SetSelectedKeyringAccount",
+  SetScAccount = "SetScAccount",
   SetSmartAccountActivity = 'SetSmartAccountActivity',
-  SetClearSmartAccountActivity = 'SetClearSmartAccountActivity',
+  SetClearAccount = 'SetClearAccount',
+  SetBundlerUrls = 'SetBundlerUrls',
+  SetSupportedEntryPoints = 'SetSupportedEntryPoints',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -103,11 +110,17 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         error: action.payload,
       };
 
-    case MetamaskActions.SetEOA:
+    case MetamaskActions.SetSelectedSnapKeyringAccount:
       return {
         ...state,
-        eoa: action.payload,
+        selectedSnapKeyringAccount: action.payload,
       };
+
+      case MetamaskActions.SetSelectedSnapKeyringAccount:
+        return {
+          ...state,
+          selectedSnapKeyringAccount: action.payload,
+        };
 
     case MetamaskActions.SetScAccount:
       return {
@@ -145,13 +158,22 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         bundlerUrls: action.payload,
       };
 
+    case MetamaskActions.SetSnapKeyring:
+      return {
+        ...state,
+        snapKeyring: action.payload,
+      };
+      
     case MetamaskActions.SetClearAccount:
       return {
         ...state,
-        eoa: {
-          connected: false,
+        selectedSnapKeyringAccount: {
+          id: '',
+          name: '',
           address: '',
-          balance: '',  // in wei
+          options: {},
+          supportedMethods: [],
+          type: 'eip155:erc4337',
         },
         scAccount: {
           connected: false,
@@ -163,20 +185,13 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
           deposit: '',
           factoryAddress: '',
           ownerAddress: '',
-          bundlerUrl: '',
+        },
+        smartAccountActivity: {
+          pendingUserOpHashes: [],
+          confirmedUserOpHashes: [],
+          userOperationReceipts: [],
         },
       };
-    case MetamaskActions.SetClearSmartAccountActivity:
-      return {
-        ...state,
-      smartAccountActivity: {
-        pendingUserOpHashes: [],
-        confirmedUserOpHashes: [],
-        userOperationReceipts: [],
-        scIndex: 0,
-      },
-    };
-
     default:
       return state;
   }

@@ -4,11 +4,15 @@ import { UserOperationStruct } from '@account-abstraction/contracts';
 import { copyable, heading, panel, text } from '@metamask/snaps-ui';
 import { deepHexlify } from '@account-abstraction/utils';
 import { resolveProperties } from 'ethers/lib/utils';
-import { BigNumber } from 'ethers';
-import { HttpRpcClient, getBalance, getDeposit } from './client';
-import { findAccountIndex, getSimpleScAccount } from './wallet';
 import {
-  clearState,
+  KeyringAccount,
+  MethodNotSupportedError,
+  buildHandlersChain,
+  handleKeyringRequest,
+} from '@metamask/keyring-api';
+import { HttpRpcClient, getBalance, getDeposit } from './client';
+import {
+  clearActivityData,
   getBundlerUrls,
   getUserOpHashsConfirmed,
   getAllUserOpHashsPending,
@@ -16,6 +20,7 @@ import {
   storeBundlerUrl,
   storeUserOpHashConfirmed,
   storeUserOpHashPending,
+  getKeyRing,
 } from './state';
 import {
   GetUserOpParams,
@@ -24,6 +29,58 @@ import {
   SmartAccountParams,
   UserOperationReceipt,
 } from './types';
+import {
+  InternalMethod,
+  KeyringState,
+  PERMISSIONS,
+  SimpleKeyring,
+} from './keyring';
+
+let keyring: SimpleKeyring;
+
+/**
+ * Handle execution permissions.
+ *
+ * @param args - Request arguments.
+ * @param args.origin - Caller origin.
+ * @param args.request - Request to execute.
+ * @returns Nothing, throws `MethodNotSupportedError` if the caller IS allowed
+ * to call the method, throws an `Error` otherwise.
+ */
+const permissionsHandler: OnRpcRequestHandler = async ({
+  origin,
+  request,
+}): Promise<never> => {
+  const hasPermission = Boolean(
+    PERMISSIONS.get(origin)?.includes(request.method),
+  );
+  console.log('hasPermission:', hasPermission);
+  if (!hasPermission) {
+    throw new Error(`origin ${origin} cannot call method ${request.method}`);
+  }
+  throw new MethodNotSupportedError(request.method);
+};
+
+const intitKeyRing = async () => {
+  if (!keyring) {
+    const keyringState: KeyringState = await getKeyRing();
+    if (!keyring) {
+      keyring = new SimpleKeyring(keyringState);
+    }
+  }
+};
+
+/**
+ * Handle keyring requests.
+ *
+ * @param args - Request arguments.
+ * @param args.request - Request to execute.
+ * @returns The execution result.
+ */
+const keyringHandler: OnRpcRequestHandler = async ({ request }) => {
+  await intitKeyRing();
+  return await handleKeyringRequest(keyring, request);
+};
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -35,41 +92,38 @@ import {
  * @returns The result of `snap_dialog`.
  * @throws If the request method is not valid for this snap.
  */
-export const onRpcRequest: OnRpcRequestHandler = async ({
-  origin,
-  request,
-}) => {
+const erc4337Handler: OnRpcRequestHandler = async ({ origin, request }) => {
   const [bundlerUrls, chainId] = await Promise.all([
     getBundlerUrls(),
     ethereum.request({ method: 'eth_chainId' }),
   ]);
   const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
   let result;
-  let scAccount: SimpleAccountAPI;
-  let scOwnerAddress: string;
-  let scAddress: string;
-  let eoaIndex: number;
-  let scIndex: number;
+  await intitKeyRing();
 
   if (!request.params) {
     request.params = [];
   }
 
   switch (request.method) {
-    case 'sc_account': {
+    case InternalMethod.SmartAccount: {
       const params: SmartAccountParams = (
         request.params as any[]
       )[0] as SmartAccountParams;
 
-      eoaIndex = await findAccountIndex(params.scOwnerAddress);
-      scOwnerAddress = params.scOwnerAddress;
-      scAccount = await getSimpleScAccount(
+      const ownerAccount: KeyringAccount | undefined = await keyring.getAccount(
+        params.keyringAccountId,
+      );
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
+
+      const scAccount: SimpleAccountAPI = await keyring.getSmartAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
-        eoaIndex,
+        ownerAccount.id,
       );
-      scIndex = BigNumber.from(scAccount.index).toNumber();
-      scAddress = await scAccount.getCounterFactualAddress();
+      const scAddress = await scAccount.getCounterFactualAddress();
 
       const [balance, nonce, deposit] = await Promise.all([
         await getBalance(scAddress),
@@ -85,25 +139,93 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         entryPoint: rpcClient.getEntryPointAddr(),
         factoryAddress: rpcClient.getAccountFactoryAddr(),
         deposit,
-        ownerAddress: scOwnerAddress,
+        ownerAddress: ownerAccount.address,
       });
 
       return result;
     }
 
-    case 'eth_sendUserOperation': {
+    case InternalMethod.ConfirmedUserOps: {
+      const params: SmartAccountActivityParams = (
+        request.params as any[]
+      )[0] as SmartAccountActivityParams;
+
+      const ownerAccount = await keyring.getAccount(params.keyringAccountId);
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
+
+      const userOpHashesConfirmed: string[] = await getUserOpHashsConfirmed(
+        ownerAccount.id,
+        chainId as string,
+      );
+      result = userOpHashesConfirmed;
+      return result;
+    }
+
+    case InternalMethod.PendingUserOps: {
+      const params: SmartAccountActivityParams = (
+        request.params as any[]
+      )[0] as SmartAccountActivityParams;
+
+      const ownerAccount = await keyring.getAccount(params.keyringAccountId);
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
+
+      const userOpHashesPending: string[] = await getUserOpHashsPending(
+        ownerAccount.id,
+        chainId as string,
+      );
+      result = userOpHashesPending;
+      return result;
+    }
+
+    case InternalMethod.AddBundlerUrl: {
+      result = await storeBundlerUrl(
+        (request.params as any[])[0],
+        (request.params as any[])[1],
+      );
+      return result;
+    }
+
+    case InternalMethod.GetBundlerUrls: {
+      result = JSON.stringify(await getBundlerUrls());
+      return result;
+    }
+
+    case InternalMethod.ClearActivityData: {
+      result = await clearActivityData();
+      if (!result) {
+        throw new Error('Failed to clear activity data');
+      }
+      return result;
+    }
+
+    case InternalMethod.ChainId: {
+      return await rpcClient.send(request.method, request.params as any[]);
+    }
+
+    case InternalMethod.SendUserOperation: {
       const params: SendUserOpParams = (
         request.params as any[]
       )[0] as SendUserOpParams;
       const { target } = params;
       const { data } = params;
-      eoaIndex = await findAccountIndex(params.scOwnerAddress);
-      scAccount = await getSimpleScAccount(
+      const ownerAccount = await keyring.getAccount(params.keyringAccountId);
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
+
+      if (ownerAccount.type !== 'eip155:erc4337') {
+        throw new Error('Account is not a ERC-4337 smart account');
+      }
+
+      const scAccount = await keyring.getSmartAccount(
         rpcClient.getEntryPointAddr(),
         rpcClient.getAccountFactoryAddr(),
-        eoaIndex as unknown as number,
+        ownerAccount.id,
       );
-      scIndex = BigNumber.from(scAccount.index).toNumber();
 
       if (
         await snap.request({
@@ -139,8 +261,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           if (
             !(await storeUserOpHashPending(
               rpcResult.data as string,
-              eoaIndex,
-              scIndex,
+              ownerAccount.id,
               chainId as string,
             ))
           ) {
@@ -156,7 +277,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
                   `Sent from Smart account: ${await scAccount.getAccountAddress()}`,
                 ),
                 text(`User operation hash: ${rpcResult.data}`),
-                text(`Signed by owner(EOA): ${params.scOwnerAddress}`),
+                text(`Signed by owner(EOA): ${ownerAccount.address}`),
                 text(`To contract: ${target}`),
               ]),
             },
@@ -179,68 +300,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       throw new Error('User cancelled the User Operation');
     }
 
-    case 'confirmed_UserOperation': {
-      const params: SmartAccountActivityParams = (
-        request.params as any[]
-      )[0] as SmartAccountActivityParams;
-
-      eoaIndex = await findAccountIndex(params.scOwnerAddress);
-      scIndex = params.scIndex;
-      scAccount = await getSimpleScAccount(
-        rpcClient.getEntryPointAddr(),
-        rpcClient.getAccountFactoryAddr(),
-        eoaIndex,
-      );
-
-      const userOpHashesConfirmed: string[] = await getUserOpHashsConfirmed(
-        eoaIndex,
-        scIndex,
-        chainId as string,
-      );
-      result = userOpHashesConfirmed;
-      return result;
-    }
-
-    case 'pending_UserOperation': {
-      const params: SmartAccountActivityParams = (
-        request.params as any[]
-      )[0] as SmartAccountActivityParams;
-
-      eoaIndex = await findAccountIndex(params.scOwnerAddress);
-      scIndex = params.scIndex;
-      scAccount = await getSimpleScAccount(
-        rpcClient.getEntryPointAddr(),
-        rpcClient.getAccountFactoryAddr(),
-        eoaIndex,
-      );
-
-      const userOpHashesPending: string[] = await getUserOpHashsPending(
-        eoaIndex,
-        scIndex,
-        chainId as string,
-      );
-      result = userOpHashesPending;
-      return result;
-    }
-
-    case 'add_bundler_url':
-      result = await storeBundlerUrl(
-        (request.params as any[])[0],
-        (request.params as any[])[1],
-      );
-      return result;
-    case 'get_bundler_urls':
-      result = JSON.stringify(await getBundlerUrls());
-      return result;
-    case 'eth_chainId':
-      return await rpcClient.send(request.method, request.params as any[]);
-    case 'clear_activity_data':
-      result = await clearState();
-      if (!result) {
-        throw new Error('Failed to clear activity data');
-      }
-      return result;
-    case 'eth_getUserOperationReceipt': {
+    case InternalMethod.GetUserOperationReceipt: {
       const params: GetUserOpParams = (
         request.params as any[]
       )[0] as GetUserOpParams;
@@ -254,11 +314,15 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       return rpcResult.data;
     }
 
-    case 'eth_supportedEntryPoints':
+    case InternalMethod.SupportedEntryPoints: {
       return await rpcClient.send(request.method, []);
-    case 'eth_estimateUserOperationGas':
+    }
+
+    case InternalMethod.EstimateUserOperationGas: {
       return await rpcClient.send(request.method, request.params as any[]);
-    case 'eth_getUserOperationByHash': {
+    }
+
+    case InternalMethod.GetUserOperationByHash: {
       const params: GetUserOpParams = (
         request.params as any[]
       )[0] as GetUserOpParams;
@@ -271,24 +335,44 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       }
       return rpcResult.data;
     }
-    case 'web3_clientVersion':
+
+    case InternalMethod.Web3ClientVersion: {
       return await rpcClient.send(request.method, request.params as any[]);
-    case 'debug_bundler_clearState':
+    }
+
+    case InternalMethod.BundlerClearState: {
       return await rpcClient.send(request.method, request.params as any[]);
-    case 'debug_bundler_dumpMempool':
+    }
+
+    case InternalMethod.BundlerDumpMempool: {
       return await rpcClient.send(request.method, request.params as any[]);
-    case 'debug_bundler_sendBundleNow':
+    }
+
+    case InternalMethod.BundlerSendBundleNow: {
       return await rpcClient.send(request.method, request.params as any[]);
-    case 'debug_bundler_setBundlingMode':
+    }
+
+    case InternalMethod.BundlerSetBundlingMode: {
       return await rpcClient.send(request.method, request.params as any[]);
-    case 'debug_bundler_setReputation':
+    }
+
+    case InternalMethod.BundlerSetReputation: {
       return await rpcClient.send(request.method, request.params as any[]);
-    case 'debug_bundler_dumpReputation':
+    }
+
+    case InternalMethod.BundlerDumpReputation: {
       return await rpcClient.send(request.method, request.params as any[]);
+    }
     default:
       throw new Error('Method not found.');
   }
 };
+
+export const onRpcRequest: OnRpcRequestHandler = buildHandlersChain(
+  permissionsHandler,
+  keyringHandler,
+  erc4337Handler,
+);
 
 export const onCronjob: OnCronjobHandler = async ({ request }) => {
   const [bundlerUrls, chainId] = await Promise.all([
@@ -310,12 +394,12 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
           return null;
         }
 
-        firstkey = Object.keys(allUserOpHashesPending)[0]; // key = eoaIndex-scIndex-chainId-userOpHash
+        firstkey = Object.keys(allUserOpHashesPending)[0]; // key = keyringAccountId-chainId-userOpHash
         userOpHash = allUserOpHashesPending[firstkey];
 
         rpcClient = new HttpRpcClient(
           bundlerUrls,
-          firstkey.split('-')[2] as string,
+          firstkey.split('-')[1], // chainId
         );
 
         const rpcResult = await rpcClient.send('eth_getUserOperationReceipt', [
@@ -333,9 +417,8 @@ export const onCronjob: OnCronjobHandler = async ({ request }) => {
         userOperationReceipt = rpcResult.data as UserOperationReceipt;
         await storeUserOpHashConfirmed(
           userOpHash,
-          Number(firstkey.split('-')[0]),
-          Number(firstkey.split('-')[1]),
-          firstkey.split('-')[2],
+          firstkey.split('-')[0], // keyringAccountId
+          firstkey.split('-')[1], // chainId
         );
 
         return snap.request({

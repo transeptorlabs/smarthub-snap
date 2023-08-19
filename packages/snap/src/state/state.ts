@@ -1,14 +1,15 @@
-import { DEFAULT_STATE } from './state.contants';
+import { KeyringState } from '../keyring';
+import { DEFAULT_BUNDLER_URLS, DEFAULT_STATE } from './state.contants';
 
 export const getState = async (
-  eoaIndex = 0,
-  scIndex = 0,
+  keyringAccountId?: string,
 ): Promise<{
+  keyringState: KeyringState;
   bundlerUrls: { [chainId: string]: string };
-  userOpHashesPending: { [key: string]: string }; // key = eoaIndex-scIndex-chainId
-  [eoaIndex: number]: {
-    scAccounts: {
-      [scIndex: number]: {
+  userOpHashesPending: { [key: string]: string }; // key = keyringAccountId-chainId-userOpHash
+  smartAccountActivity: {
+    [keyringAccountId: string]: {
+      scAccount: {
         [chainId: string]: {
           userOpHashesConfirmed: string[];
         };
@@ -20,11 +21,12 @@ export const getState = async (
     method: 'snap_manageState',
     params: { operation: 'get' },
   })) as {
+    keyringState: KeyringState;
     bundlerUrls: { [chainId: string]: string };
     userOpHashesPending: { [key: string]: string };
-    [eoaIndex: number]: {
-      scAccounts: {
-        [scIndex: number]: {
+    smartAccountActivity: {
+      [keyringAccountId: string]: {
+        scAccount: {
           [chainId: string]: {
             userOpHashesConfirmed: string[];
           };
@@ -38,35 +40,32 @@ export const getState = async (
     state = DEFAULT_STATE;
   }
 
-  // if eoaIndex does not exist, initialize it
-  if (state[eoaIndex] === undefined || state[eoaIndex] === null) {
-    state[eoaIndex] = {
-      scAccounts: {},
-    };
-  }
-
-  // if scIndex does not exist, initialize it
-  if (
-    state[eoaIndex].scAccounts[scIndex] === undefined ||
-    state[eoaIndex].scAccounts[scIndex] === null
-  ) {
-    state[eoaIndex].scAccounts[scIndex] = {
-      '0x539': {
-        userOpHashesConfirmed: [],
-      },
-      '0x1': {
-        userOpHashesConfirmed: [],
-      },
-      '0x5': {
-        userOpHashesConfirmed: [],
-      },
-      '0x89': {
-        userOpHashesConfirmed: [],
-      },
-      '0x13881': {
-        userOpHashesConfirmed: [],
-      },
-    };
+  // if keyringAccountId does not exist, initialize it
+  if (keyringAccountId !== undefined) {
+    if (
+      state.smartAccountActivity[keyringAccountId] === undefined ||
+      state.smartAccountActivity[keyringAccountId] === null
+    ) {
+      state.smartAccountActivity[keyringAccountId] = {
+        scAccount: {
+          '0x539': {
+            userOpHashesConfirmed: [],
+          },
+          '0x1': {
+            userOpHashesConfirmed: [],
+          },
+          '0x5': {
+            userOpHashesConfirmed: [],
+          },
+          '0x89': {
+            userOpHashesConfirmed: [],
+          },
+          '0x13881': {
+            userOpHashesConfirmed: [],
+          },
+        },
+      };
+    }
   }
 
   await snap.request({
@@ -78,15 +77,15 @@ export const getState = async (
 };
 
 export const getUserOpHashsConfirmed = async (
-  eoaIndex: number,
-  scIndex: number,
+  keyringAccountId: string,
   chainId: string,
 ): Promise<string[]> => {
-  const state = await getState(eoaIndex, scIndex);
+  const state = await getState(keyringAccountId);
 
   // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
   return Array.from(
-    state[eoaIndex].scAccounts[scIndex][chainId].userOpHashesConfirmed,
+    state.smartAccountActivity[keyringAccountId].scAccount[chainId]
+      .userOpHashesConfirmed,
   );
 };
 
@@ -99,8 +98,7 @@ export const getAllUserOpHashsPending = async (): Promise<{
 };
 
 export const getUserOpHashsPending = async (
-  eoaIndex: number,
-  scIndex: number,
+  keyringAccountId: string,
   chainId: string,
 ): Promise<string[]> => {
   const state = await getState();
@@ -110,22 +108,13 @@ export const getUserOpHashsPending = async (
 
   for (const key in userOpHashesPending) {
     if (
-      key.includes(`${eoaIndex}-${scIndex}-${chainId}`) &&
+      key.includes(`${keyringAccountId}-${chainId}`) &&
       userOpHashesPending[key] !== undefined
     ) {
       foundUserOpHashesPending.push(userOpHashesPending[key]);
     }
   }
   return foundUserOpHashesPending;
-};
-
-export const getTotalSmartAccount = async (
-  eoaIndex: number,
-): Promise<number> => {
-  const state = await getState();
-  // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
-  const smartAccounts = Object.assign({}, state[eoaIndex].scAccounts);
-  return Object.keys(smartAccounts).length;
 };
 
 export const getBundlerUrls = async (): Promise<{
@@ -137,20 +126,19 @@ export const getBundlerUrls = async (): Promise<{
 };
 
 export const storeUserOpHashConfirmed = async (
-  userOpHash: string,
-  eoaIndex: number,
-  scIndex: number,
+  keyringAccountId: string,
   chainId: string,
+  userOpHash: string,
 ): Promise<boolean> => {
-  const state = await getState(eoaIndex, scIndex);
+  const state = await getState(keyringAccountId);
 
-  state[eoaIndex].scAccounts[scIndex][chainId].userOpHashesConfirmed.push(
-    userOpHash,
-  );
+  state.smartAccountActivity[keyringAccountId].scAccount[
+    chainId
+  ].userOpHashesConfirmed.push(userOpHash);
 
   // remove userOpHash from pending
   delete state.userOpHashesPending[
-    `${eoaIndex}-${scIndex}-${chainId}-${userOpHash}`
+    `${keyringAccountId}-${chainId}-${userOpHash}`
   ];
 
   await snap.request({
@@ -162,12 +150,11 @@ export const storeUserOpHashConfirmed = async (
 
 export const storeUserOpHashPending = async (
   userOpHash: string,
-  eoaIndex: number,
-  scIndex: number,
+  keyringAccountId: string,
   chainId: string,
 ): Promise<boolean> => {
   const state = await getState();
-  state.userOpHashesPending[`${eoaIndex}-${scIndex}-${chainId}-${userOpHash}`] =
+  state.userOpHashesPending[`${keyringAccountId}-${chainId}-${userOpHash}`] =
     userOpHash;
 
   await snap.request({
@@ -191,10 +178,31 @@ export const storeBundlerUrl = async (
   return true;
 };
 
-export const clearState = async (): Promise<boolean> => {
+export const clearActivityData = async (): Promise<boolean> => {
+  const state = await getState();
+  state.bundlerUrls = DEFAULT_BUNDLER_URLS;
+  state.userOpHashesPending = {};
+  state.smartAccountActivity = {};
+
   await snap.request({
     method: 'snap_manageState',
-    params: { operation: 'clear' },
+    params: { operation: 'update', newState: state },
   });
   return true;
+};
+
+export const storeKeyRing = async (keyring: KeyringState): Promise<boolean> => {
+  const state = await getState();
+  state.keyringState = keyring;
+
+  await snap.request({
+    method: 'snap_manageState',
+    params: { operation: 'update', newState: state },
+  });
+  return true;
+};
+
+export const getKeyRing = async (): Promise<KeyringState> => {
+  const state = await getState();
+  return Object.assign({}, state.keyringState);
 };

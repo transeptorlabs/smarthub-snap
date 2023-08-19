@@ -1,6 +1,5 @@
 import { BigNumber, ethers } from 'ethers';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
-import { EOA } from '../types';
 import { getMMProvider } from './metamask';
 
 export const getAccountBalance = async (account: string): Promise<string> => {
@@ -21,26 +20,35 @@ export const getChainId = async (): Promise<string> => {
   return chainId as string;
 };
 
-export const connectWallet = async (): Promise<EOA> => {
-  const provider = getMMProvider();
-  const accounts = await provider
-    .request({ method: 'eth_requestAccounts' })
-    .catch((err) => {
-      if (err.code === 4001) {
-        // EIP-1193 userRejectedRequest error
-        // If this happens, the user rejected the connection request.
-        console.log('Please connect to MetaMask.');
-      } else {
-        throw Error(err);
-      }
+export const switchChainId = async (chainId: string): Promise<boolean> => {
+  try {
+    await getMMProvider().request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId }],
     });
-
-  const account: string = (accounts as string[])[0];
-  return {
-    address: account,
-    balance: await getAccountBalance(account),
-    connected: true,
-  } as EOA;
+    return true;
+  } catch (switchError) {
+    // This error code indicates that the chain has not been added to MetaMask.
+    if (switchError.code === 4902) {
+      try {
+        await getMMProvider().request({
+          method: 'wallet_addEthereumChain',
+          params: [
+            {
+              chainId,
+              chainName: '...',
+              rpcUrls: ['https://...'] /* ... */,
+            },
+          ],
+        });
+        return true;
+      } catch (error) {
+        console.log(error);
+        return false;
+      }
+    }
+    return false;
+  }
 };
 
 export const trimAccount = (account: string): string => {

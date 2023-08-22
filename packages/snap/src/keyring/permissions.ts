@@ -56,10 +56,13 @@ export const PERMISSIONS = new Map<string, string[]>([
   [
     'metamask',
     [
+      // Snap keyring methods
       SnapKeyringMethod.ListAccounts,
       SnapKeyringMethod.CreateAccount,
       SnapKeyringMethod.DeleteAccount,
       SnapKeyringMethod.UpdateAccount,
+
+      // Snap request methods
       RequestMethods.ListRequests,
       RequestMethods.SubmitRequest,
       RequestMethods.ApproveRequest,
@@ -69,13 +72,17 @@ export const PERMISSIONS = new Map<string, string[]>([
   [
     'http://localhost:8000',
     [
+      // Snap keyring methods
       SnapKeyringMethod.ListAccounts,
       SnapKeyringMethod.CreateAccount,
       SnapKeyringMethod.GetAccount,
       SnapKeyringMethod.UpdateAccount,
       SnapKeyringMethod.DeleteAccount,
       SnapKeyringMethod.ExportAccount,
+
+      // Snap request methods
       RequestMethods.ListRequests,
+      RequestMethods.SubmitRequest,
       RequestMethods.ApproveRequest,
       RequestMethods.DeleteRequest,
       RequestMethods.RejectRequest,
@@ -111,12 +118,16 @@ export const PERMISSIONS = new Map<string, string[]>([
   [
     'https://snap.transeptorlabs.io',
     [
+      // Snap keyring methods
       SnapKeyringMethod.ListAccounts,
       SnapKeyringMethod.CreateAccount,
       SnapKeyringMethod.GetAccount,
       SnapKeyringMethod.UpdateAccount,
       SnapKeyringMethod.DeleteAccount,
       SnapKeyringMethod.ExportAccount,
+
+      // Snap request methods
+      RequestMethods.SubmitRequest,
       RequestMethods.ListRequests,
       RequestMethods.ApproveRequest,
       RequestMethods.DeleteRequest,

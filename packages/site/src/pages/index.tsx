@@ -114,6 +114,7 @@ const Index = () => {
     getBundlerUrls,
     updateChainId,
     setChainIdListener,
+    sendRequest,
   } = useAcount();
 
   useEffect(() => {
@@ -193,6 +194,19 @@ const Index = () => {
   };
 
   // Click handlers
+  const handleClickSendRequest = async (event: any) => {
+    try {
+      event.preventDefault();
+      await sendRequest(
+        state.selectedSnapKeyringAccount.id,
+        'personal_sign',
+        [state.selectedSnapKeyringAccount.address, 'hello world']
+      );
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  };
+
   const handleReConnectSnapClick = async (event: any) => {
     try {
       event.preventDefault();
@@ -425,6 +439,31 @@ const Index = () => {
       {/* Account tab (eoa details, smart account details, smart account activity)*/}
       {state.activeTab === AppTab.SmartAccount && (
         <CardContainer>
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'Send request',
+                form: [
+                  <CommonInputForm
+                    key={"send-request"}
+                    buttonText="Send Request"
+                    onSubmitClick={handleClickSendRequest}
+                    inputs={[
+                      {
+                        id: "1",
+                        onInputChange: () => {},
+                        inputValue: 'test click',
+                        inputPlaceholder:"Enter account name"
+                      }
+                    ]}
+                  />,
+                ],
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+
           {state.scAccount.connected && state.installedSnap && (
             <Card
               content={{

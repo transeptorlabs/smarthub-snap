@@ -1,7 +1,13 @@
 import { Buffer } from 'buffer';
 import { Common, Hardfork } from '@ethereumjs/common';
 import { JsonTx, TransactionFactory } from '@ethereumjs/tx';
-import { ecsign, stripHexPrefix, toBuffer } from '@ethereumjs/util';
+import {
+  Address,
+  ecsign,
+  stripHexPrefix,
+  toBuffer,
+  toChecksumAddress,
+} from '@ethereumjs/util';
 import {
   SignTypedDataVersion,
   TypedDataV1,
@@ -32,7 +38,7 @@ import { SigningMethods } from './permissions';
 
 export type KeyringState = {
   wallets: Record<string, Wallet>;
-  requests: Record<string, KeyringRequest>;
+  pendingRequests: Record<string, KeyringRequest>;
 };
 
 export type Wallet = {
@@ -43,11 +49,11 @@ export type Wallet = {
 export class SimpleKeyring implements Keyring {
   #wallets: Record<string, Wallet>;
 
-  #requests: Record<string, KeyringRequest>;
+  #pendingRequests: Record<string, KeyringRequest>;
 
   constructor(state: KeyringState) {
     this.#wallets = state.wallets;
-    this.#requests = state.requests;
+    this.#pendingRequests = state.pendingRequests;
   }
 
   async listAccounts(): Promise<KeyringAccount[]> {
@@ -148,38 +154,82 @@ export class SimpleKeyring implements Keyring {
   }
 
   async listRequests(): Promise<KeyringRequest[]> {
-    return Object.values(this.#requests);
+    return Object.values(this.#pendingRequests);
   }
 
   async getRequest(id: string): Promise<KeyringRequest> {
-    return this.#requests[id];
+    return this.#pendingRequests[id];
   }
 
-  // This snap implements a synchronous keyring, which means that the request
-  // doesn't need to be approved and the execution result will be returned to
-  // the caller by the `submitRequest` method.
-  //
-  // In an asynchronous implementation, the request should be stored in queue
-  // of pending requests to be approved or rejected by the user.
+  /* 
+    This snap implements asynchronous implementation, the request is stored in queue of pending requests to be approved or rejected by the user.
+  */
   async submitRequest(request: KeyringRequest): Promise<SubmitRequestResponse> {
-    const { method, params = '' } = request.request as JsonRpcRequest;
-    const signature = this.#handleSigningRequest(method, params);
+    console.log('SNAPS/', ' submitRequest requests', JSON.stringify(request));
+
+    if (request.request.id === '') {
+      throw new Error('Request id is required');
+    }
+
+    this.#pendingRequests[request.request.id] = request;
+    await this.#saveState();
     return {
-      pending: false,
-      result: signature,
+      pending: true,
     };
   }
 
   async approveRequest(_id: string): Promise<void> {
-    throw new Error(
-      'The "approveRequest" method is not available on this snap.',
-    );
+    const request: KeyringRequest = await this.getRequest(_id);
+    console.log('SNAPS/', ' approveRequest requests', JSON.stringify(request));
+    const { method, params } = request.request as JsonRpcRequest;
+    const signature = this.#handleSigningRequest(method, params || []);
+    await snap.request({
+      method: 'snap_manageAccounts',
+      params: {
+        method: 'submitResponse',
+        params: { id: _id, result: signature },
+      },
+    });
+
+    // TODO: handle sending userOp with smart account or eth transaction with smart account owner(keyring account)
+
+    delete this.#pendingRequests[_id];
+    await this.#saveState();
   }
 
   async rejectRequest(_id: string): Promise<void> {
-    throw new Error(
-      'The "rejectRequest" method is not available on this snap.',
-    );
+    const request: KeyringRequest = await this.getRequest(_id);
+    console.log('SNAPS/', ' rejectRequest requests', JSON.stringify(request));
+
+    await snap.request({
+      method: 'snap_manageAccounts',
+      params: {
+        method: 'submitResponse',
+        params: { id: _id, result: null },
+      },
+    });
+
+    delete this.#pendingRequests[_id];
+    await this.#saveState();
+  }
+
+  async getSmartAccount(
+    entryPointAddress: string,
+    factoryAddress: string,
+    keyringAccountId: string,
+  ): Promise<SimpleAccountAPI> {
+    const provider = new ethers.providers.Web3Provider(ethereum as any);
+    const { privateKey } = this.#getWalletById(keyringAccountId);
+    const owner = new EthersWallet(privateKey).connect(provider);
+
+    const aa = new SimpleAccountAPI({
+      provider,
+      entryPointAddress,
+      owner,
+      factoryAddress,
+      index: 0, // nonce value used when creating multiple accounts for the same owner
+    });
+    return aa;
   }
 
   #getWalletByAddress(address: string): Wallet {
@@ -194,6 +244,22 @@ export class SimpleKeyring implements Keyring {
     return walletMatch;
   }
 
+  #getWalletById(accountId: string): Wallet {
+    const walletMatch = Object.values(this.#wallets).find(
+      (wallet) => wallet.account.id.toLowerCase() === accountId.toLowerCase(),
+    );
+
+    if (walletMatch === undefined) {
+      throw new Error(`Cannot find wallet for accountId: ${accountId}`);
+    }
+    return walletMatch;
+  }
+
+  /*
+    Will generate a private key using a deterministic 256-bit value specific to the Snap and the user’s MetaMask account(i.e., snapId + MetaMask secret recovery phrase + account name as salt).
+    This private key will be used to sign userOps for eip155:erc4337 type keyring account.
+    Since the private key is generated deterministically, the user will be able to recover the same account for a given Snap version account name(human readable) and MetaMask SRP.
+  */
   async #generateKeyPair(
     name: string,
   ): Promise<{ privateKey: string; address: string }> {
@@ -204,8 +270,12 @@ export class SimpleKeyring implements Keyring {
         salt: name,
       },
     });
-    const address = await new EthersWallet(privKey).getAddress();
-    return { privateKey: privKey, address };
+
+    const privateKeyBuffer = Buffer.from(stripHexPrefix(privKey), 'hex');
+    const address = toChecksumAddress(
+      Address.fromPrivateKey(privateKeyBuffer).toString(),
+    );
+    return { privateKey: privateKeyBuffer.toString('hex'), address };
   }
 
   #handleSigningRequest(method: string, params: Json): Json {
@@ -215,7 +285,16 @@ export class SimpleKeyring implements Keyring {
         return this.#signPersonalMessage(from, message);
       }
 
-      case 'eth_sendTransaction':
+      case 'eth_sendTransaction': {
+        /* TODO: Handle sending user op to bundler node if the account type is eip155:erc4337  - (using personal_sign body for testing)
+          - check if the account type is eip155:erc4337
+          - if yes, then create and sign userOp with smart account owner (ie: keyring account)
+          - if no, then sign the transaction as usual
+          - an addiontal flag can be passed to override the default behaviour to send a regular transaction with the smart account owner  (ie: keyring account)
+        */
+        const [from2, message2] = params as string[];
+        return this.#signPersonalMessage(from2, message2);
+      }
       case 'eth_signTransaction':
       case SigningMethods.SignTransaction: {
         const [from, tx, opts] = params as [string, JsonTx, Json];
@@ -288,10 +367,10 @@ export class SimpleKeyring implements Keyring {
     });
   }
 
-  #signPersonalMessage(from: string, request: string): string {
+  #signPersonalMessage(from: string, message: string): string {
     const { privateKey } = this.#getWalletByAddress(from);
     const privateKeyBuffer = Buffer.from(privateKey, 'hex');
-    const messageBuffer = Buffer.from(request.slice(2), 'hex');
+    const messageBuffer = Buffer.from(message.slice(2), 'hex');
 
     const signature = personalSign({
       privateKey: privateKeyBuffer,
@@ -302,7 +381,8 @@ export class SimpleKeyring implements Keyring {
       data: messageBuffer,
       signature,
     });
-    if (recoveredAddress !== from) {
+
+    if (recoveredAddress.toLowerCase() !== from.toLowerCase()) {
       throw new Error(
         `Signature verification failed for account "${from}" (got "${recoveredAddress}")`,
       );
@@ -322,29 +402,7 @@ export class SimpleKeyring implements Keyring {
   async #saveState(): Promise<void> {
     await storeKeyRing({
       wallets: this.#wallets,
-      requests: this.#requests,
+      pendingRequests: this.#pendingRequests,
     } as KeyringState);
-  }
-
-  async getSmartAccount(
-    entryPointAddress: string,
-    factoryAddress: string,
-    keyringAccountId: string,
-  ): Promise<SimpleAccountAPI> {
-    const provider = new ethers.providers.Web3Provider(ethereum as any);
-    const pk = this.#wallets[keyringAccountId].privateKey;
-    if (!pk) {
-      throw new Error(`Cannot find wallet for id: ${keyringAccountId}`);
-    }
-
-    const owner = new EthersWallet(pk).connect(provider);
-    const aa = new SimpleAccountAPI({
-      provider,
-      entryPointAddress,
-      owner,
-      factoryAddress,
-      index: 0, // nonce value used when creating multiple accounts for the same owner
-    });
-    return aa;
   }
 }

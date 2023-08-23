@@ -11,7 +11,7 @@ export const DEFAULT_BUNDLER_URLS = {
 export const DEFAULT_STATE = {
   keyringState: {
     wallets: {},
-    requests: {},
+    pendingRequests: {},
   },
   bundlerUrls: DEFAULT_BUNDLER_URLS,
   userOpHashesPending: {},

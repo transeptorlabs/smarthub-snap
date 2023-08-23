@@ -1,11 +1,11 @@
 import { MetaMaskContext, MetamaskActions, MetamaskState, useAcount } from '../hooks';
 import styled from 'styled-components';
-import { connectSnap, getSnap, getSnaps, trimAccount } from '../utils';
+import { connectSnap, filterPendingRequests, getSnap, getSnaps, trimAccount } from '../utils';
 import { FaCloudDownloadAlt, FaRegLightbulb } from 'react-icons/fa';
-import { InstallFlaskButton, ConnectSnapButton } from './Buttons';
+import { InstallFlaskButton, ConnectSnapButton, SimpleButton } from './Buttons';
 import { SupportedChainIdMap } from '../types';
 import { useContext, useState } from 'react';
-import { KeyringAccount } from "@metamask/keyring-api";
+import { KeyringAccount, KeyringRequest } from "@metamask/keyring-api";
 import { ReactComponent as FlaskFox } from '../assets/flask_fox_account.svg';
 import { BlockieAccountModal } from './Blockie-Icon';
 import { FaCopy, FaInfoCircle } from "react-icons/fa";
@@ -136,6 +136,36 @@ const ConnectedIndicator = styled.div`
   background-color: green;
 `;
 
+const PendingRequestContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  width:: 100%;
+  background-color: ${({ theme }) => theme.colors.card.default};
+  margin-top: 0;
+  margin-bottom: 2.4rem;
+  padding: 2.4rem;  
+  border: 1px solid ${({ theme }) => theme.colors.border.default};
+  border-radius: ${({ theme }) => theme.radii.default};
+  box-shadow: ${({ theme }) => theme.shadows.default};
+  align-self: stretch;
+  ${({ theme }) => theme.mediaQueries.small} {
+    margin-top: 1.2rem;
+    margin-bottom: 1.2rem;
+    padding: 0;
+  }
+`;
+
+const PendingRequestItem = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  ${({ theme }) => theme.mediaQueries.small} {
+    flex-direction: column;
+    padding: 2.4rem;  
+  }
+`;
+
 export const AccountHeaderDisplay = () => {
     const [state] = useContext(MetaMaskContext);
     if (!state.isFlask) {
@@ -182,7 +212,7 @@ export const AccountHeaderDisplay = () => {
     );
 };
 
-export const AccountModalDropdown  = ({
+export const AccountModalDropdown = ({
   closeModal,
 }: {
   closeModal(): unknown;
@@ -345,3 +375,53 @@ export const AccountModalDropdown  = ({
     </Body2>
   );
 };
+
+export const AccountRequestDisplay = () => {
+  const [state, dispatch] = useContext(MetaMaskContext);
+  const { approveRequest, rejectRequest } = useAcount();
+
+  const handleApproveRequest = async (event: any, id: string) => {
+    try {
+      event.preventDefault();
+      console.log('approve request click:', id)
+      await approveRequest(id);
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  };
+
+  const handleRejectRequest = async (event: any, id: string) => {
+    try {
+      event.preventDefault();
+      console.log('reject request click:', id)
+      await approveRequest(id);
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  };
+
+  return (
+    <>
+      {state.snapKeyring.pendingRequests && (
+        filterPendingRequests(state.snapKeyring.pendingRequests, state.selectedSnapKeyringAccount.id).map((item: KeyringRequest) => (
+          <PendingRequestContainer key={`${item.request.id}-${item.account}`}>
+            <PendingRequestItem>
+              <p>Request Id</p>
+              <p>{item.request.id}</p>
+            </PendingRequestItem>   
+
+            <PendingRequestItem>
+              <p>Method</p>
+              <p>{item.request.method}</p>
+            </PendingRequestItem>  
+
+            <PendingRequestItem>
+              <SimpleButton text={'Reject'} onClick={(e: any) => {handleRejectRequest(e, item.request.id)}}></SimpleButton>
+              <SimpleButton text={'Approve'} onClick={(e: any) => {handleApproveRequest(e, item.request.id)}}></SimpleButton>
+            </PendingRequestItem>  
+          </PendingRequestContainer>
+        ))
+      )}
+    </>
+  )
+}

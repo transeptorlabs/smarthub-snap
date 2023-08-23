@@ -20,6 +20,7 @@ import {
   SimpleButton,
   TabMenu,
   BundlerInputForm,
+  AccountRequestDisplay,
 } from '../components';
 import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
 
@@ -114,6 +115,7 @@ const Index = () => {
     getBundlerUrls,
     updateChainId,
     setChainIdListener,
+    sendRequest,
   } = useAcount();
 
   useEffect(() => {
@@ -193,6 +195,19 @@ const Index = () => {
   };
 
   // Click handlers
+  const handleClickSendRequest = async (event: any) => {
+    try {
+      event.preventDefault();
+      await sendRequest(
+        state.selectedSnapKeyringAccount.id,
+        'personal_sign',
+        [state.selectedSnapKeyringAccount.address, 'hello world']
+      );
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  };
+
   const handleReConnectSnapClick = async (event: any) => {
     try {
       event.preventDefault();
@@ -478,6 +493,42 @@ const Index = () => {
               disabled={!state.isFlask}
               copyDescription
               isAccount
+              fullWidth
+            />
+          )}
+
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'Send test Request',
+                form: [
+                  <CommonInputForm
+                    key={"send-request"}
+                    buttonText="Send Request"
+                    onSubmitClick={handleClickSendRequest}
+                    inputs={[
+                      {
+                        id: "1",
+                        onInputChange: () => {},
+                        inputValue: 'personal_sign',
+                        inputPlaceholder:"Enter supported method name"
+                      }
+                    ]}
+                  />,
+                ],
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
+
+          {state.selectedSnapKeyringAccount.id && state.installedSnap && (
+            <Card
+              content={{
+                title: 'Pending Request',
+                custom: <AccountRequestDisplay />
+              }}
+              disabled={!state.isFlask}
               fullWidth
             />
           )}

@@ -11,6 +11,15 @@ export type KeyringState = {
   accounts: KeyringAccount[];
 };
 
-export const getKeyringClient = (): KeyringSnapRpcClient => {
+export const getKeyringSnapRpcClient = (): KeyringSnapRpcClient => {
   return new KeyringSnapRpcClient(defaultSnapOrigin, getMMProvider());
+};
+
+export const filterPendingRequests = (
+  pendingRequests: KeyringRequest[],
+  accountId: string,
+): KeyringRequest[] => {
+  return pendingRequests.filter(
+    (request: KeyringRequest) => request.account === accountId,
+  );
 };

@@ -54,11 +54,8 @@ const permissionsHandler: OnRpcRequestHandler = async ({
   const hasPermission = Boolean(
     PERMISSIONS.get(origin)?.includes(request.method),
   );
-  console.log(
-    'SNAPS/',
-    'hasPermission check',
-    hasPermission,
-  );
+  console.log('SNAPS/', 'hasPermission check', hasPermission);
+
   if (!hasPermission) {
     throw new Error(`origin ${origin} cannot call method ${request.method}`);
   }

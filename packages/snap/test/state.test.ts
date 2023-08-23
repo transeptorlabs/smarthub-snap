@@ -34,7 +34,7 @@ describe('state module - State', () => {
       const mockState = {
         keyringState: {
           wallets: {},
-          requests: {},
+          pendingRequests: {},
         },
         bundlerUrls: DEFAULT_BUNDLER_URLS,
         userOpHashesPending: {},

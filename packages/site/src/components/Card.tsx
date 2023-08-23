@@ -1,4 +1,4 @@
-import { ReactNode, useContext } from 'react';
+import { ReactNode } from 'react';
 import styled from 'styled-components';
 import { FaCopy } from "react-icons/fa";
 import { trimAccount } from '../utils/eth';

@@ -19,6 +19,8 @@ export const useAcount = () => {
         pendingRequests,
       } 
     });
+    console.log('getKeyringSnapAccounts:', accounts)
+    console.log('getKeyringSnapAccounts pendingRequests:', pendingRequests)
     return accounts;
   }
 
@@ -53,6 +55,17 @@ export const useAcount = () => {
       }
     });
     console.log('send request result:', result)
+    await getKeyringSnapAccounts()
+  };
+
+  const approveRequest = async (requestId: string) => {
+    await snapRpcClient.approveRequest(requestId);
+    await getKeyringSnapAccounts()
+  };
+
+  const rejectRequest = async (requestId: string) => {
+    await snapRpcClient.rejectRequest(requestId);
+    await getKeyringSnapAccounts()
   };
 
   const getSmartAccount = async (keyringAccountId: string): Promise<SmartContractAccount> => {
@@ -134,5 +147,7 @@ export const useAcount = () => {
     updateChainId,
     getWalletChainId,
     sendRequest,
+    approveRequest,
+    rejectRequest,
   }
 }

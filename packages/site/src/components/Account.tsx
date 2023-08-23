@@ -394,7 +394,7 @@ export const AccountRequestDisplay = () => {
     try {
       event.preventDefault();
       console.log('reject request click:', id)
-      await approveRequest(id);
+      await rejectRequest(id);
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }

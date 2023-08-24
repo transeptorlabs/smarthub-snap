@@ -28,6 +28,7 @@ export type SmartContractAccount = {
 export type SmartAccountActivity = {
   pendingUserOpHashes: string[];
   confirmedUserOpHashes: string[];
+  confirmedDepositTxHashes: string[];
   userOperationReceipts: UserOperationReceipt[];
 };
 

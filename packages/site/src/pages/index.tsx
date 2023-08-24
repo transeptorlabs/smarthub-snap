@@ -9,7 +9,9 @@ import {
   clearActivityData,
   parseChainId,
   addBundlerUrl,
-  trimAccount,
+  convertToWei,
+  estimateGas,
+  getMMProvider,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -21,8 +23,11 @@ import {
   TabMenu,
   BundlerInputForm,
   AccountRequestDisplay,
+  AccountActivity,
 } from '../components';
 import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
+import { BigNumber, ethers } from 'ethers';
+import { EntryPoint__factory } from '@account-abstraction/contracts';
 
 const Container = styled.div`
   display: flex;
@@ -116,6 +121,7 @@ const Index = () => {
     updateChainId,
     setChainIdListener,
     sendRequest,
+    updateAccountBalance,
   } = useAcount();
 
   useEffect(() => {
@@ -138,6 +144,7 @@ const Index = () => {
           await selectKeyringSnapAccount(account[0]);
           await getSmartAccount(account[0].id);
           await getAccountActivity(account[0].id);
+          await updateAccountBalance(account[0].address);
         }
       }
     }
@@ -195,19 +202,6 @@ const Index = () => {
   };
 
   // Click handlers
-  const handleClickSendRequest = async (event: any) => {
-    try {
-      event.preventDefault();
-      await sendRequest(
-        state.selectedSnapKeyringAccount.id,
-        'personal_sign',
-        [state.selectedSnapKeyringAccount.address, 'hello world']
-      );
-    } catch (e) {
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
-  };
-
   const handleReConnectSnapClick = async (event: any) => {
     try {
       event.preventDefault();
@@ -228,6 +222,7 @@ const Index = () => {
     const newAccount = await createAccount(accountName)
     await selectKeyringSnapAccount(newAccount);
     await getSmartAccount(newAccount.id);
+    await updateAccountBalance(newAccount.address);
     setAccountName('')
   };
 
@@ -259,48 +254,46 @@ const Index = () => {
     }
   };
 
-  // const handleDepositSubmit = async (e: any) => {
-  //   e.preventDefault();
-  //   const depositInWei = convertToWei(depositAmount);
+  const handleDepositSubmit = async (e: any) => {
+    try {
+      e.preventDefault();
+      const depositInWei = convertToWei(depositAmount);
+  
+      // check the owner account has enough balance
+      if (BigNumber.from(state.selectedAccountBalance).lt(depositInWei)) {
+        dispatch({ type: MetamaskActions.SetError, payload: new Error('owner account has, insufficient funds.') });
+        return;
+      }
+      
+      // encode function data
+      const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+      const entryPointContract = new ethers.Contract(state.scAccount.entryPoint, EntryPoint__factory.abi)
+ 
+      // set transation data
+      const feeData = await provider.getFeeData()
+      const transactionData = await entryPointContract.populateTransaction.depositTo(state.scAccount.address, {
+        type: 2,
+        nonce: await provider.getTransactionCount(state.selectedSnapKeyringAccount.address, 'latest'),
+        gasLimit: 10e6,
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? 0,
+        maxFeePerGas: feeData.maxFeePerGas ?? 0,
+        value: depositInWei.toString(),
+      })
+      transactionData.chainId = parseChainId(state.chainId)
+      console.log('transactionData', transactionData)
+  
+      // send request to keyring for approval
+      await sendRequest(
+        state.selectedSnapKeyringAccount.id,
+        'eth_signTransaction',
+        [state.selectedSnapKeyringAccount.address, transactionData] // [from, transactionData]
+      );
 
-  //   // check the owner account has enough balance
-  //   if (BigNumber.from(state.eoa.balance).lt(depositInWei)) {
-  //     dispatch({ type: MetamaskActions.SetError, payload: new Error('EOA has, insufficient funds.') });
-  //     return;
-  //   }
-    
-  //   const entryPointContract = getEntryPointContract(state.scAccount.entryPoint);
-
-  //   // estimate gas
-  //   const encodedFunctionData = await encodeFunctionData(
-  //     getEntryPointContract(state.scAccount.entryPoint),
-  //     'depositTo',
-  //     [state.scAccount.address]
-  //   );
-  //   const estimateGasAmount = await estimateGas(
-  //     state.eoa.address,
-  //     state.scAccount.entryPoint,
-  //     encodedFunctionData,
-  //   );
-
-  //   const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
-
-  //   const overrides = {
-  //     value: depositInWei.toString(),
-  //     gasPrice: await provider.getGasPrice(),
-  //     gasLimit: estimateGasAmount.toNumber(),
-  //   };
-  //   const result = await entryPointContract.depositTo(state.scAccount.address, overrides).catch((error: any) => dispatch({ type: MetamaskActions.SetError, payload: error }));
-  //   if (!result) {
-  //     return;
-  //   }
-  //   const rep = await result.wait();
-    
-  //   // refresh account balances
-  //   setDepositAmount('');
-  //   await refreshEOAState(state.eoa.address);
-  //   await getScAccountState(state.eoa.address);
-  // }
+      setDepositAmount('');
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  }
 
   // const handleWithdrawSubmit = async (e: any) => {
   //   e.preventDefault();
@@ -443,14 +436,10 @@ const Index = () => {
           {state.scAccount.connected && state.installedSnap && (
             <Card
               content={{
+                title: 'Smart Account',
                 description: `${state.scAccount.address}`,
                 descriptionBold: `${state.selectedSnapKeyringAccount.name}`,
                 stats: [
-                  {
-                    id: `0`,
-                    title: 'owner',
-                    value: `${trimAccount(state.scAccount.ownerAddress)}`,
-                  },
                   {
                     id: `1`,
                     title: 'Deposit',
@@ -461,64 +450,50 @@ const Index = () => {
                     title: 'Balance',
                     value: `${convertToEth(state.scAccount.balance)} ETH`,
                   },
-                  {
-                    id: `3`,
-                    title: 'Nonce',
-                    value: `${(state.scAccount.nonce)}`,
-                  },
                 ],
-                // form: [
-                //   <CommonInputForm
-                //   key={"withdraw"}
-                //   onSubmitClick={handleWithdrawSubmit}
-                //   buttonText="Withdraw Deposit"
-                //   inputs={[
-                //       {
-                //         id: "1",
-                //         onInputChange: handleWithdrawAddrChange,
-                //         inputValue: withDrawAddr,
-                //         inputPlaceholder:"Enter address"
-                //       },
-                //       {
-                //         id: "2",
-                //         onInputChange: handleWithdrawAmountChange,
-                //         inputValue: withdrawAmount,
-                //         inputPlaceholder:"Enter amount"
-                //       }
-                //     ]
-                //   }
-                // />
-                // ]
               }}
               disabled={!state.isFlask}
               copyDescription
               isAccount
+              isSmartAccount
               fullWidth
+              showTooltip
             />
           )}
 
           {state.scAccount.connected && state.installedSnap && (
             <Card
               content={{
-                title: 'Send test Request',
-                form: [
-                  <CommonInputForm
-                    key={"send-request"}
-                    buttonText="Send Request"
-                    onSubmitClick={handleClickSendRequest}
-                    inputs={[
+                title: 'Deposit',
+                descriptionBold: '(smart account owner)',
+                description: `${state.selectedSnapKeyringAccount.address}`,
+                stats: [
+                  {
+                    id: `1`,
+                    title: 'Balance',
+                    value: `${convertToEth(state.selectedAccountBalance)} ETH`,
+                  },
+                ],
+                custom: <CommonInputForm
+                  key={"send-deposit"}
+                  onSubmitClick={handleDepositSubmit}
+                  buttonText="Deposit"
+                  inputs={[
                       {
                         id: "1",
-                        onInputChange: () => {},
-                        inputValue: 'personal_sign',
-                        inputPlaceholder:"Enter supported method name"
+                        onInputChange: handleDepositAmountChange,
+                        inputValue: depositAmount,
+                        inputPlaceholder:"Enter amount"
                       }
-                    ]}
-                  />,
-                ],
+                    ]
+                  }
+                />
               }}
+              copyDescription
+              isAccount
               disabled={!state.isFlask}
               fullWidth
+              showTooltip
             />
           )}
 
@@ -537,7 +512,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Activity',
-                smartAccountActivity: state.smartAccountActivity,
+                custom: <AccountActivity />,
               }}
               disabled={!state.isFlask}
               fullWidth
@@ -548,7 +523,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Create a Smart Account',
-                form: [
+                custom: 
                   <CommonInputForm
                     key={"create"}
                     buttonText="Create"
@@ -562,7 +537,6 @@ const Index = () => {
                       }
                     ]}
                   />,
-                ],
               }}
               disabled={!state.isFlask}
               fullWidth
@@ -577,7 +551,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Create a Smart Account',
-                form: [
+                custom:
                   <CommonInputForm
                     key={"create"}
                     buttonText="Create"
@@ -591,7 +565,6 @@ const Index = () => {
                       }
                     ]}
                   />,
-                ],
               }}
               disabled={!state.isFlask}
               fullWidth
@@ -602,7 +575,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Delete Smart Account',
-                form: [
+                custom: 
                   <CommonInputForm
                     key={"delete"}
                     buttonText="delete"
@@ -616,7 +589,6 @@ const Index = () => {
                       }
                     ]}
                   />,
-                ],
               }}
               disabled={!state.isFlask}
               fullWidth

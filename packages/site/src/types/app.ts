@@ -32,6 +32,8 @@ export const getSupportedChainIdsArray = () => {
 
 export type BundlerUrls = { [chainId: string]: string };
 
+export type DepositTxs = Record<string, string>;
+
 export type SmartAccountParams = {
   scOwnerAddress: string;
 };

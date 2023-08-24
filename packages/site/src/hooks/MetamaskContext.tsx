@@ -20,6 +20,7 @@ export type MetamaskState = {
   activeTab: AppTab;
   snapKeyring: KeyringState;
   selectedSnapKeyringAccount: KeyringAccount;
+  selectedAccountBalance: string;
   scAccount: SmartContractAccount;
   smartAccountActivity: SmartAccountActivity;
   bundlerUrls?: BundlerUrls;
@@ -44,6 +45,7 @@ const initialState: MetamaskState = {
     supportedMethods: [],
     type: 'eip155:erc4337',
   },
+  selectedAccountBalance: '0', // in wei
   scAccount: {
     connected: false,
     address: '',
@@ -85,6 +87,7 @@ export enum MetamaskActions {
   SetSelectedSnapKeyringAccount = "SetSelectedKeyringAccount",
   SetScAccount = "SetScAccount",
   SetSmartAccountActivity = 'SetSmartAccountActivity',
+  SetSelectedAccountBalance = 'SetSelectedAccountBalance',
   SetClearAccount = 'SetClearAccount',
   SetBundlerUrls = 'SetBundlerUrls',
   SetSupportedEntryPoints = 'SetSupportedEntryPoints',
@@ -116,11 +119,17 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         selectedSnapKeyringAccount: action.payload,
       };
 
-      case MetamaskActions.SetSelectedSnapKeyringAccount:
-        return {
-          ...state,
-          selectedSnapKeyringAccount: action.payload,
-        };
+    case MetamaskActions.SetSelectedSnapKeyringAccount:
+      return {
+        ...state,
+        selectedSnapKeyringAccount: action.payload,
+      };
+
+    case MetamaskActions.SetSelectedAccountBalance:
+    return {
+      ...state,
+      selectedAccountBalance: action.payload,
+    };
 
     case MetamaskActions.SetScAccount:
       return {

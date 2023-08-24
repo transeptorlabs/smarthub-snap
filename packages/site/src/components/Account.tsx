@@ -1,15 +1,16 @@
-import { MetaMaskContext, MetamaskActions, MetamaskState, useAcount } from '../hooks';
+import { MetaMaskContext, MetamaskActions, useAcount } from '../hooks';
 import styled from 'styled-components';
-import { connectSnap, filterPendingRequests, getSnap, getSnaps, trimAccount } from '../utils';
+import { connectSnap, filterPendingRequests, getDepositReadyTx, getMMProvider, getSnap, handleCopyToClipboard, storeDepositTxHash, trimAccount } from '../utils';
 import { FaCloudDownloadAlt, FaRegLightbulb } from 'react-icons/fa';
 import { InstallFlaskButton, ConnectSnapButton, SimpleButton } from './Buttons';
-import { SupportedChainIdMap } from '../types';
+import { SupportedChainIdMap, UserOperationReceipt } from '../types';
 import { useContext, useState } from 'react';
 import { KeyringAccount, KeyringRequest } from "@metamask/keyring-api";
 import { ReactComponent as FlaskFox } from '../assets/flask_fox_account.svg';
 import { BlockieAccountModal } from './Blockie-Icon';
-import { FaCopy, FaInfoCircle } from "react-icons/fa";
+import { FaCopy } from "react-icons/fa";
 import { CommonInputForm } from './Form';
+import { BigNumber, ethers } from 'ethers';
 
 const Body = styled.div`
   padding: 2rem;
@@ -43,10 +44,6 @@ const IconContainer = styled.div`
 
 const IconContainerLeft = styled.div`
   margin-left: 6rem; 
-`;
-
-const IconContainerLeftShort = styled.div`
-  margin-left: 1rem; 
 `;
 
 const PrimaryText = styled.p`
@@ -378,13 +375,28 @@ export const AccountModalDropdown = ({
 
 export const AccountRequestDisplay = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
-  const { approveRequest, rejectRequest } = useAcount();
+  const { approveRequest, rejectRequest, getSmartAccount, getAccountActivity } = useAcount();
 
   const handleApproveRequest = async (event: any, id: string) => {
     try {
       event.preventDefault();
-      console.log('approve request click:', id)
       await approveRequest(id);
+
+      // send entrypoint deposit txs
+      const signedDepositTxs = await getDepositReadyTx()
+      if (signedDepositTxs[id]) {
+        console.log('signedDepositTxs(ready):', signedDepositTxs[id]);
+        const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+        const res = await provider.sendTransaction(signedDepositTxs[id])
+        await res.wait();
+
+        console.log('Transaction sent. Transaction hash:', res.hash);
+
+        await storeDepositTxHash(res.hash, id);
+        await getSmartAccount(state.selectedSnapKeyringAccount.id);
+        await getAccountActivity(state.selectedSnapKeyringAccount.id);
+      }
+ 
     } catch (e) {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
@@ -422,6 +434,171 @@ export const AccountRequestDisplay = () => {
           </PendingRequestContainer>
         ))
       )}
+    </>
+  )
+}
+
+const FlexRowNoMargin = styled.div`
+  display: flex;
+  flex-direction: row;
+`;
+
+const ActivityItemContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  width:: 100%;
+  background-color: ${({ theme }) => theme.colors.card.default};
+  margin-top: 0;
+  margin-bottom: 2.4rem;
+  padding: 2.4rem;  
+  border: 1px solid ${({ theme }) => theme.colors.border.default};
+  border-radius: ${({ theme }) => theme.radii.default};
+  box-shadow: ${({ theme }) => theme.shadows.default};
+  align-self: stretch;
+  ${({ theme }) => theme.mediaQueries.small} {
+    margin-top: 1.2rem;
+    margin-bottom: 1.2rem;
+    padding: 0;
+  }
+`;
+
+const ActivityItem = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  ${({ theme }) => theme.mediaQueries.small} {
+    flex-direction: column;
+    padding: 2.4rem;  
+  }
+`;
+
+const ActivityCopy = styled.div`
+  margin-left: 1rem;
+  margin-top: auto;
+  margin-bottom: auto;
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary.main};
+    cursor: pointer;
+  }
+`;
+
+const ActivitySuccess = styled.span`
+  color: ${({ theme }) => theme.colors.success.alternative};
+`
+
+const ActivityPending = styled.span`
+  color: ${({ theme }) => theme.colors.pending.alternative};
+`
+
+const ActivityFailed = styled.span`
+  color: ${({ theme }) => theme.colors.error.alternative};
+`
+
+export const AccountActivity = () => {
+  const [state] = useContext(MetaMaskContext);
+
+  return (
+    <>
+      {/* Pending userOps */}
+      {state.smartAccountActivity && (
+        state.smartAccountActivity.pendingUserOpHashes.map((item: string) => (
+          <ActivityItemContainer key={`${item}`}>
+            <ActivityItem>
+              <p>Status:</p>
+              <p><ActivityPending>Pending</ActivityPending></p>
+            </ActivityItem>
+
+            <ActivityItem>
+              <p>UserOp hash:</p>
+              <FlexRowNoMargin>
+                <p>{trimAccount(item)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item)}>
+                  <FaCopy />
+                </ActivityCopy>
+              </FlexRowNoMargin>
+            </ActivityItem> 
+        
+          </ActivityItemContainer>
+        ))
+      )}
+
+      {/* Confirmed userOps */}
+      {state.smartAccountActivity && (
+        state.smartAccountActivity.userOperationReceipts.map((item: UserOperationReceipt) => (
+          <ActivityItemContainer key={`${item.sender}-${item.nonce.toString()}-${item.receipt.transactionHash}`}>
+            <ActivityItem>
+              <p>Status:</p>
+              <p>{item.success? <ActivitySuccess>Confirmed</ActivitySuccess>: <ActivityFailed>Failed</ActivityFailed>}</p>
+            </ActivityItem>
+
+            {!item.success && item.reason && (
+              <ActivityItem>
+                <p>Revert:</p>
+                <p>{item.reason}</p>
+              </ActivityItem>
+            )}
+           
+            <ActivityItem>
+              <p>Sender:</p>
+              <FlexRowNoMargin>
+                <p>eth:{trimAccount(item.sender)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.sender)}>
+                  <FaCopy />
+                </ActivityCopy>
+              </FlexRowNoMargin>
+            </ActivityItem>
+
+            <ActivityItem>
+              <p>To:</p>
+              <FlexRowNoMargin>
+                <p>eth:{trimAccount(item.receipt.to)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.receipt.to)}>
+                  <FaCopy />
+                </ActivityCopy>
+              </FlexRowNoMargin>
+            </ActivityItem>
+           
+            <ActivityItem>
+              <p>Nonce:</p>
+              <p>{BigNumber.from(item.nonce).toNumber()}</p>
+            </ActivityItem>
+
+            <ActivityItem>
+              <p>Gas Used(units):</p>
+              <p>{BigNumber.from(item.actualGasUsed).toNumber()}</p>
+            </ActivityItem>
+
+            <ActivityItem>
+              <p>Gas Cost(Wei):</p>
+              <p>{BigNumber.from(item.actualGasCost).toNumber()}</p>
+            </ActivityItem>
+
+            <ActivityItem>
+              <p>UserOp hash:</p>
+              <FlexRowNoMargin>
+                <p>{trimAccount(item.userOpHash)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.userOpHash)}>
+                  <FaCopy />
+                </ActivityCopy>
+              </FlexRowNoMargin>
+            </ActivityItem>  
+
+            <ActivityItem>
+              <p>Transaction hash:</p>
+              <FlexRowNoMargin>
+                <p>{trimAccount(item.receipt.transactionHash)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.receipt.transactionHash)}>
+                  <FaCopy />
+                </ActivityCopy>
+              </FlexRowNoMargin>
+            </ActivityItem>     
+          </ActivityItemContainer>
+        ))
+      )}
+
+      {/* Pending eoa tx */}
+      {/* Confirmed eoa tx */}
     </>
   )
 }

@@ -1,5 +1,4 @@
 import { BigNumber, ethers } from 'ethers';
-import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { getMMProvider } from './metamask';
 
 export const getAccountBalance = async (account: string): Promise<string> => {
@@ -85,23 +84,6 @@ export const isValidAddress = (address: string) => {
   return ethers.utils.isAddress(address);
 };
 
-export const encodeFunctionData = async (
-  contract: ethers.Contract,
-  functionName: string,
-  params: any[],
-): Promise<string> => {
-  return contract.interface.encodeFunctionData(functionName, params);
-};
-
-export const getEntryPointContract = (epAddress: string): ethers.Contract => {
-  const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
-  return new ethers.Contract(
-    epAddress,
-    EntryPoint__factory.abi,
-    provider.getSigner(),
-  );
-};
-
 export const estimateGas = async (
   from: string,
   to: string,
@@ -128,11 +110,6 @@ export const estimateGas = async (
 
   const buffer = estimate.add(estimate.mul(50).div(100)); // 50% buffer
   return BigNumber.from(estimate.toNumber() + buffer.toNumber());
-};
-
-export const getGasPrice = async (): Promise<BigNumber> => {
-  const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
-  return await provider.getGasPrice();
 };
 
 export const parseChainId = (chainId: string): number => {

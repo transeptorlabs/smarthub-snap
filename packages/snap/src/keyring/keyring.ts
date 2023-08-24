@@ -34,11 +34,11 @@ import {
   isUniqueAccountName,
 } from '../utils';
 import { storeKeyRing } from '../state/state';
-import { SigningMethods } from './permissions';
 
 export type KeyringState = {
   wallets: Record<string, Wallet>;
   pendingRequests: Record<string, KeyringRequest>;
+  readyDepositTx: Record<string, string>;
 };
 
 export type Wallet = {
@@ -48,12 +48,13 @@ export type Wallet = {
 
 export class SimpleKeyring implements Keyring {
   #wallets: Record<string, Wallet>;
-
   #pendingRequests: Record<string, KeyringRequest>;
+  #readyDepositTx: Record<string, string>;
 
   constructor(state: KeyringState) {
     this.#wallets = state.wallets;
     this.#pendingRequests = state.pendingRequests;
+    this.#readyDepositTx = state.readyDepositTx;
   }
 
   async listAccounts(): Promise<KeyringAccount[]> {
@@ -81,8 +82,8 @@ export class SimpleKeyring implements Keyring {
       address,
       supportedMethods: [
         'eth_sendTransaction',
-        'eth_sign',
         'eth_signTransaction',
+        'eth_sign',
         'eth_signTypedData_v1',
         'eth_signTypedData_v2',
         'eth_signTypedData_v3',
@@ -182,7 +183,7 @@ export class SimpleKeyring implements Keyring {
     const request: KeyringRequest = await this.getRequest(_id);
     console.log('SNAPS/', ' approveRequest requests', JSON.stringify(request));
     const { method, params } = request.request as JsonRpcRequest;
-    const signature = this.#handleSigningRequest(method, params || []);
+    const signature = await this.#handleSigningRequest(method, params as Json);
     await snap.request({
       method: 'snap_manageAccounts',
       params: {
@@ -191,9 +192,11 @@ export class SimpleKeyring implements Keyring {
       },
     });
 
-    // TODO: handle sending userOp with smart account or eth transaction with smart account owner(keyring account)
-
     delete this.#pendingRequests[_id];
+    if (method === 'eth_signTransaction') {
+      this.#readyDepositTx[_id] = signature as string;
+    }
+    
     await this.#saveState();
   }
 
@@ -278,7 +281,7 @@ export class SimpleKeyring implements Keyring {
     return { privateKey: privateKeyBuffer.toString('hex'), address };
   }
 
-  #handleSigningRequest(method: string, params: Json): Json {
+  async #handleSigningRequest(method: string, params: Json): Promise<Json> {
     switch (method) {
       case 'personal_sign': {
         const [from, message] = params as string[];
@@ -287,18 +290,19 @@ export class SimpleKeyring implements Keyring {
 
       case 'eth_sendTransaction': {
         /* TODO: Handle sending user op to bundler node if the account type is eip155:erc4337  - (using personal_sign body for testing)
-          - check if the account type is eip155:erc4337
-          - if yes, then create and sign userOp with smart account owner (ie: keyring account)
-          - if no, then sign the transaction as usual
-          - an addiontal flag can be passed to override the default behaviour to send a regular transaction with the smart account owner  (ie: keyring account)
         */
-        const [from2, message2] = params as string[];
-        return this.#signPersonalMessage(from2, message2);
+        const [from, tx] = params as [string, JsonTx, Json]
+        console.log('SNAPS/', 'handling eth_sendTransaction ', from, tx);
+        return '';
       }
-      case 'eth_signTransaction':
-      case SigningMethods.SignTransaction: {
-        const [from, tx, opts] = params as [string, JsonTx, Json];
-        return this.#signTransaction(from, tx, opts);
+      case 'eth_signTransaction': {
+        const [from, tx] = params as [string, JsonTx, Json];
+        console.log('SNAPS/', 'handling eth_signTransaction ', from, tx);
+        const provider = new ethers.providers.Web3Provider(ethereum as any);
+        const { privateKey } = this.#getWalletByAddress(from);
+        const wallet = new EthersWallet(privateKey, provider);
+        return await wallet.connect(provider).signTransaction(tx as any);
+        // return this.#signTransaction(from, tx);
       }
 
       case 'eth_signTypedData':
@@ -325,16 +329,19 @@ export class SimpleKeyring implements Keyring {
     }
   }
 
-  #signTransaction(from: string, tx: any, _opts: any): Json {
-    // Patch the transaction to make sure that the `chainId` is a hex string.
-    if (!tx.chainId.startsWith('0x')) {
-      tx.chainId = `0x${parseInt(tx.chainId, 10).toString(16)}`;
+  #signTransaction(from: string, tx: JsonTx): Json {
+    if (!tx.chainId) {
+      throw new Error('Missing chainId');
     }
+    // Patch the transaction to make sure that the `chainId` is a hex string.
+    // if (!tx.chainId.startsWith('0x')) {
+    //   tx.chainId = `0x${parseInt(tx.chainId, 10).toString(16)}`;
+    // }
 
     const wallet = this.#getWalletByAddress(from);
     const privateKey = Buffer.from(wallet.privateKey, 'hex');
     const common = Common.custom(
-      { chainId: tx.chainId },
+      { chainId: Number(tx.chainId) },
       {
         hardfork:
           tx.maxPriorityFeePerGas || tx.maxFeePerGas
@@ -403,6 +410,7 @@ export class SimpleKeyring implements Keyring {
     await storeKeyRing({
       wallets: this.#wallets,
       pendingRequests: this.#pendingRequests,
+      readyDepositTx: this.#readyDepositTx,
     } as KeyringState);
   }
 }

@@ -21,6 +21,8 @@ import {
   storeUserOpHashConfirmed,
   storeUserOpHashPending,
   getKeyRing,
+  storeDepositTxHash,
+  getConfirmedDepositTxHashs,
 } from './state';
 import {
   GetUserOpParams,
@@ -144,6 +146,23 @@ const erc4337Handler: OnRpcRequestHandler = async ({ origin, request }) => {
       });
 
       return result;
+    }
+
+    case InternalMethod.DepositReadyTx: {
+      result = await getKeyRing();
+      return JSON.stringify(result.readyDepositTx);
+    }
+
+    case InternalMethod.StoreDepositTxHash: {
+      result = await storeDepositTxHash(
+        (request.params as any[])[0],
+        (request.params as any[])[1],
+      );
+      return result;
+    }
+
+    case InternalMethod.ConfirmedDepositTxHashes: {
+      return await getConfirmedDepositTxHashs();
     }
 
     case InternalMethod.ConfirmedUserOps: {

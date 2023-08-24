@@ -9,6 +9,7 @@ import {
   SmartAccountActivity,
   UserOperation,
   UserOperationReceipt,
+  DepositTxs,
 } from '../types';
 import { getMMProvider } from './metamask';
 
@@ -90,6 +91,32 @@ export const getScAccount = async (
   } as SmartContractAccount;
 };
 
+export const getDepositReadyTx = async (): Promise<DepositTxs> => {
+  const result = (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'deposit_ready_tx', params: [] },
+    },
+  })) as string;
+  const parsedResult = JSON.parse(result as string);
+  console.log('getDepositReadyTx:', parsedResult);
+  return parsedResult as DepositTxs;
+};
+
+export const storeDepositTxHash = async (
+  txHash: string, 
+  requestId: string
+): Promise<boolean> => {
+  return (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'store_deposit_tx_hash', params: [txHash, requestId] },
+    },
+  })) as boolean;
+};
+
 export const getConfirmedUserOperation = async (
   keyringAccountId: string,
 ): Promise<string[]> => {
@@ -123,6 +150,19 @@ export const getPendingUserOperation = async (
             keyringAccountId,
           },
         ],
+      },
+    },
+  })) as string[];
+};
+
+export const getConfirmedDepositTxHashes = async (): Promise<string[]> => {
+  return (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: {
+        method: 'confirmed_deposit_tx_hashes',
+        params: [],
       },
     },
   })) as string[];
@@ -165,6 +205,7 @@ export const getSmartAccountActivity = async (
     pendingUserOpHashes,
     confirmedUserOpHashes,
     userOperationReceipts,
+    confirmedDepositTxHashes: await getConfirmedDepositTxHashes(),
   } as SmartAccountActivity;
 };
 

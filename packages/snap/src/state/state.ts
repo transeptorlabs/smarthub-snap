@@ -195,8 +195,7 @@ export const storeDepositTxHash = async (txHash: string, keyringRequestId: strin
 
 export const getConfirmedDepositTxHashs = async (): Promise<string[]> => {
   const state = await getState();
-  // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
-  return Object.assign({}, state.confirmedDepositTxHashes);
+  return state.confirmedDepositTxHashes;
 };
 
 export const clearActivityData = async (): Promise<boolean> => {

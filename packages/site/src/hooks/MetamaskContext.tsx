@@ -61,6 +61,7 @@ const initialState: MetamaskState = {
     pendingUserOpHashes: [],
     confirmedUserOpHashes: [],
     userOperationReceipts: [],
+    confirmedDepositTxHashes: [],
   },
   bundlerUrls: undefined,
 };

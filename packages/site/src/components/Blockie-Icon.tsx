@@ -18,7 +18,6 @@ const BlockieAccountContainer = styled.div`
     .identicon {
         border-radius: ${({ theme }) => theme.radii.default};
         margin-right: 1rem;
-        margin-bottom: 1.5rem;
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
@@ -32,8 +31,8 @@ export const BlockieEoa = () => (
             seed="Jeremy"
             size={12} 
             scale={4}
-            color='#424f80'
-            bgColor="#8692bf"
+            color='#8e2791'
+            bgColor="#c899c9"
             spotColor="#abc" 
             className="identicon"
         />

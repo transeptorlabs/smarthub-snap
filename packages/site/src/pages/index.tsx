@@ -265,22 +265,28 @@ const Index = () => {
         return;
       }
       
-      // encode function data
       const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
       const entryPointContract = new ethers.Contract(state.scAccount.entryPoint, EntryPoint__factory.abi)
+
+      // estimate gas 
+      const feeData = await provider.getFeeData()
+      const encodedFunctionData = entryPointContract.interface.encodeFunctionData('depositTo', [state.scAccount.address]);
+      const estimateGasAmount = await estimateGas(
+        state.selectedSnapKeyringAccount.address,
+        state.scAccount.entryPoint,
+        encodedFunctionData,
+      );
  
       // set transation data
-      const feeData = await provider.getFeeData()
       const transactionData = await entryPointContract.populateTransaction.depositTo(state.scAccount.address, {
         type: 2,
         nonce: await provider.getTransactionCount(state.selectedSnapKeyringAccount.address, 'latest'),
-        gasLimit: 10e6,
+        gasLimit: estimateGasAmount.toNumber(),
         maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? 0,
         maxFeePerGas: feeData.maxFeePerGas ?? 0,
         value: depositInWei.toString(),
       })
       transactionData.chainId = parseChainId(state.chainId)
-      console.log('transactionData', transactionData)
   
       // send request to keyring for approval
       await sendRequest(
@@ -465,7 +471,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Deposit',
-                descriptionBold: '(smart account owner)',
+                descriptionBold: '(sender)',
                 description: `${state.selectedSnapKeyringAccount.address}`,
                 stats: [
                   {

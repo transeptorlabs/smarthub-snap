@@ -73,7 +73,7 @@ export const trimAccounts = (accounts: string[]): string[] => {
 };
 
 export const convertToEth = (amount: string): string => {
-  return ethers.utils.formatEther(amount).substring(0, 6);
+  return ethers.utils.formatEther(amount).substring(0, 12);
 };
 
 export const convertToWei = (amount: string): BigNumber => {

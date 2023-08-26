@@ -6,6 +6,7 @@ export const getState = async (
 ): Promise<{
   keyringState: KeyringState;
   bundlerUrls: { [chainId: string]: string };
+  confirmedDepositTxHashes: string[];
   userOpHashesPending: { [key: string]: string }; // key = keyringAccountId-chainId-userOpHash
   smartAccountActivity: {
     [keyringAccountId: string]: {
@@ -23,6 +24,7 @@ export const getState = async (
   })) as {
     keyringState: KeyringState;
     bundlerUrls: { [chainId: string]: string };
+    confirmedDepositTxHashes: string[];
     userOpHashesPending: { [key: string]: string };
     smartAccountActivity: {
       [keyringAccountId: string]: {
@@ -176,6 +178,27 @@ export const storeBundlerUrl = async (
     params: { operation: 'update', newState: state },
   });
   return true;
+};
+
+export const storeDepositTxHash = async (
+  txHash: string,
+  keyringRequestId: string,
+): Promise<boolean> => {
+  const state = await getState();
+
+  delete state.keyringState.readyDepositTx[keyringRequestId];
+  state.confirmedDepositTxHashes.push(txHash);
+
+  await snap.request({
+    method: 'snap_manageState',
+    params: { operation: 'update', newState: state },
+  });
+  return true;
+};
+
+export const getConfirmedDepositTxHashs = async (): Promise<string[]> => {
+  const state = await getState();
+  return state.confirmedDepositTxHashes;
 };
 
 export const clearActivityData = async (): Promise<boolean> => {

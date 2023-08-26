@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
 import { BundlerUrls, SmartAccountActivity, SmartContractAccount } from "../types";
-import { bundlerUrls, getChainId, getKeyringSnapRpcClient, getMMProvider, getScAccount, getSmartAccountActivity, parseChainId, sendSupportedEntryPoints } from "../utils";
+import { bundlerUrls, getAccountBalance, getChainId, getKeyringSnapRpcClient, getMMProvider, getScAccount, getSmartAccountActivity, parseChainId, sendSupportedEntryPoints } from "../utils";
 import { KeyringAccount } from "@metamask/keyring-api";
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
@@ -19,8 +19,6 @@ export const useAcount = () => {
         pendingRequests,
       } 
     });
-    console.log('getKeyringSnapAccounts:', accounts)
-    console.log('getKeyringSnapAccounts pendingRequests:', pendingRequests)
     return accounts;
   }
 
@@ -30,6 +28,15 @@ export const useAcount = () => {
       payload: selectedKeyringAccount,
     });
     return selectedKeyringAccount;
+  };
+
+  const updateAccountBalance = async (account: string): Promise<string> => {
+    const balance = await getAccountBalance(account)
+    dispatch({
+      type: MetamaskActions.SetSelectedAccountBalance,
+      payload: balance,
+    });
+    return balance;
   };
 
   const createAccount = async (accountName: string) => {
@@ -48,7 +55,7 @@ export const useAcount = () => {
       account: keyringAccountId,
       scope: `eip155:${parseChainId(state.chainId)}`,
       request: {
-        id: '1',
+        id: '1', // TODO: generate random id
         jsonrpc: '2.0',
         method,
         params: params,
@@ -88,6 +95,7 @@ export const useAcount = () => {
 
   const getAccountActivity = async (keyringAccountId: string): Promise<SmartAccountActivity> => {
     const result: SmartAccountActivity = await getSmartAccountActivity(keyringAccountId);
+    console.log('getAccountActivity result:', result)
     dispatch({
       type: MetamaskActions.SetSmartAccountActivity,
       payload: result,
@@ -149,5 +157,6 @@ export const useAcount = () => {
     sendRequest,
     approveRequest,
     rejectRequest,
+    updateAccountBalance,
   }
 }

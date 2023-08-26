@@ -17,9 +17,13 @@ export enum RequestMethods {
 }
 
 export enum InternalMethod {
+  // Smart account management
   SmartAccount = 'sc_account',
   ConfirmedUserOps = 'confirmed_UserOperation',
   PendingUserOps = 'pending_UserOperation',
+  DepositReadyTx = 'deposit_ready_tx',
+  StoreDepositTxHash = 'store_deposit_tx_hash',
+  ConfirmedDepositTxHashes = 'confirmed_deposit_tx_hashes',
 
   // ERC-4337 methods eth namespace
   SendUserOperation = 'eth_sendUserOperation',
@@ -87,10 +91,13 @@ export const PERMISSIONS = new Map<string, string[]>([
       RequestMethods.DeleteRequest,
       RequestMethods.RejectRequest,
 
-      // Smart account methods
+      // Smart account management methods
       InternalMethod.SmartAccount,
       InternalMethod.ConfirmedUserOps,
       InternalMethod.PendingUserOps,
+      InternalMethod.DepositReadyTx,
+      InternalMethod.StoreDepositTxHash,
+      InternalMethod.ConfirmedDepositTxHashes,
 
       // ERC-4337 methods eth namespace
       InternalMethod.SendUserOperation,
@@ -133,10 +140,13 @@ export const PERMISSIONS = new Map<string, string[]>([
       RequestMethods.DeleteRequest,
       RequestMethods.RejectRequest,
 
-      // Smart account methods
+      // Smart account management methods
       InternalMethod.SmartAccount,
       InternalMethod.ConfirmedUserOps,
       InternalMethod.PendingUserOps,
+      InternalMethod.DepositReadyTx,
+      InternalMethod.StoreDepositTxHash,
+      InternalMethod.ConfirmedDepositTxHashes,
 
       // ERC-4337 methods eth namespace
       InternalMethod.SendUserOperation,

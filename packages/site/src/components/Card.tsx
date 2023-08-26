@@ -1,10 +1,9 @@
 import { ReactNode } from 'react';
 import styled from 'styled-components';
-import { FaCopy } from "react-icons/fa";
+import { FaCopy, FaInfoCircle } from "react-icons/fa";
 import { trimAccount } from '../utils/eth';
-import { SmartAccountActivity, UserOperationReceipt } from '../types';
-import { BigNumber } from 'ethers';
 import { BlockieEoa } from './Blockie-Icon';
+import { handleCopyToClipboard } from '../utils';
 
 type CardProps = {
   content: {
@@ -19,14 +18,14 @@ type CardProps = {
       title: string;
       value: string;
     }[];
-    form?: ReactNode[];
-    smartAccountActivity?: SmartAccountActivity
     custom?: ReactNode
   };
   disabled?: boolean;
   fullWidth?: boolean;
   copyDescription?: boolean;
   isAccount?: boolean;
+  isSmartAccount?: boolean;
+  showTooltip?: boolean;
 };
 
 const CardWrapper = styled.div<{ fullWidth?: boolean; disabled: boolean }>`
@@ -63,11 +62,6 @@ const FlexRow = styled.div`
   display: flex;
   flex-direction: row;
   margin-bottom: 1.2rem;
-`;
-
-const FlexRowNoMargin = styled.div`
-  display: flex;
-  flex-direction: row;
 `;
 
 const Description = styled.div`
@@ -110,13 +104,13 @@ const DescriptionCopy = styled.div`
   }
 `;
 
-const FormContainer = styled.div`
+const ToolTip = styled.div`
+  margin-left: 1rem;
 `;
 
 const StatsContainer = styled.div`
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
   width: 100%;
 `;
 
@@ -124,6 +118,7 @@ const Stat = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-right: 50%;
 `;
 
 const FlexContainer = styled.div`
@@ -136,76 +131,25 @@ const FlexContainer = styled.div`
   }
 `;
 
-const ActivityItemContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  width:: 100%;
-  background-color: ${({ theme }) => theme.colors.card.default};
-  margin-top: 0;
-  margin-bottom: 2.4rem;
-  padding: 2.4rem;  
-  border: 1px solid ${({ theme }) => theme.colors.border.default};
-  border-radius: ${({ theme }) => theme.radii.default};
-  box-shadow: ${({ theme }) => theme.shadows.default};
-  align-self: stretch;
-  ${({ theme }) => theme.mediaQueries.small} {
-    margin-top: 1.2rem;
-    margin-bottom: 1.2rem;
-    padding: 0;
-  }
-`;
 
-const ActivityItem = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
+export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount, isSmartAccount, showTooltip}: CardProps) => {
+  const { title, description, descriptionBold, button, listItems, stats, custom} = content;
 
-  ${({ theme }) => theme.mediaQueries.small} {
-    flex-direction: column;
-    padding: 2.4rem;  
-  }
-`;
-
-const ActivityCopy = styled.div`
-  margin-left: 1rem;
-  margin-top: auto;
-  margin-bottom: auto;
-  &:hover {
-    color: ${({ theme }) => theme.colors.primary.main};
-    cursor: pointer;
-  }
-`;
-
-const ActivitySuccess = styled.span`
-  color: ${({ theme }) => theme.colors.success.alternative};
-`
-
-const ActivityPending = styled.span`
-  color: ${({ theme }) => theme.colors.pending.alternative};
-`
-
-const ActivityFailed = styled.span`
-  color: ${({ theme }) => theme.colors.error.alternative};
-`
-
-export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount}: CardProps) => {
-  const { title, description, descriptionBold, button, listItems, form, stats, smartAccountActivity, custom} = content;
-
-  const handleCopyToClipboard = (event: any, text: string) => {
-    event.preventDefault();
-    if (text) {
-      navigator.clipboard.writeText(text);    
-    }
-  }
-  
   return (
     <CardWrapper fullWidth={fullWidth} disabled={disabled}>
       {title && (
-        <Title>{title}</Title>
+        <FlexRow>
+          <Title>{title}</Title>
+          {showTooltip && (
+            <ToolTip>
+              <FaInfoCircle />
+            </ToolTip>
+          )}
+        </FlexRow>
       )}
 
       <FlexRow>
-        {isAccount && (
+        {isSmartAccount && (
           <BlockieEoa></BlockieEoa>
           )
         }
@@ -254,6 +198,7 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
           }
         </ul>
       )}
+      
       {button}
 
       <FlexContainer>
@@ -269,108 +214,7 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
             }
           </StatsContainer>
         }
-        <FormContainer>
-          {form &&
-            form.map((item: ReactNode) => (
-              item
-          ))}
-        </FormContainer>
       </FlexContainer>
-
-      {smartAccountActivity && (
-        smartAccountActivity.pendingUserOpHashes.map((item: string) => (
-          <ActivityItemContainer key={`${item}`}>
-            <ActivityItem>
-              <p>Status:</p>
-              <p><ActivityPending>Pending</ActivityPending></p>
-            </ActivityItem>
-
-            <ActivityItem>
-              <p>UserOp hash:</p>
-              <FlexRowNoMargin>
-                <p>{trimAccount(item)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item)}>
-                  <FaCopy />
-                </ActivityCopy>
-              </FlexRowNoMargin>
-            </ActivityItem> 
-        
-          </ActivityItemContainer>
-        ))
-      )}
-
-      {smartAccountActivity && (
-        smartAccountActivity.userOperationReceipts.map((item: UserOperationReceipt) => (
-          <ActivityItemContainer key={`${item.sender}-${item.nonce.toString()}-${item.receipt.transactionHash}`}>
-            <ActivityItem>
-              <p>Status:</p>
-              <p>{item.success? <ActivitySuccess>Confirmed</ActivitySuccess>: <ActivityFailed>Failed</ActivityFailed>}</p>
-            </ActivityItem>
-
-            {!item.success && item.reason && (
-              <ActivityItem>
-                <p>Revert:</p>
-                <p>{item.reason}</p>
-              </ActivityItem>
-            )}
-           
-            <ActivityItem>
-              <p>Sender:</p>
-              <FlexRowNoMargin>
-                <p>eth:{trimAccount(item.sender)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.sender)}>
-                  <FaCopy />
-                </ActivityCopy>
-              </FlexRowNoMargin>
-            </ActivityItem>
-
-            <ActivityItem>
-              <p>To:</p>
-              <FlexRowNoMargin>
-                <p>eth:{trimAccount(item.receipt.to)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.receipt.to)}>
-                  <FaCopy />
-                </ActivityCopy>
-              </FlexRowNoMargin>
-            </ActivityItem>
-           
-            <ActivityItem>
-              <p>Nonce:</p>
-              <p>{BigNumber.from(item.nonce).toNumber()}</p>
-            </ActivityItem>
-
-            <ActivityItem>
-              <p>Gas Used(units):</p>
-              <p>{BigNumber.from(item.actualGasUsed).toNumber()}</p>
-            </ActivityItem>
-
-            <ActivityItem>
-              <p>Gas Cost(Wei):</p>
-              <p>{BigNumber.from(item.actualGasCost).toNumber()}</p>
-            </ActivityItem>
-
-            <ActivityItem>
-              <p>UserOp hash:</p>
-              <FlexRowNoMargin>
-                <p>{trimAccount(item.userOpHash)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.userOpHash)}>
-                  <FaCopy />
-                </ActivityCopy>
-              </FlexRowNoMargin>
-            </ActivityItem>  
-
-            <ActivityItem>
-              <p>Transaction hash:</p>
-              <FlexRowNoMargin>
-                <p>{trimAccount(item.receipt.transactionHash)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.receipt.transactionHash)}>
-                  <FaCopy />
-                </ActivityCopy>
-              </FlexRowNoMargin>
-            </ActivityItem>     
-          </ActivityItemContainer>
-        ))
-      )}
 
       {custom}
     </CardWrapper>

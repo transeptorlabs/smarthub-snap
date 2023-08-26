@@ -40,6 +40,7 @@ describe('state module - State', () => {
           wallets: {},
           pendingRequests: {},
         },
+        confirmedDepositTxHashes: [],
         bundlerUrls: DEFAULT_BUNDLER_URLS,
         userOpHashesPending: {},
         smartAccountActivity: {
@@ -71,6 +72,7 @@ describe('state module - State', () => {
           wallets: {},
           pendingRequests: {},
         },
+        confirmedDepositTxHashes: [],
         bundlerUrls: DEFAULT_BUNDLER_URLS,
         userOpHashesPending: {},
         smartAccountActivity: {
@@ -106,6 +108,7 @@ describe('state module - State', () => {
           wallets: {},
           pendingRequests: {},
         },
+        confirmedDepositTxHashes: [],
         bundlerUrls: DEFAULT_BUNDLER_URLS,
         userOpHashesPending: {
           [`${keyringAccountId}-${'0x1'}-${'hash1'}`]: 'hash1',
@@ -132,6 +135,7 @@ describe('state module - State', () => {
           wallets: {},
           pendingRequests: {},
         },
+        confirmedDepositTxHashes: [],
         bundlerUrls: DEFAULT_BUNDLER_URLS,
         userOpHashesPending: {
           [`${keyringAccountId}-${'0x1'}-${'hash1'}`]: 'hash1',

@@ -105,8 +105,8 @@ export const getDepositReadyTx = async (): Promise<DepositTxs> => {
 };
 
 export const storeDepositTxHash = async (
-  txHash: string, 
-  requestId: string
+  txHash: string,
+  requestId: string,
 ): Promise<boolean> => {
   return (await getMMProvider().request({
     method: 'wallet_invokeSnap',

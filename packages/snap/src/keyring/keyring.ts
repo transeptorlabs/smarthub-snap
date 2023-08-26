@@ -48,7 +48,9 @@ export type Wallet = {
 
 export class SimpleKeyring implements Keyring {
   #wallets: Record<string, Wallet>;
+
   #pendingRequests: Record<string, KeyringRequest>;
+
   #readyDepositTx: Record<string, string>;
 
   constructor(state: KeyringState) {
@@ -196,7 +198,7 @@ export class SimpleKeyring implements Keyring {
     if (method === 'eth_signTransaction') {
       this.#readyDepositTx[_id] = signature as string;
     }
-    
+
     await this.#saveState();
   }
 
@@ -290,11 +292,12 @@ export class SimpleKeyring implements Keyring {
 
       case 'eth_sendTransaction': {
         /* TODO: Handle sending user op to bundler node if the account type is eip155:erc4337  - (using personal_sign body for testing)
-        */
-        const [from, tx] = params as [string, JsonTx, Json]
+         */
+        const [from, tx] = params as [string, JsonTx, Json];
         console.log('SNAPS/', 'handling eth_sendTransaction ', from, tx);
         return '';
       }
+
       case 'eth_signTransaction': {
         const [from, tx] = params as [string, JsonTx, Json];
         console.log('SNAPS/', 'handling eth_signTransaction ', from, tx);

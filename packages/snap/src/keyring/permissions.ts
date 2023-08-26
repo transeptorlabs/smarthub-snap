@@ -17,7 +17,6 @@ export enum RequestMethods {
 }
 
 export enum InternalMethod {
-
   // Smart account management
   SmartAccount = 'sc_account',
   ConfirmedUserOps = 'confirmed_UserOperation',

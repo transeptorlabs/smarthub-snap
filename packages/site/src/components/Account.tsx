@@ -367,7 +367,7 @@ export const AccountModalDropdown = ({
 
 export const AccountRequestDisplay = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
-  const { approveRequest, rejectRequest, getSmartAccount, getAccountActivity, updateAccountBalance } = useAcount();
+  const { approveRequest, rejectRequest, getSmartAccount, getAccountActivity, updateAccountBalance, getKeyringSnapAccounts } = useAcount();
 
   const handleApproveRequest = async (event: any, id: string) => {
     try {
@@ -391,6 +391,7 @@ export const AccountRequestDisplay = () => {
       }
  
     } catch (e) {
+      await getKeyringSnapAccounts();
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
@@ -407,17 +408,69 @@ export const AccountRequestDisplay = () => {
 
   const renderRequestDetails = (request: KeyringRequest) => {
     switch (request.request.method) {
-      case 'eth_signTransaction':
+      case "eth_signTransaction":
         if ('params' in request.request) {
-          const [from, tx] = request.request.params as [string, JsonTx]
-          
-          const amount = BigNumber.from(tx.value);
-          const maxGas = BigNumber.from(tx.gasLimit);
+          const [from, tx] = request.request.params as [string, JsonTx, string]
+            const amount = BigNumber.from(tx.value);
+            const maxGas = BigNumber.from(tx.gasLimit);
+            const gasFee = BigNumber.from(tx.maxFeePerGas).add(BigNumber.from(tx.maxPriorityFeePerGas));
+            const maxFee = gasFee.mul(maxGas);
+            const total = gasFee.add(BigNumber.from(tx.value));
+            const maxAmount = maxFee.add(BigNumber.from(tx.value));
+  
+            return (
+              <>
+              <PendingRequestItem>
+                <p>From:</p>
+                <p>{trimAccount(from)}</p>
+              </PendingRequestItem>
+  
+              <PendingRequestItem>
+                <p>To:</p>
+                <p>{trimAccount(tx.to as string)}</p>
+              </PendingRequestItem>
+  
+              <PendingRequestItem>
+                <p>Entry point contract:</p>
+                <p>depositTo</p>
+              </PendingRequestItem>
+  
+              <PendingRequestItem>
+                <p>Amount:</p>
+                <p>{convertToEth(amount.toString())} ETH</p>
+              </PendingRequestItem>
+  
+              <PendingRequestItem>
+                <p>Gas Fee(estimated):</p>
+                <p>{convertToEth(gasFee.toString())} ETH</p>
+              </PendingRequestItem>
+  
+              <PendingRequestItem>
+                <p>Max fee:</p>
+                <p>{convertToEth(maxFee.toString())} ETH</p>
+              </PendingRequestItem>
+              
+              <LineBreak></LineBreak>
+  
+              <PendingRequestItem>
+                <TextBold>Total</TextBold>
+                <TextBold>{convertToEth(total.toString())} ETH</TextBold>
+              </PendingRequestItem>
+  
+              <PendingRequestItem>
+                <p>Max(Amount + max fee)</p>
+                <p>{convertToEth(maxAmount.toString())} ETH</p>
+              </PendingRequestItem>
+              </>
+            );
+        } else {
+          throw new Error('Invalid request');
+        }
+      case "eth_sendTransaction":
+        if ('params' in request.request) {
+          const [from, tx] = request.request.params as [string, JsonTx, string]
           const gasFee = BigNumber.from(tx.maxFeePerGas).add(BigNumber.from(tx.maxPriorityFeePerGas));
-          const maxFee = gasFee.mul(maxGas);
-          const total = gasFee.add(BigNumber.from(tx.value));
-          const maxAmount = maxFee.add(BigNumber.from(tx.value));
-
+          
           return (
             <>
             <PendingRequestItem>
@@ -432,34 +485,12 @@ export const AccountRequestDisplay = () => {
 
             <PendingRequestItem>
               <p>Entry point contract:</p>
-              <p>depositTo</p>
-            </PendingRequestItem>
-
-            <PendingRequestItem>
-              <p>Amount:</p>
-              <p>{convertToEth(amount.toString())} ETH</p>
+              <p>withdrawTo</p>
             </PendingRequestItem>
 
             <PendingRequestItem>
               <p>Gas Fee(estimated):</p>
               <p>{convertToEth(gasFee.toString())} ETH</p>
-            </PendingRequestItem>
-
-            <PendingRequestItem>
-              <p>Max fee:</p>
-              <p>{convertToEth(maxFee.toString())} ETH</p>
-            </PendingRequestItem>
-            
-            <LineBreak></LineBreak>
-
-            <PendingRequestItem>
-              <TextBold>Total</TextBold>
-              <TextBold>{convertToEth(total.toString())} ETH</TextBold>
-            </PendingRequestItem>
-
-            <PendingRequestItem>
-              <p>Max(Amount + max fee)</p>
-              <p>{convertToEth(maxAmount.toString())} ETH</p>
             </PendingRequestItem>
             </>
           );

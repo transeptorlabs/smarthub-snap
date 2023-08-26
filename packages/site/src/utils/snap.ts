@@ -255,29 +255,6 @@ export const sendSupportedEntryPoints = async (): Promise<string[]> => {
   })) as string[];
 };
 
-export const sendUserOperation = async (
-  target: string,
-  data: string,
-  scOwnerAddress: string,
-): Promise<string> => {
-  return (await getMMProvider().request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: {
-        method: 'eth_sendUserOperation',
-        params: [
-          {
-            target,
-            data,
-            scOwnerAddress,
-          },
-        ],
-      },
-    },
-  })) as string;
-};
-
 export const getUserOperationByHash = async (
   userOpHash: string,
 ): Promise<UserOperation> => {

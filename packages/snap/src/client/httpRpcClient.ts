@@ -12,6 +12,7 @@ type BundlerRPCError = {
 };
 export class HttpRpcClient {
   private readonly provider: ethers.providers.JsonRpcProvider;
+
   private readonly bundlerUrl: string;
 
   constructor(bundlerUrls: { [chainId: string]: string }, chainId: string) {

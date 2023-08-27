@@ -26,19 +26,25 @@ import {
 import type { Json, JsonRpcRequest } from '@metamask/utils';
 import { v4 as uuid } from 'uuid';
 
-import { SimpleAccountAPI } from '@account-abstraction/sdk';
 import { Wallet as EthersWallet, ethers } from 'ethers';
+import {
+  EntryPoint__factory,
+  UserOperationStruct,
+} from '@account-abstraction/contracts';
+import { deepHexlify } from '@account-abstraction/utils';
+import { resolveProperties } from 'ethers/lib/utils';
+import { heading, panel, text } from '@metamask/snaps-ui';
+import { HttpRpcClient } from '../client';
+import {
+  getBundlerUrls,
+  storeKeyRing,
+  storeUserOpHashPending,
+} from '../state/state';
 import {
   isEvmChain,
   serializeTransaction,
   isUniqueAccountName,
 } from '../utils';
-import { getBundlerUrls, storeKeyRing, storeUserOpHashPending } from '../state/state';
-import { HttpRpcClient } from '../client';
-import { EntryPoint__factory, UserOperationStruct } from '@account-abstraction/contracts';
-import { deepHexlify } from '@account-abstraction/utils';
-import { resolveProperties } from 'ethers/lib/utils';
-import { heading, panel, text } from '@metamask/snaps-ui';
 import { DEFAULT_ENTRY_POINT } from '../4337';
 
 export type KeyringState = {
@@ -188,11 +194,18 @@ export class SimpleKeyring implements Keyring {
   }
 
   async approveRequest(_id: string): Promise<void> {
-    try {     
+    try {
       const request: KeyringRequest = await this.getRequest(_id);
-      console.log('SNAPS/', ' approveRequest requests', JSON.stringify(request));
+      console.log(
+        'SNAPS/',
+        ' approveRequest requests',
+        JSON.stringify(request),
+      );
       const { method, params } = request.request as JsonRpcRequest;
-      const signature = await this.#handleSigningRequest(method, params as Json);
+      const signature = await this.#handleSigningRequest(
+        method,
+        params as Json,
+      );
       await snap.request({
         method: 'snap_manageAccounts',
         params: {
@@ -200,12 +213,12 @@ export class SimpleKeyring implements Keyring {
           params: { id: _id, result: signature },
         },
       });
-  
+
       delete this.#pendingRequests[_id];
       if (method === 'eth_signTransaction') {
         this.#readyDepositTx[_id] = signature as string;
       }
-  
+
       await this.#saveState();
     } catch (e) {
       delete this.#pendingRequests[_id];
@@ -280,13 +293,11 @@ export class SimpleKeyring implements Keyring {
     switch (method) {
       case 'personal_sign': {
         const [from, message] = params as string[];
-        return this.#signPersonalMessage(from, message)
+        return this.#signPersonalMessage(from, message);
       }
 
       case 'eth_sendTransaction': {
         const [from, userOperation] = params as [string, UserOperationStruct];
-        console.log('SNAPS/', 'signing eth_sendTransaction ', from, userOperation);
-
         const provider = new ethers.providers.Web3Provider(ethereum as any);
         const entryPointContract = new ethers.Contract(
           DEFAULT_ENTRY_POINT,
@@ -297,8 +308,12 @@ export class SimpleKeyring implements Keyring {
         // sign the userOp
         const { privateKey, account } = this.#getWalletByAddress(from);
         const wallet = new EthersWallet(privateKey);
-        const signature = wallet.signMessage(await entryPointContract.getUserOpHash(userOperation))
-        userOperation.signature = signature
+        userOperation.signature = '0x';
+        const userOpHash = ethers.utils.arrayify(
+          await entryPointContract.getUserOpHash(userOperation),
+        );
+        const signature = await wallet.signMessage(userOpHash);
+        userOperation.signature = signature;
 
         // send the userOp
         const hexifiedUserOp: UserOperationStruct = deepHexlify(
@@ -306,16 +321,15 @@ export class SimpleKeyring implements Keyring {
         );
         await this.#handleSendUserOp(account.id, hexifiedUserOp);
 
-        return signature
+        return signature;
       }
 
       case 'eth_signTransaction': {
         const [from, tx] = params as [string, JsonTx, Json];
-        console.log('SNAPS/', 'signing eth_signTransaction ', from, tx);
         const provider = new ethers.providers.Web3Provider(ethereum as any);
         const { privateKey } = this.#getWalletByAddress(from);
         const wallet = new EthersWallet(privateKey, provider);
-        return await wallet.signTransaction(tx as any)
+        return await wallet.signTransaction(tx as any);
       }
 
       case 'eth_signTypedData':
@@ -328,12 +342,12 @@ export class SimpleKeyring implements Keyring {
           Json,
           { version: SignTypedDataVersion },
         ];
-        return this.#signTypedData(from, data, opts)
+        return this.#signTypedData(from, data, opts);
       }
 
       case 'eth_sign': {
         const [from, data] = params as [string, string];
-        return this.#signMessage(from, data)
+        return this.#signMessage(from, data);
       }
 
       default: {
@@ -342,7 +356,10 @@ export class SimpleKeyring implements Keyring {
     }
   }
 
-  async #handleSendUserOp(accountId: string, signedUserOp: UserOperationStruct): Promise<void> {
+  async #handleSendUserOp(
+    accountId: string,
+    signedUserOp: UserOperationStruct,
+  ): Promise<void> {
     console.log('SNAPS/', 'handle handleSendUserOp ', accountId, signedUserOp);
 
     // connect to rpc
@@ -353,7 +370,7 @@ export class SimpleKeyring implements Keyring {
     const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
     const rpcResult = await rpcClient.send('eth_sendUserOperation', [
       signedUserOp,
-      DEFAULT_ENTRY_POINT
+      DEFAULT_ENTRY_POINT,
     ]);
 
     // store userOp hash pending
@@ -362,7 +379,7 @@ export class SimpleKeyring implements Keyring {
         rpcResult.data as string,
         accountId,
         chainId as string,
-      )
+      );
 
       snap.request({
         method: 'snap_dialog',
@@ -370,13 +387,11 @@ export class SimpleKeyring implements Keyring {
           type: 'alert',
           content: panel([
             heading('User Operation Sent'),
-            text(
-              `Sent from Smart account: ${signedUserOp.sender}`,
-            ),
+            text(`Sent from Smart account: ${signedUserOp.sender}`),
             text(`User operation hash: ${rpcResult.data}`),
           ]),
         },
-      })
+      });
     } else {
       throw new Error(`Failed to send user op: ${rpcResult.data}`);
     }
@@ -386,6 +401,7 @@ export class SimpleKeyring implements Keyring {
     if (!tx.chainId) {
       throw new Error('Missing chainId');
     }
+
     // Patch the transaction to make sure that the `chainId` is a hex string.
     if (!tx.chainId.startsWith('0x')) {
       tx.chainId = `0x${parseInt(tx.chainId, 10).toString(16)}`;

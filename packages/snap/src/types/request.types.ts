@@ -1,6 +1,16 @@
+import { UserOperationStruct } from '@account-abstraction/contracts';
+import { BigNumber } from 'ethers';
+
 export type SmartAccountParams = {
   keyringAccountId: string;
   chainId: string;
+};
+
+export type UserOpCallDataParams = {
+  keyringAccountId: string;
+  to: string;
+  value: BigNumber;
+  data: string;
 };
 
 export type GetUserOpParams = {
@@ -20,6 +30,10 @@ export type SmartAccountActivityParams = {
   chainId: string;
 };
 
-export type BaseParams = {
-  chainId: string;
+export type EstimateCreationGasParams = {
+  keyringAccountId: string;
+};
+
+export type EstimateUserOperationGas = {
+  userOp: UserOperationStruct;
 };

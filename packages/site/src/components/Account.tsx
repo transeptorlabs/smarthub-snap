@@ -214,7 +214,7 @@ export const AccountModalDropdown = ({
 }) => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const [selectedAccount, setSelectedAccount] = useState<KeyringAccount>(state.selectedSnapKeyringAccount);
-  const {selectKeyringSnapAccount, getSmartAccount, createAccount} = useAcount();
+  const {selectKeyringSnapAccount, getSmartAccount, createAccount, updateAccountBalance} = useAcount();
   const [accountName, setAccountName] = useState('');
 
   const featureList: {feature: string; description: string }[] = [
@@ -254,6 +254,7 @@ export const AccountModalDropdown = ({
     setSelectedAccount(account);
     await selectKeyringSnapAccount(account);
     await getSmartAccount(account.id);
+    await updateAccountBalance(account.address);
     closeModal();
   }
 
@@ -385,11 +386,11 @@ export const AccountRequestDisplay = () => {
         console.log('Transaction sent. Transaction hash:', res.hash);
 
         await storeDepositTxHash(res.hash, id);
-        await getSmartAccount(state.selectedSnapKeyringAccount.id);
-        await getAccountActivity(state.selectedSnapKeyringAccount.id);
-        await updateAccountBalance(state.selectedSnapKeyringAccount.address);
       }
- 
+
+      await getSmartAccount(state.selectedSnapKeyringAccount.id);
+      await getAccountActivity(state.selectedSnapKeyringAccount.id);
+      await updateAccountBalance(state.selectedSnapKeyringAccount.address);
     } catch (e) {
       await getKeyringSnapAccounts();
       dispatch({ type: MetamaskActions.SetError, payload: e });

@@ -1,7 +1,7 @@
-import EthereumLogo from '../assets/icons/eth.svg';
-import PolygonLogo from '../assets/icons/polygon.svg';
-import ArbitrumLogo from '../assets/icons/arbitrum.svg';
-import OptimismLogo from '../assets/icons/optimism.svg';
+// import EthereumLogo from '../assets/icons/eth.svg';
+// import PolygonLogo from '../assets/icons/polygon.svg';
+// import ArbitrumLogo from '../assets/icons/arbitrum.svg';
+// import OptimismLogo from '../assets/icons/optimism.svg';
 import PrivateLogo from '../assets/icons/private-chain.svg';
 
 export enum AppTab {

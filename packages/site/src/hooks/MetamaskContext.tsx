@@ -10,6 +10,7 @@ import { AppTab, BundlerUrls, Snap } from '../types';
 import { isFlask, getSnap, KeyringState } from '../utils';
 import { SmartAccountActivity, SmartContractAccount } from '../types/erc-4337';
 import { KeyringAccount } from "@metamask/keyring-api";
+import { BigNumber } from 'ethers';
 
 export type MetamaskState = {
   isFlask: boolean;
@@ -51,8 +52,8 @@ const initialState: MetamaskState = {
     connected: false,
     address: '',
     balance: '', // in wei
-    nonce: '',
-    index: '',
+    nonce: BigNumber.from(0),
+    index: BigNumber.from(0),
     entryPoint: '',
     deposit: '',
     factoryAddress: '',
@@ -187,11 +188,12 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
           type: 'eip155:erc4337',
         },
         scAccount: {
+          initCode: '',
           connected: false,
           address: '',
           balance: '', // in wei
-          nonce: '',
-          index: '',
+          nonce: BigNumber.from(0),
+          index: BigNumber.from(0),
           entryPoint: '',
           deposit: '',
           factoryAddress: '',

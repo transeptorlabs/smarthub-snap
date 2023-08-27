@@ -12,6 +12,10 @@ import {
   convertToWei,
   estimateGas,
   getMMProvider,
+  getUserOpCallData,
+  estimatCreationGas,
+  estimateUserOperationGas,
+  getDummySignature,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -323,25 +327,43 @@ const Index = () => {
     try {
       const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
       const entryPointContract = new ethers.Contract(state.scAccount.entryPoint, EntryPoint__factory.abi)
-      const encodedCallData = entryPointContract.interface.encodeFunctionData('withdrawTo', [state.selectedSnapKeyringAccount.address, withdrawAmountInWei.toString()]);
-      
-      // estimate gas and verifaction gas fee
-      const feeData = await provider.getFeeData()
 
-      // set transation data (user operation)
+      // get call data
+      const callData = await getUserOpCallData(
+        state.selectedSnapKeyringAccount.id,
+        entryPointContract.address,
+        BigNumber.from(0),
+        entryPointContract.interface.encodeFunctionData('withdrawTo', [state.selectedSnapKeyringAccount.address, withdrawAmountInWei.toString()]) // users intent(contract they want to interact with)
+      )
+
+      // set transation data (user operation)   
       const userOpToSign: UserOperationStruct = {
         sender: state.scAccount.address,
-        nonce: state.scAccount.nonce,
+        nonce: state.scAccount.nonce.toHexString(),
         initCode: state.scAccount.initCode,
-        callData: '',
-        callGasLimit: '',
-        verificationGasLimit: '',
-        preVerificationGas: '',
-        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? BigNumber.from(0),
-        maxFeePerGas: feeData.maxFeePerGas ?? BigNumber.from(0),
-        paymasterAndData: '',
-        signature: ''
+        callData: callData,
+        callGasLimit: BigNumber.from(0).toHexString(),
+        verificationGasLimit: BigNumber.from(0).toHexString(),
+        preVerificationGas: BigNumber.from(0).toHexString(),
+        maxPriorityFeePerGas: BigNumber.from(0).toHexString(),
+        maxFeePerGas: BigNumber.from(0).toHexString(),
+        paymasterAndData: '0x', // no paymaster
+        signature: '0x'
       }
+
+      // get dummy signature
+      userOpToSign.signature = await getDummySignature(userOpToSign, entryPointContract.address)
+
+      // get gas fee
+      const feeData = await provider.getFeeData()
+      const initGas = await estimatCreationGas(state.selectedSnapKeyringAccount.id)
+      const estimatGasResult = await estimateUserOperationGas(userOpToSign)
+      
+      userOpToSign.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas.toHexString(): BigNumber.from(0).toHexString()
+      userOpToSign.maxFeePerGas = feeData.maxFeePerGas ? feeData.maxFeePerGas.toHexString() : BigNumber.from(0).toHexString()
+      userOpToSign.callGasLimit = estimatGasResult.callGasLimit.toHexString()
+      userOpToSign.verificationGasLimit = estimatGasResult.verificationGas.add(initGas).toHexString()
+      userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
     
       // send request to keyring for approval
       await sendRequest(

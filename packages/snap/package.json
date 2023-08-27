@@ -54,7 +54,6 @@
   },
   "dependencies": {
     "@account-abstraction/contracts": "0.6.0",
-    "@account-abstraction/sdk": "0.6.0",
     "@account-abstraction/utils": "^0.6.0",
     "@ethereumjs/common": "^3.1.2",
     "@ethereumjs/tx": "^4.1.2",

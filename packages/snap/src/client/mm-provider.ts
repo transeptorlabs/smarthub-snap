@@ -23,15 +23,3 @@ export const getBalance = async (addr: string): Promise<BigNumber> => {
   return await provider.getBalance(addr);
 };
 
-export const getDeposit = async (
-  accountAddr: string,
-  entryPoint: string,
-): Promise<BigNumber> => {
-  const provider = new ethers.providers.Web3Provider(ethereum as any);
-  const contract = new ethers.Contract(
-    entryPoint,
-    EntryPoint__factory.abi,
-    provider,
-  );
-  return contract.balanceOf(accountAddr);
-};

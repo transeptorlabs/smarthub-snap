@@ -1,16 +1,12 @@
 import { OnRpcRequestHandler, OnCronjobHandler } from '@metamask/snaps-types';
-import { SimpleAccountAPI } from '@account-abstraction/sdk';
-import { UserOperationStruct } from '@account-abstraction/contracts';
 import { copyable, heading, panel, text } from '@metamask/snaps-ui';
-import { deepHexlify } from '@account-abstraction/utils';
-import { resolveProperties } from 'ethers/lib/utils';
 import {
   KeyringAccount,
   MethodNotSupportedError,
   buildHandlersChain,
   handleKeyringRequest,
 } from '@metamask/keyring-api';
-import { DEFAULT_ACCOUNT_FACTORY, DEFAULT_ENTRY_POINT, HttpRpcClient, getBalance, getDeposit } from './client';
+import { HttpRpcClient, getBalance } from './client';
 import {
   clearActivityData,
   getBundlerUrls,
@@ -19,14 +15,12 @@ import {
   getUserOpHashsPending,
   storeBundlerUrl,
   storeUserOpHashConfirmed,
-  storeUserOpHashPending,
   getKeyRing,
   storeDepositTxHash,
   getConfirmedDepositTxHashs,
 } from './state';
 import {
   GetUserOpParams,
-  SendUserOpParams,
   SmartAccountActivityParams,
   SmartAccountParams,
   UserOperationReceipt,
@@ -37,6 +31,8 @@ import {
   PERMISSIONS,
   SimpleKeyring,
 } from './keyring';
+import { DEFAULT_ACCOUNT_FACTORY, DEFAULT_ENTRY_POINT, getAccountInitCode, getDeposit, getNonce, getSmartAccountAddress } from './4337';
+import { BigNumber } from 'ethers';
 
 let keyring: SimpleKeyring;
 
@@ -121,24 +117,19 @@ const erc4337Handler: OnRpcRequestHandler = async ({ origin, request }) => {
         throw new Error('Account not found');
       }
 
-      const scAccount: SimpleAccountAPI = await keyring.getSmartAccount(
-        DEFAULT_ENTRY_POINT,
-        DEFAULT_ACCOUNT_FACTORY,
-        ownerAccount.id,
-      );
-      const scAddress = await scAccount.getCounterFactualAddress();
-
+      const scAddress = await getSmartAccountAddress(ownerAccount.address);
       const [balance, nonce, deposit] = await Promise.all([
         await getBalance(scAddress),
-        await scAccount.getNonce(),
-        await getDeposit(scAddress, DEFAULT_ENTRY_POINT),
+        await getNonce(scAddress),
+        await getDeposit(scAddress),
       ]);
 
       result = JSON.stringify({
+        initCode: getAccountInitCode(ownerAccount.address),
         address: scAddress,
         balance,
         nonce,
-        index: scAccount.index,
+        index: BigNumber.from(0),
         entryPoint: DEFAULT_ENTRY_POINT,
         factoryAddress: DEFAULT_ACCOUNT_FACTORY,
         deposit,
@@ -147,6 +138,8 @@ const erc4337Handler: OnRpcRequestHandler = async ({ origin, request }) => {
 
       return result;
     }
+
+    // TODO: implement get user op call data
 
     case InternalMethod.DepositReadyTx: {
       result = await getKeyRing();

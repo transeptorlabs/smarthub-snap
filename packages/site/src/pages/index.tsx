@@ -323,15 +323,17 @@ const Index = () => {
     try {
       const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
       const entryPointContract = new ethers.Contract(state.scAccount.entryPoint, EntryPoint__factory.abi)
-      const encodedFunctionData = entryPointContract.interface.encodeFunctionData('withdrawTo', [state.selectedSnapKeyringAccount.address, withdrawAmountInWei.toString()]);
+      const encodedCallData = entryPointContract.interface.encodeFunctionData('withdrawTo', [state.selectedSnapKeyringAccount.address, withdrawAmountInWei.toString()]);
+      
+      // estimate gas and verifaction gas fee
       const feeData = await provider.getFeeData()
 
       // set transation data (user operation)
       const userOpToSign: UserOperationStruct = {
         sender: state.scAccount.address,
         nonce: state.scAccount.nonce,
-        initCode: '',
-        callData: encodedFunctionData,
+        initCode: state.scAccount.initCode,
+        callData: '',
         callGasLimit: '',
         verificationGasLimit: '',
         preVerificationGas: '',
@@ -709,13 +711,13 @@ const Index = () => {
       )}
 
       <Notice>
-          <p>
-            Please note that the this snap is only available in MetaMask Flask,
-            and is actively being developed by{' '}
-            <a href="https://github.com/transeptorlabs" target="_blank">
-              Transeptor Labs
-            </a>
-          </p>
+        <p>
+          Please note that this snap is only available in MetaMask Flask,
+          and is actively being developed by{' '}
+          <a href="https://github.com/transeptorlabs" target="_blank">
+            Transeptor Labs
+          </a>
+        </p>
       </Notice>
     </Container>
   );

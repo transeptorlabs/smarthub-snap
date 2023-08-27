@@ -47,6 +47,7 @@ const initialState: MetamaskState = {
   },
   selectedAccountBalance: '0', // in wei
   scAccount: {
+    initCode: '',
     connected: false,
     address: '',
     balance: '', // in wei

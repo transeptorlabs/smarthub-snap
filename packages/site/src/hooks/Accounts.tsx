@@ -81,6 +81,8 @@ export const useAcount = () => {
       sendSupportedEntryPoints(),
     ]);
 
+    console.log('getSmartAccount result:', scAccount, supportedEntryPoints)
+
     dispatch({
       type: MetamaskActions.SetScAccount,
       payload: scAccount,

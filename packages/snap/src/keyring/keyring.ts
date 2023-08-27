@@ -34,12 +34,12 @@ import {
   isUniqueAccountName,
 } from '../utils';
 import { getBundlerUrls, storeKeyRing, storeUserOpHashPending } from '../state/state';
-import { TransactionDetailsForUserOp } from '@account-abstraction/sdk/dist/src/TransactionDetailsForUserOp';
-import { DEFAULT_ACCOUNT_FACTORY, DEFAULT_ENTRY_POINT, HttpRpcClient } from '../client';
-import { UserOperationStruct } from '@account-abstraction/contracts';
+import { HttpRpcClient } from '../client';
+import { EntryPoint__factory, UserOperationStruct } from '@account-abstraction/contracts';
 import { deepHexlify } from '@account-abstraction/utils';
 import { resolveProperties } from 'ethers/lib/utils';
 import { heading, panel, text } from '@metamask/snaps-ui';
+import { DEFAULT_ENTRY_POINT } from '../4337';
 
 export type KeyringState = {
   wallets: Record<string, Wallet>;
@@ -230,25 +230,6 @@ export class SimpleKeyring implements Keyring {
     await this.#saveState();
   }
 
-  async getSmartAccount(
-    entryPointAddress: string,
-    factoryAddress: string,
-    keyringAccountId: string,
-  ): Promise<SimpleAccountAPI> {
-    const provider = new ethers.providers.Web3Provider(ethereum as any);
-    const { privateKey } = this.#getWalletById(keyringAccountId);
-    const owner = new EthersWallet(privateKey).connect(provider);
-
-    const aa = new SimpleAccountAPI({
-      provider,
-      entryPointAddress,
-      owner,
-      factoryAddress,
-      index: 0, // nonce value used when creating multiple accounts for the same owner
-    });
-    return aa;
-  }
-
   #getWalletByAddress(address: string): Wallet {
     const walletMatch = Object.values(this.#wallets).find(
       (wallet) =>
@@ -303,24 +284,29 @@ export class SimpleKeyring implements Keyring {
       }
 
       case 'eth_sendTransaction': {
-        const [from, tx] = params as [string, UserOperationStruct];
-        console.log('SNAPS/', 'signing eth_sendTransaction ', from, tx);
+        const [from, userOperation] = params as [string, UserOperationStruct];
+        console.log('SNAPS/', 'signing eth_sendTransaction ', from, userOperation);
 
-        const { account } = this.#getWalletByAddress(from);
-        const scAccount = await this.getSmartAccount(
+        const provider = new ethers.providers.Web3Provider(ethereum as any);
+        const entryPointContract = new ethers.Contract(
           DEFAULT_ENTRY_POINT,
-          DEFAULT_ACCOUNT_FACTORY,
-          account.id,
+          EntryPoint__factory.abi,
+          provider,
         );
-        
-        const signedUersOp: UserOperationStruct = await scAccount.signUserOp(tx)
+
+        // sign the userOp
+        const { privateKey, account } = this.#getWalletByAddress(from);
+        const wallet = new EthersWallet(privateKey);
+        const signature = wallet.signMessage(await entryPointContract.getUserOpHash(userOperation))
+        userOperation.signature = signature
+
+        // send the userOp
         const hexifiedUserOp: UserOperationStruct = deepHexlify(
-          await resolveProperties(signedUersOp),
+          await resolveProperties(userOperation),
         );
+        await this.#handleSendUserOp(account.id, hexifiedUserOp);
 
-        await this.#handleSendUserOp(account.id, tx);
-
-        return hexifiedUserOp.signature.toString()
+        return signature
       }
 
       case 'eth_signTransaction': {

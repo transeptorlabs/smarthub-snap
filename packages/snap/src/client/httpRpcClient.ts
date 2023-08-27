@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
-import { DEFAULT_ENTRY_POINT } from './4337-contants';
+import { DEFAULT_ENTRY_POINT } from '../4337/4337-contants';
 
 type BundlerRPCError = {
   jsonrpc: string;

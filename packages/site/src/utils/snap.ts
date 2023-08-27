@@ -79,6 +79,7 @@ export const getScAccount = async (
 
   const parsedResult = JSON.parse(result as string);
   return {
+    initCode: parsedResult.initCode,
     address: parsedResult.address,
     balance: BigNumber.from(parsedResult.balance).toString(),
     entryPoint: parsedResult.entryPoint,

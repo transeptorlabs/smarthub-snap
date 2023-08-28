@@ -1,5 +1,4 @@
-import { OnRpcRequestHandler, OnCronjobHandler } from '@metamask/snaps-types';
-import { copyable, heading, panel, text } from '@metamask/snaps-ui';
+import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import {
   KeyringAccount,
   MethodNotSupportedError,
@@ -11,23 +10,21 @@ import { HttpRpcClient, getBalance } from './client';
 import {
   clearActivityData,
   getBundlerUrls,
-  getUserOpHashsConfirmed,
-  getAllUserOpHashsPending,
-  getUserOpHashsPending,
   storeBundlerUrl,
-  storeUserOpHashConfirmed,
   getKeyRing,
-  storeDepositTxHash,
-  getConfirmedDepositTxHashs,
+  getUserOpHashes,
+  getTxHashes,
+  storeTxHash,
 } from './state';
 import {
   EstimateCreationGasParams,
   EstimateUserOperationGas,
+  GetTxHashesParams,
   GetUserOpParams,
   SmartAccountActivityParams,
   SmartAccountParams,
+  StoreTxHashParams,
   UserOpCallDataParams,
-  UserOperationReceipt,
 } from './types';
 import {
   InternalMethod,
@@ -73,12 +70,8 @@ const permissionsHandler: OnRpcRequestHandler = async ({
 };
 
 const intitKeyRing = async () => {
-  if (!keyring) {
-    const keyringState: KeyringState = await getKeyRing();
-    if (!keyring) {
-      keyring = new SimpleKeyring(keyringState);
-    }
-  }
+  const keyringState: KeyringState = await getKeyRing();
+  keyring = new SimpleKeyring(keyringState);
 };
 
 /**
@@ -136,7 +129,7 @@ const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
       ]);
 
       result = JSON.stringify({
-        initCode: getAccountInitCode(ownerAccount.address),
+        initCode: await getAccountInitCode(ownerAccount.address),
         address: scAddress,
         balance,
         nonce,
@@ -147,6 +140,24 @@ const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
         ownerAddress: ownerAccount.address,
       });
 
+      return result;
+    }
+
+    case InternalMethod.GetUserOpsHashes: {
+      const params: SmartAccountActivityParams = (
+        request.params as any[]
+      )[0] as SmartAccountActivityParams;
+
+      const ownerAccount = await keyring.getAccount(params.keyringAccountId);
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
+
+      const userOpHashes: string[] = await getUserOpHashes(
+        ownerAccount.id,
+        chainId as string,
+      );
+      result = userOpHashes;
       return result;
     }
 
@@ -183,63 +194,35 @@ const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
         throw new Error('Account not found');
       }
 
-      result = await estimateCreationGas(
-        getAccountInitCode(ownerAccount.address),
-      );
+      const initCode = await getAccountInitCode(ownerAccount.address)
+      console.log('SNAPS/', 'initCode ', initCode);
+      result = await estimateCreationGas(initCode);
       return JSON.stringify(result);
     }
 
-    case InternalMethod.DepositReadyTx: {
+    case InternalMethod.GetTxHashes: {
+      const params: GetTxHashesParams = (
+        request.params as any[]
+      )[0] as GetTxHashesParams;
+      return await getTxHashes(params.keyringAccountId, params.chainId);
+    }
+
+    case InternalMethod.StoreTxHash: {
+      const params: StoreTxHashParams = (
+        request.params as any[]
+      )[0] as StoreTxHashParams;
+      result = await storeTxHash(
+        params.keyringAccountId,
+        params.txHash,
+        params.keyringRequestId,
+        params.chainId,
+      );
+      return result;
+    }
+
+    case InternalMethod.GetSignedTxs: {
       result = await getKeyRing();
-      return JSON.stringify(result.readyDepositTx);
-    }
-
-    case InternalMethod.StoreDepositTxHash: {
-      result = await storeDepositTxHash(
-        (request.params as any[])[0],
-        (request.params as any[])[1],
-      );
-      return result;
-    }
-
-    case InternalMethod.ConfirmedDepositTxHashes: {
-      return await getConfirmedDepositTxHashs();
-    }
-
-    case InternalMethod.ConfirmedUserOps: {
-      const params: SmartAccountActivityParams = (
-        request.params as any[]
-      )[0] as SmartAccountActivityParams;
-
-      const ownerAccount = await keyring.getAccount(params.keyringAccountId);
-      if (!ownerAccount) {
-        throw new Error('Account not found');
-      }
-
-      const userOpHashesConfirmed: string[] = await getUserOpHashsConfirmed(
-        ownerAccount.id,
-        chainId as string,
-      );
-      result = userOpHashesConfirmed;
-      return result;
-    }
-
-    case InternalMethod.PendingUserOps: {
-      const params: SmartAccountActivityParams = (
-        request.params as any[]
-      )[0] as SmartAccountActivityParams;
-
-      const ownerAccount = await keyring.getAccount(params.keyringAccountId);
-      if (!ownerAccount) {
-        throw new Error('Account not found');
-      }
-
-      const userOpHashesPending: string[] = await getUserOpHashsPending(
-        ownerAccount.id,
-        chainId as string,
-      );
-      result = userOpHashesPending;
-      return result;
+      return JSON.stringify(result.signedTx);
     }
 
     case InternalMethod.AddBundlerUrl: {
@@ -354,85 +337,3 @@ export const onRpcRequest: OnRpcRequestHandler = buildHandlersChain(
   erc4337Handler,
 );
 
-export const onCronjob: OnCronjobHandler = async ({ request }) => {
-  const [bundlerUrls, chainId] = await Promise.all([
-    getBundlerUrls(),
-    ethereum.request({ method: 'eth_chainId' }),
-  ]);
-
-  try {
-    let rpcClient: HttpRpcClient;
-    let userOpHash: string;
-    let allUserOpHashesPending: { [key: string]: string } = {};
-    let userOperationReceipt: UserOperationReceipt;
-    let firstkey: string;
-
-    switch (request.method) {
-      case 'checkUserOperationReceiptReady': {
-        allUserOpHashesPending = await getAllUserOpHashsPending();
-        if (Object.keys(allUserOpHashesPending).length === 0) {
-          return null;
-        }
-
-        firstkey = Object.keys(allUserOpHashesPending)[0]; // key = keyringAccountId-chainId-userOpHash
-        userOpHash = allUserOpHashesPending[firstkey];
-
-        rpcClient = new HttpRpcClient(
-          bundlerUrls,
-          firstkey.split('-')[1], // chainId
-        );
-
-        const rpcResult = await rpcClient.send('eth_getUserOperationReceipt', [
-          userOpHash,
-        ]);
-
-        if (rpcResult.sucess === false) {
-          return null;
-        }
-
-        if (rpcResult.data === null) {
-          return null;
-        }
-
-        userOperationReceipt = rpcResult.data as UserOperationReceipt;
-        await storeUserOpHashConfirmed(
-          userOpHash,
-          firstkey.split('-')[0], // keyringAccountId
-          firstkey.split('-')[1], // chainId
-        );
-
-        return snap.request({
-          method: 'snap_dialog',
-          params: {
-            type: 'alert',
-            content: panel([
-              heading('User Operation Confirmed'),
-              text(`Success: ${userOperationReceipt.success}`),
-              text(`Revert: ${userOperationReceipt.reason}`),
-              copyable(
-                `TransactionHash: ${userOperationReceipt.receipt.transactionHash}`,
-              ),
-              text(`userOpHash: ${userOperationReceipt.userOpHash}`),
-              text(`Sender: ${userOperationReceipt.sender}`),
-              text(`Nonce: ${userOperationReceipt.nonce}`),
-              text(`Paymaster: ${userOperationReceipt.paymaster}`),
-              text(`Actual Gas Cost: ${userOperationReceipt.actualGasCost}`),
-              text(`Actual Gas Used: ${userOperationReceipt.actualGasUsed}`),
-            ]),
-          },
-        });
-      }
-      default:
-        throw new Error('Method not found.');
-    }
-  } catch (error) {
-    if (
-      error.message ===
-      `ChainId ${parseInt(chainId as string, 16)} not supported`
-    ) {
-      return null;
-    }
-    console.log('error from cronjob:', error);
-    throw error;
-  }
-};

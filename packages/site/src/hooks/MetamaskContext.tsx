@@ -61,7 +61,6 @@ const initialState: MetamaskState = {
   },
   smartAccountActivity: {
     pendingUserOpHashes: [],
-    confirmedUserOpHashes: [],
     userOperationReceipts: [],
     confirmedDepositTxHashes: [],
   },
@@ -201,7 +200,7 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         },
         smartAccountActivity: {
           pendingUserOpHashes: [],
-          confirmedUserOpHashes: [],
+          confirmedDepositTxHashes: [],
           userOperationReceipts: [],
         },
       };

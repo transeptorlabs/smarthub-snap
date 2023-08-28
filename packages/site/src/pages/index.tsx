@@ -30,9 +30,9 @@ import {
   AccountActivity,
   Faq,
 } from '../components';
-import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
+import { AppTab, BundlerUrls, SupportedChainIdMap, UserOperation } from '../types';
 import { BigNumber, ethers } from 'ethers';
-import { EntryPoint__factory, UserOperationStruct } from '@account-abstraction/contracts';
+import { EntryPoint__factory } from '@account-abstraction/contracts';
 
 const Container = styled.div`
   display: flex;
@@ -156,8 +156,8 @@ const Index = () => {
         if (account.length > 0) {
           await selectKeyringSnapAccount(account[0]);
           await getSmartAccount(account[0].id);
-          await getAccountActivity(account[0].id);
           await updateAccountBalance(account[0].address);
+          await getAccountActivity(account[0].id);
         }
       }
     }
@@ -174,7 +174,7 @@ const Index = () => {
   //         await Promise.all([
   //           refreshEOAState(state.eoa.address),
   //           getScAccountState(state.eoa.address),
-  //           getAccountActivity(state.eoa.address, Number(state.scAccount.index)),
+  //           getUserOpHashes(state.eoa.address, Number(state.scAccount.index)),
   //         ]);
   //       }
   //     }, 10000) // 10 seconds
@@ -337,7 +337,7 @@ const Index = () => {
       )
 
       // set transation data (user operation)   
-      const userOpToSign: UserOperationStruct = {
+      const userOpToSign: UserOperation = {
         sender: state.scAccount.address,
         nonce: state.scAccount.nonce.toHexString(),
         initCode: state.scAccount.initCode,
@@ -358,7 +358,7 @@ const Index = () => {
       const feeData = await provider.getFeeData()
       const initGas = await estimatCreationGas(state.selectedSnapKeyringAccount.id)
       const estimatGasResult = await estimateUserOperationGas(userOpToSign)
-      
+
       userOpToSign.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas.toHexString(): BigNumber.from(0).toHexString()
       userOpToSign.maxFeePerGas = feeData.maxFeePerGas ? feeData.maxFeePerGas.toHexString() : BigNumber.from(0).toHexString()
       userOpToSign.callGasLimit = estimatGasResult.callGasLimit.toHexString()

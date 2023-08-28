@@ -6,13 +6,12 @@ export const getState = async (
 ): Promise<{
   keyringState: KeyringState;
   bundlerUrls: { [chainId: string]: string };
-  confirmedDepositTxHashes: string[];
-  userOpHashesPending: { [key: string]: string }; // key = keyringAccountId-chainId-userOpHash
   smartAccountActivity: {
     [keyringAccountId: string]: {
       scAccount: {
         [chainId: string]: {
-          userOpHashesConfirmed: string[];
+          userOpHashes: string[];
+          txHashes: string[];
         };
       };
     };
@@ -24,13 +23,12 @@ export const getState = async (
   })) as {
     keyringState: KeyringState;
     bundlerUrls: { [chainId: string]: string };
-    confirmedDepositTxHashes: string[];
-    userOpHashesPending: { [key: string]: string };
     smartAccountActivity: {
       [keyringAccountId: string]: {
         scAccount: {
           [chainId: string]: {
-            userOpHashesConfirmed: string[];
+            userOpHashes: string[];
+            txHashes: string[];
           };
         };
       };
@@ -51,19 +49,24 @@ export const getState = async (
       state.smartAccountActivity[keyringAccountId] = {
         scAccount: {
           '0x539': {
-            userOpHashesConfirmed: [],
+            userOpHashes: [],
+            txHashes: [],
           },
           '0x1': {
-            userOpHashesConfirmed: [],
+            userOpHashes: [],
+            txHashes: [],
           },
           '0x5': {
-            userOpHashesConfirmed: [],
+            userOpHashes: [],
+            txHashes: [],
           },
           '0x89': {
-            userOpHashesConfirmed: [],
+            userOpHashes: [],
+            txHashes: [],
           },
           '0x13881': {
-            userOpHashesConfirmed: [],
+            userOpHashes: [],
+            txHashes: [],
           },
         },
       };
@@ -78,56 +81,15 @@ export const getState = async (
   return state;
 };
 
-export const getUserOpHashsConfirmed = async (
+export const getUserOpHashes = async (
   keyringAccountId: string,
   chainId: string,
 ): Promise<string[]> => {
   const state = await getState(keyringAccountId);
-
-  // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
-  return Array.from(
-    state.smartAccountActivity[keyringAccountId].scAccount[chainId]
-      .userOpHashesConfirmed,
-  );
+  return state.smartAccountActivity[keyringAccountId].scAccount[chainId].userOpHashes;
 };
 
-export const getAllUserOpHashsPending = async (): Promise<{
-  [key: string]: string;
-}> => {
-  const state = await getState();
-  // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
-  return Object.assign({}, state.userOpHashesPending);
-};
-
-export const getUserOpHashsPending = async (
-  keyringAccountId: string,
-  chainId: string,
-): Promise<string[]> => {
-  const state = await getState();
-
-  const foundUserOpHashesPending: string[] = [];
-  const userOpHashesPending = Object.assign({}, state.userOpHashesPending);
-
-  for (const key in userOpHashesPending) {
-    if (
-      key.includes(`${keyringAccountId}-${chainId}`) &&
-      userOpHashesPending[key] !== undefined
-    ) {
-      foundUserOpHashesPending.push(userOpHashesPending[key]);
-    }
-  }
-  return foundUserOpHashesPending;
-};
-
-export const getBundlerUrls = async (): Promise<{
-  [chainId: string]: string;
-}> => {
-  const state = await getState();
-  // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
-  return Object.assign({}, state.bundlerUrls);
-};
-
-export const storeUserOpHashConfirmed = async (
+export const storeUserOpHash = async (
   keyringAccountId: string,
   chainId: string,
   userOpHash: string,
@@ -136,12 +98,7 @@ export const storeUserOpHashConfirmed = async (
 
   state.smartAccountActivity[keyringAccountId].scAccount[
     chainId
-  ].userOpHashesConfirmed.push(userOpHash);
-
-  // remove userOpHash from pending
-  delete state.userOpHashesPending[
-    `${keyringAccountId}-${chainId}-${userOpHash}`
-  ];
+  ].userOpHashes.push(userOpHash);
 
   await snap.request({
     method: 'snap_manageState',
@@ -150,20 +107,12 @@ export const storeUserOpHashConfirmed = async (
   return true;
 };
 
-export const storeUserOpHashPending = async (
-  userOpHash: string,
-  keyringAccountId: string,
-  chainId: string,
-): Promise<boolean> => {
+export const getBundlerUrls = async (): Promise<{
+  [chainId: string]: string;
+}> => {
   const state = await getState();
-  state.userOpHashesPending[`${keyringAccountId}-${chainId}-${userOpHash}`] =
-    userOpHash;
-
-  await snap.request({
-    method: 'snap_manageState',
-    params: { operation: 'update', newState: state },
-  });
-  return true;
+  // Creating a copy ensures that the original array remains intact, isolating the changes to the copied array and preventing unintended side effects.
+  return Object.assign({}, state.bundlerUrls);
 };
 
 export const storeBundlerUrl = async (
@@ -180,32 +129,26 @@ export const storeBundlerUrl = async (
   return true;
 };
 
-export const storeDepositTxHash = async (
+export const getTxHashes = async (
+  keyringAccountId: string,
+  chainId: string,
+): Promise<string[]> => {
+  const state = await getState(keyringAccountId);
+  return state.smartAccountActivity[keyringAccountId].scAccount[chainId].txHashes;
+};
+
+export const storeTxHash = async (
+  keyringAccountId: string,
   txHash: string,
   keyringRequestId: string,
+  chainId: string,
 ): Promise<boolean> => {
-  const state = await getState();
+  const state = await getState(keyringAccountId);
 
-  delete state.keyringState.readyDepositTx[keyringRequestId];
-  state.confirmedDepositTxHashes.push(txHash);
-
-  await snap.request({
-    method: 'snap_manageState',
-    params: { operation: 'update', newState: state },
-  });
-  return true;
-};
-
-export const getConfirmedDepositTxHashs = async (): Promise<string[]> => {
-  const state = await getState();
-  return state.confirmedDepositTxHashes;
-};
-
-export const clearActivityData = async (): Promise<boolean> => {
-  const state = await getState();
-  state.bundlerUrls = DEFAULT_BUNDLER_URLS;
-  state.userOpHashesPending = {};
-  state.smartAccountActivity = {};
+  delete state.keyringState.signedTx[keyringRequestId];
+  state.smartAccountActivity[keyringAccountId].scAccount[
+    chainId
+  ].txHashes.push(txHash);
 
   await snap.request({
     method: 'snap_manageState',
@@ -228,4 +171,16 @@ export const storeKeyRing = async (keyring: KeyringState): Promise<boolean> => {
 export const getKeyRing = async (): Promise<KeyringState> => {
   const state = await getState();
   return Object.assign({}, state.keyringState);
+};
+
+export const clearActivityData = async (): Promise<boolean> => {
+  const state = await getState();
+  state.bundlerUrls = DEFAULT_BUNDLER_URLS;
+  state.smartAccountActivity = {};
+
+  await snap.request({
+    method: 'snap_manageState',
+    params: { operation: 'update', newState: state },
+  });
+  return true;
 };

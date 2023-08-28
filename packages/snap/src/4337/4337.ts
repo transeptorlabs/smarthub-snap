@@ -7,18 +7,31 @@ import { BigNumber, ethers } from 'ethers';
 import { DEFAULT_ACCOUNT_FACTORY, DEFAULT_ENTRY_POINT } from './4337-contants';
 
 // GENERATE THE INITCODE
-export const getAccountInitCode = (owner: string): string => {
+const DEFAULT_INIT_CODE = (owner: string) => {
   const simpleAccountFactory = new ethers.Contract(
     DEFAULT_ACCOUNT_FACTORY,
     SimpleAccountFactory__factory.abi,
   );
+
   return ethers.utils.hexConcat([
     DEFAULT_ACCOUNT_FACTORY,
     simpleAccountFactory.interface.encodeFunctionData('createAccount', [
       owner,
       0,
     ]),
-  ]);
+  ])
+}
+
+export const getAccountInitCode = async (owner: string): Promise<string> => {
+  const provider = new ethers.providers.Web3Provider(ethereum as any);
+  const smartAccountAddress = await getSmartAccountAddress(owner);
+  const smartAccountAddressCode = await provider.getCode(smartAccountAddress)
+
+  if (smartAccountAddressCode.length > 2) {
+    return '0x'
+  } else {
+    return DEFAULT_INIT_CODE(owner)
+  }
 };
 
 // CALCULATE THE SENDER ADDRESS (aka: the smart account address)
@@ -33,12 +46,12 @@ export const getSmartAccountAddress = async (
       provider,
     );
 
-    const initCode = getAccountInitCode(owner);
-    await entryPointContract.callStatic.getSenderAddress(initCode);
+    await entryPointContract.callStatic.getSenderAddress(DEFAULT_INIT_CODE(owner));
   } catch (e: any) {
     if (e.errorArgs === null) {
       throw e;
     }
+  
     return e.errorArgs.sender;
   }
   throw new Error('must handle revert');

@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
 import { BundlerUrls, SmartAccountActivity, SmartContractAccount } from "../types";
-import { bundlerUrls, getAccountBalance, getChainId, getKeyringSnapRpcClient, getMMProvider, getScAccount, getSmartAccountActivity, parseChainId, sendSupportedEntryPoints } from "../utils";
+import { bundlerUrls, fetchUserOpHashes, getAccountBalance, getChainId, getKeyringSnapRpcClient, getMMProvider, getScAccount, getSmartAccountActivity, getTxHashes, parseChainId, sendSupportedEntryPoints } from "../utils";
 import { KeyringAccount } from "@metamask/keyring-api";
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
@@ -51,17 +51,16 @@ export const useAcount = () => {
   };
 
   const sendRequest = async (keyringAccountId: string, method: string, params: any[] = []) => {
-    const result = await snapRpcClient.submitRequest({
+    await snapRpcClient.submitRequest({
       account: keyringAccountId,
       scope: `eip155:${parseChainId(state.chainId)}`,
       request: {
-        id: '1', // TODO: generate random id
+        id: `rq:${keyringAccountId}`,
         jsonrpc: '2.0',
         method,
         params: params,
       }
     });
-    console.log('send request result:', result)
     await getKeyringSnapAccounts()
   };
 
@@ -96,7 +95,9 @@ export const useAcount = () => {
   };
 
   const getAccountActivity = async (keyringAccountId: string): Promise<SmartAccountActivity> => {
-    const result: SmartAccountActivity = await getSmartAccountActivity(keyringAccountId);
+    const userOpHashes = await fetchUserOpHashes(keyringAccountId);
+    const txHashes = await getTxHashes(keyringAccountId, state.chainId);
+    const result: SmartAccountActivity = await getSmartAccountActivity(userOpHashes, txHashes);
     console.log('getAccountActivity result:', result)
     dispatch({
       type: MetamaskActions.SetSmartAccountActivity,

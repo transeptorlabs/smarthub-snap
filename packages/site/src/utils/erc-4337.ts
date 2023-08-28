@@ -1,12 +1,10 @@
-import {
-  EntryPoint__factory,
-  UserOperationStruct,
-} from '@account-abstraction/contracts';
+import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { ethers } from 'ethers';
 import { getMMProvider } from './metamask';
+import { UserOperation } from '../types';
 
 export const getDummySignature = async (
-  userOp: UserOperationStruct,
+  userOp: UserOperation,
   entryPointAddress: string,
 ): Promise<string> => {
   const provider = new ethers.providers.Web3Provider(getMMProvider() as any);

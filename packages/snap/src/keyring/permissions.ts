@@ -19,11 +19,10 @@ export enum RequestMethods {
 export enum InternalMethod {
   // Smart account management
   SmartAccount = 'sc_account',
-  ConfirmedUserOps = 'confirmed_UserOperation',
-  PendingUserOps = 'pending_UserOperation',
-  DepositReadyTx = 'deposit_ready_tx',
-  StoreDepositTxHash = 'store_deposit_tx_hash',
-  ConfirmedDepositTxHashes = 'confirmed_deposit_tx_hashes',
+  GetUserOpsHashes = 'get_user_ops_hashes',
+  GetSignedTxs= 'get_signed_txs',
+  GetTxHashes = 'get_tx_hashes',
+  StoreTxHash = 'store_tx_hash',
   GetUserOpCallData = 'get_user_op_call_data',
   EstimateCreationGas = 'estimate_creation_gas',
 
@@ -95,11 +94,10 @@ export const PERMISSIONS = new Map<string, string[]>([
 
       // Smart account management methods
       InternalMethod.SmartAccount,
-      InternalMethod.ConfirmedUserOps,
-      InternalMethod.PendingUserOps,
-      InternalMethod.DepositReadyTx,
-      InternalMethod.StoreDepositTxHash,
-      InternalMethod.ConfirmedDepositTxHashes,
+      InternalMethod.GetUserOpsHashes,
+      InternalMethod.GetSignedTxs,
+      InternalMethod.GetTxHashes,
+      InternalMethod.StoreTxHash,
       InternalMethod.GetUserOpCallData,
       InternalMethod.EstimateCreationGas,
 
@@ -146,11 +144,10 @@ export const PERMISSIONS = new Map<string, string[]>([
 
       // Smart account management methods
       InternalMethod.SmartAccount,
-      InternalMethod.ConfirmedUserOps,
-      InternalMethod.PendingUserOps,
-      InternalMethod.DepositReadyTx,
-      InternalMethod.StoreDepositTxHash,
-      InternalMethod.ConfirmedDepositTxHashes,
+      InternalMethod.GetUserOpsHashes,
+      InternalMethod.GetSignedTxs,
+      InternalMethod.GetTxHashes,
+      InternalMethod.StoreTxHash,
       InternalMethod.GetUserOpCallData,
       InternalMethod.EstimateCreationGas,
 

@@ -1,16 +1,13 @@
 import { OnRpcRequestHandler, OnCronjobHandler } from '@metamask/snaps-types';
-import { SimpleAccountAPI } from '@account-abstraction/sdk';
-import { UserOperationStruct } from '@account-abstraction/contracts';
 import { copyable, heading, panel, text } from '@metamask/snaps-ui';
-import { deepHexlify } from '@account-abstraction/utils';
-import { resolveProperties } from 'ethers/lib/utils';
 import {
   KeyringAccount,
   MethodNotSupportedError,
   buildHandlersChain,
   handleKeyringRequest,
 } from '@metamask/keyring-api';
-import { HttpRpcClient, getBalance, getDeposit } from './client';
+import { BigNumber } from 'ethers';
+import { HttpRpcClient, getBalance } from './client';
 import {
   clearActivityData,
   getBundlerUrls,
@@ -19,16 +16,17 @@ import {
   getUserOpHashsPending,
   storeBundlerUrl,
   storeUserOpHashConfirmed,
-  storeUserOpHashPending,
   getKeyRing,
   storeDepositTxHash,
   getConfirmedDepositTxHashs,
 } from './state';
 import {
+  EstimateCreationGasParams,
+  EstimateUserOperationGas,
   GetUserOpParams,
-  SendUserOpParams,
   SmartAccountActivityParams,
   SmartAccountParams,
+  UserOpCallDataParams,
   UserOperationReceipt,
 } from './types';
 import {
@@ -37,6 +35,16 @@ import {
   PERMISSIONS,
   SimpleKeyring,
 } from './keyring';
+import {
+  DEFAULT_ACCOUNT_FACTORY,
+  DEFAULT_ENTRY_POINT,
+  estimateCreationGas,
+  getAccountInitCode,
+  getDeposit,
+  getNonce,
+  getSmartAccountAddress,
+  getUserOpCallData,
+} from './4337';
 
 let keyring: SimpleKeyring;
 
@@ -89,13 +97,12 @@ const keyringHandler: OnRpcRequestHandler = async ({ request }) => {
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
  *
  * @param args - The request handler args as object.
- * @param args.origin - The origin of the request, e.g., the website that
  * invoked the snap.
  * @param args.request - A validated JSON-RPC request object.
  * @returns The result of `snap_dialog`.
  * @throws If the request method is not valid for this snap.
  */
-const erc4337Handler: OnRpcRequestHandler = async ({ origin, request }) => {
+const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
   const [bundlerUrls, chainId] = await Promise.all([
     getBundlerUrls(),
     ethereum.request({ method: 'eth_chainId' }),
@@ -121,31 +128,65 @@ const erc4337Handler: OnRpcRequestHandler = async ({ origin, request }) => {
         throw new Error('Account not found');
       }
 
-      const scAccount: SimpleAccountAPI = await keyring.getSmartAccount(
-        rpcClient.getEntryPointAddr(),
-        rpcClient.getAccountFactoryAddr(),
-        ownerAccount.id,
-      );
-      const scAddress = await scAccount.getCounterFactualAddress();
-
+      const scAddress = await getSmartAccountAddress(ownerAccount.address);
       const [balance, nonce, deposit] = await Promise.all([
         await getBalance(scAddress),
-        await scAccount.getNonce(),
-        await getDeposit(scAddress, rpcClient.getEntryPointAddr()),
+        await getNonce(scAddress),
+        await getDeposit(scAddress),
       ]);
 
       result = JSON.stringify({
+        initCode: getAccountInitCode(ownerAccount.address),
         address: scAddress,
         balance,
         nonce,
-        index: scAccount.index,
-        entryPoint: rpcClient.getEntryPointAddr(),
-        factoryAddress: rpcClient.getAccountFactoryAddr(),
+        index: BigNumber.from(0),
+        entryPoint: DEFAULT_ENTRY_POINT,
+        factoryAddress: DEFAULT_ACCOUNT_FACTORY,
         deposit,
         ownerAddress: ownerAccount.address,
       });
 
       return result;
+    }
+
+    case InternalMethod.GetUserOpCallData: {
+      const params: UserOpCallDataParams = (
+        request.params as any[]
+      )[0] as UserOpCallDataParams;
+
+      const ownerAccount: KeyringAccount | undefined = await keyring.getAccount(
+        params.keyringAccountId,
+      );
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
+
+      const scAddress = await getSmartAccountAddress(ownerAccount.address);
+      return await getUserOpCallData(
+        scAddress,
+        params.to,
+        params.value,
+        params.data,
+      );
+    }
+
+    case InternalMethod.EstimateCreationGas: {
+      const params: EstimateCreationGasParams = (
+        request.params as any[]
+      )[0] as EstimateCreationGasParams;
+
+      const ownerAccount: KeyringAccount | undefined = await keyring.getAccount(
+        params.keyringAccountId,
+      );
+      if (!ownerAccount) {
+        throw new Error('Account not found');
+      }
+
+      result = await estimateCreationGas(
+        getAccountInitCode(ownerAccount.address),
+      );
+      return JSON.stringify(result);
     }
 
     case InternalMethod.DepositReadyTx: {
@@ -226,100 +267,6 @@ const erc4337Handler: OnRpcRequestHandler = async ({ origin, request }) => {
       return await rpcClient.send(request.method, request.params as any[]);
     }
 
-    case InternalMethod.SendUserOperation: {
-      const params: SendUserOpParams = (
-        request.params as any[]
-      )[0] as SendUserOpParams;
-      const { target } = params;
-      const { data } = params;
-      const ownerAccount = await keyring.getAccount(params.keyringAccountId);
-      if (!ownerAccount) {
-        throw new Error('Account not found');
-      }
-
-      if (ownerAccount.type !== 'eip155:erc4337') {
-        throw new Error('Account is not a ERC-4337 smart account');
-      }
-
-      const scAccount = await keyring.getSmartAccount(
-        rpcClient.getEntryPointAddr(),
-        rpcClient.getAccountFactoryAddr(),
-        ownerAccount.id,
-      );
-
-      if (
-        await snap.request({
-          method: 'snap_dialog',
-          params: {
-            type: 'confirmation',
-            content: panel([
-              heading(`(${origin}) - Do you want to send a User operation?`),
-              text(`Target contract: ${target}`),
-              text(`ChainId: ${parseInt(chainId as string, 16)}`),
-              text(`Entry point contract: ${rpcClient.getEntryPointAddr()}`),
-              text(
-                `Smart contract account: ${await scAccount.getAccountAddress()}`,
-              ),
-            ]),
-          },
-        })
-      ) {
-        // create user operation and send it on success confirmation
-        const userOp: UserOperationStruct = await scAccount.createSignedUserOp({
-          target,
-          data,
-        });
-        const hexifiedUserOp: UserOperationStruct = deepHexlify(
-          await resolveProperties(userOp),
-        );
-        const rpcResult = await rpcClient.send(request.method, [
-          hexifiedUserOp,
-          rpcClient.getEntryPointAddr(),
-        ]);
-
-        if (rpcResult.sucess === true) {
-          if (
-            !(await storeUserOpHashPending(
-              rpcResult.data as string,
-              ownerAccount.id,
-              chainId as string,
-            ))
-          ) {
-            throw new Error('Failed to store user operation hash');
-          }
-          return snap.request({
-            method: 'snap_dialog',
-            params: {
-              type: 'alert',
-              content: panel([
-                heading('User Operation Sent'),
-                text(
-                  `Sent from Smart account: ${await scAccount.getAccountAddress()}`,
-                ),
-                text(`User operation hash: ${rpcResult.data}`),
-                text(`Signed by owner(EOA): ${ownerAccount.address}`),
-                text(`To contract: ${target}`),
-              ]),
-            },
-          });
-        }
-        return snap.request({
-          method: 'snap_dialog',
-          params: {
-            type: 'alert',
-            content: panel([
-              heading('Failed to send User Operation'),
-              text(
-                `Sent from Smart account: ${await scAccount.getAccountAddress()}`,
-              ),
-              text(`Error Message: ${rpcResult.data}`),
-            ]),
-          },
-        });
-      }
-      throw new Error('User cancelled the User Operation');
-    }
-
     case InternalMethod.GetUserOperationReceipt: {
       const params: GetUserOpParams = (
         request.params as any[]
@@ -339,7 +286,20 @@ const erc4337Handler: OnRpcRequestHandler = async ({ origin, request }) => {
     }
 
     case InternalMethod.EstimateUserOperationGas: {
-      return await rpcClient.send(request.method, request.params as any[]);
+      const params: EstimateUserOperationGas = (
+        request.params as any[]
+      )[0] as EstimateUserOperationGas;
+
+      const rpcResult = await rpcClient.send(request.method, [
+        params.userOp,
+        DEFAULT_ENTRY_POINT,
+      ]);
+
+      if (rpcResult.sucess === true) {
+        result = JSON.stringify(rpcResult.data);
+        return result;
+      }
+      throw new Error(`Failed to estimate gass: ${rpcResult.data}`);
     }
 
     case InternalMethod.GetUserOperationByHash: {

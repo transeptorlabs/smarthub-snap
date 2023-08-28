@@ -1,4 +1,5 @@
 import { BigNumber } from 'ethers';
+import { UserOperationStruct } from '@account-abstraction/contracts';
 import { defaultSnapOrigin } from '../config';
 import {
   GetSnapsResponse,
@@ -79,16 +80,63 @@ export const getScAccount = async (
 
   const parsedResult = JSON.parse(result as string);
   return {
+    initCode: parsedResult.initCode,
     address: parsedResult.address,
     balance: BigNumber.from(parsedResult.balance).toString(),
     entryPoint: parsedResult.entryPoint,
     factoryAddress: parsedResult.factoryAddress,
-    nonce: BigNumber.from(parsedResult.nonce).toString(),
-    index: BigNumber.from(parsedResult.index).toString(),
+    nonce: BigNumber.from(parsedResult.nonce),
+    index: BigNumber.from(parsedResult.index),
     deposit: BigNumber.from(parsedResult.deposit).toString(),
     connected: true,
     ownerAddress: parsedResult.ownerAddress,
   } as SmartContractAccount;
+};
+
+export const getUserOpCallData = async (
+  keyringAccountId: string,
+  to: string,
+  value: BigNumber,
+  data: string,
+): Promise<string> => {
+  return (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: {
+        method: 'get_user_op_call_data',
+        params: [
+          {
+            keyringAccountId,
+            to,
+            value,
+            data,
+          },
+        ],
+      },
+    },
+  })) as string;
+};
+
+export const estimatCreationGas = async (
+  keyringAccountId: string,
+): Promise<BigNumber> => {
+  const result = await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: {
+        method: 'estimate_creation_gas',
+        params: [
+          {
+            keyringAccountId,
+          },
+        ],
+      },
+    },
+  });
+  const parsedResult = JSON.parse(result as string);
+  return BigNumber.from(parsedResult) as BigNumber;
 };
 
 export const getDepositReadyTx = async (): Promise<DepositTxs> => {
@@ -255,27 +303,31 @@ export const sendSupportedEntryPoints = async (): Promise<string[]> => {
   })) as string[];
 };
 
-export const sendUserOperation = async (
-  target: string,
-  data: string,
-  scOwnerAddress: string,
-): Promise<string> => {
-  return (await getMMProvider().request({
+export const estimateUserOperationGas = async (
+  userOp: UserOperationStruct,
+): Promise<{
+  preVerificationGas: BigNumber;
+  verificationGas: BigNumber;
+  validAfter: BigNumber;
+  validUntil: BigNumber;
+  callGasLimit: BigNumber;
+}> => {
+  const result = await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: {
-        method: 'eth_sendUserOperation',
-        params: [
-          {
-            target,
-            data,
-            scOwnerAddress,
-          },
-        ],
-      },
+      request: { method: 'eth_estimateUserOperationGas', params: [{ userOp }] },
     },
-  })) as string;
+  });
+
+  const parsedResult = JSON.parse(result as string);
+  return {
+    preVerificationGas: BigNumber.from(parsedResult.preVerificationGas),
+    verificationGas: BigNumber.from(parsedResult.verificationGas),
+    validAfter: BigNumber.from(parsedResult.validAfter),
+    validUntil: BigNumber.from(parsedResult.validUntil),
+    callGasLimit: BigNumber.from(parsedResult.callGasLimit),
+  };
 };
 
 export const getUserOperationByHash = async (
@@ -298,16 +350,6 @@ export const getUserOperationByHash = async (
 
   const parsedResult = JSON.parse(result as string);
   return parsedResult as UserOperation;
-};
-
-export const estimateUserOperationGas = async () => {
-  return await getMMProvider().request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: { method: 'eth_estimateUserOperationGas' },
-    },
-  });
 };
 
 export const sendClientVersion = async () => {

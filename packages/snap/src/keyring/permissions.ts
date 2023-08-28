@@ -24,6 +24,8 @@ export enum InternalMethod {
   DepositReadyTx = 'deposit_ready_tx',
   StoreDepositTxHash = 'store_deposit_tx_hash',
   ConfirmedDepositTxHashes = 'confirmed_deposit_tx_hashes',
+  GetUserOpCallData = 'get_user_op_call_data',
+  EstimateCreationGas = 'estimate_creation_gas',
 
   // ERC-4337 methods eth namespace
   SendUserOperation = 'eth_sendUserOperation',
@@ -98,6 +100,8 @@ export const PERMISSIONS = new Map<string, string[]>([
       InternalMethod.DepositReadyTx,
       InternalMethod.StoreDepositTxHash,
       InternalMethod.ConfirmedDepositTxHashes,
+      InternalMethod.GetUserOpCallData,
+      InternalMethod.EstimateCreationGas,
 
       // ERC-4337 methods eth namespace
       InternalMethod.SendUserOperation,
@@ -147,6 +151,8 @@ export const PERMISSIONS = new Map<string, string[]>([
       InternalMethod.DepositReadyTx,
       InternalMethod.StoreDepositTxHash,
       InternalMethod.ConfirmedDepositTxHashes,
+      InternalMethod.GetUserOpCallData,
+      InternalMethod.EstimateCreationGas,
 
       // ERC-4337 methods eth namespace
       InternalMethod.SendUserOperation,

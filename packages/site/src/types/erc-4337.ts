@@ -1,4 +1,4 @@
-import type { BigNumberish, BytesLike, ethers } from 'ethers';
+import type { BigNumber, BigNumberish, BytesLike, ethers } from 'ethers';
 
 export type ReputationEntry = {
   address: string;
@@ -14,11 +14,12 @@ export enum ReputationStatus {
 }
 
 export type SmartContractAccount = {
+  initCode: string;
   address: string;
   ownerAddress: string;
   balance: string;
-  nonce: string;
-  index: string;
+  nonce: BigNumber;
+  index: BigNumber;
   entryPoint: string;
   factoryAddress: string;
   deposit: string;

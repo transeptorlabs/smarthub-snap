@@ -26,14 +26,26 @@ import {
 import type { Json, JsonRpcRequest } from '@metamask/utils';
 import { v4 as uuid } from 'uuid';
 
-import { SimpleAccountAPI } from '@account-abstraction/sdk';
 import { Wallet as EthersWallet, ethers } from 'ethers';
+import {
+  EntryPoint__factory,
+  UserOperationStruct,
+} from '@account-abstraction/contracts';
+import { deepHexlify } from '@account-abstraction/utils';
+import { resolveProperties } from 'ethers/lib/utils';
+import { heading, panel, text } from '@metamask/snaps-ui';
+import { HttpRpcClient } from '../client';
+import {
+  getBundlerUrls,
+  storeKeyRing,
+  storeUserOpHashPending,
+} from '../state/state';
 import {
   isEvmChain,
   serializeTransaction,
   isUniqueAccountName,
 } from '../utils';
-import { storeKeyRing } from '../state/state';
+import { DEFAULT_ENTRY_POINT } from '../4337';
 
 export type KeyringState = {
   wallets: Record<string, Wallet>;
@@ -182,24 +194,37 @@ export class SimpleKeyring implements Keyring {
   }
 
   async approveRequest(_id: string): Promise<void> {
-    const request: KeyringRequest = await this.getRequest(_id);
-    console.log('SNAPS/', ' approveRequest requests', JSON.stringify(request));
-    const { method, params } = request.request as JsonRpcRequest;
-    const signature = await this.#handleSigningRequest(method, params as Json);
-    await snap.request({
-      method: 'snap_manageAccounts',
-      params: {
-        method: 'submitResponse',
-        params: { id: _id, result: signature },
-      },
-    });
+    try {
+      const request: KeyringRequest = await this.getRequest(_id);
+      console.log(
+        'SNAPS/',
+        ' approveRequest requests',
+        JSON.stringify(request),
+      );
+      const { method, params } = request.request as JsonRpcRequest;
+      const signature = await this.#handleSigningRequest(
+        method,
+        params as Json,
+      );
+      await snap.request({
+        method: 'snap_manageAccounts',
+        params: {
+          method: 'submitResponse',
+          params: { id: _id, result: signature },
+        },
+      });
 
-    delete this.#pendingRequests[_id];
-    if (method === 'eth_signTransaction') {
-      this.#readyDepositTx[_id] = signature as string;
+      delete this.#pendingRequests[_id];
+      if (method === 'eth_signTransaction') {
+        this.#readyDepositTx[_id] = signature as string;
+      }
+
+      await this.#saveState();
+    } catch (e) {
+      delete this.#pendingRequests[_id];
+      await this.#saveState();
+      throw e;
     }
-
-    await this.#saveState();
   }
 
   async rejectRequest(_id: string): Promise<void> {
@@ -216,25 +241,6 @@ export class SimpleKeyring implements Keyring {
 
     delete this.#pendingRequests[_id];
     await this.#saveState();
-  }
-
-  async getSmartAccount(
-    entryPointAddress: string,
-    factoryAddress: string,
-    keyringAccountId: string,
-  ): Promise<SimpleAccountAPI> {
-    const provider = new ethers.providers.Web3Provider(ethereum as any);
-    const { privateKey } = this.#getWalletById(keyringAccountId);
-    const owner = new EthersWallet(privateKey).connect(provider);
-
-    const aa = new SimpleAccountAPI({
-      provider,
-      entryPointAddress,
-      owner,
-      factoryAddress,
-      index: 0, // nonce value used when creating multiple accounts for the same owner
-    });
-    return aa;
   }
 
   #getWalletByAddress(address: string): Wallet {
@@ -291,21 +297,39 @@ export class SimpleKeyring implements Keyring {
       }
 
       case 'eth_sendTransaction': {
-        /* TODO: Handle sending user op to bundler node if the account type is eip155:erc4337  - (using personal_sign body for testing)
-         */
-        const [from, tx] = params as [string, JsonTx, Json];
-        console.log('SNAPS/', 'handling eth_sendTransaction ', from, tx);
-        return '';
+        const [from, userOperation] = params as [string, UserOperationStruct];
+        const provider = new ethers.providers.Web3Provider(ethereum as any);
+        const entryPointContract = new ethers.Contract(
+          DEFAULT_ENTRY_POINT,
+          EntryPoint__factory.abi,
+          provider,
+        );
+
+        // sign the userOp
+        const { privateKey, account } = this.#getWalletByAddress(from);
+        const wallet = new EthersWallet(privateKey);
+        userOperation.signature = '0x';
+        const userOpHash = ethers.utils.arrayify(
+          await entryPointContract.getUserOpHash(userOperation),
+        );
+        const signature = await wallet.signMessage(userOpHash);
+        userOperation.signature = signature;
+
+        // send the userOp
+        const hexifiedUserOp: UserOperationStruct = deepHexlify(
+          await resolveProperties(userOperation),
+        );
+        await this.#handleSendUserOp(account.id, hexifiedUserOp);
+
+        return signature;
       }
 
       case 'eth_signTransaction': {
         const [from, tx] = params as [string, JsonTx, Json];
-        console.log('SNAPS/', 'handling eth_signTransaction ', from, tx);
         const provider = new ethers.providers.Web3Provider(ethereum as any);
         const { privateKey } = this.#getWalletByAddress(from);
         const wallet = new EthersWallet(privateKey, provider);
-        return await wallet.connect(provider).signTransaction(tx as any);
-        // return this.#signTransaction(from, tx);
+        return await wallet.signTransaction(tx as any);
       }
 
       case 'eth_signTypedData':
@@ -332,14 +356,56 @@ export class SimpleKeyring implements Keyring {
     }
   }
 
+  async #handleSendUserOp(
+    accountId: string,
+    signedUserOp: UserOperationStruct,
+  ): Promise<void> {
+    console.log('SNAPS/', 'handle handleSendUserOp ', accountId, signedUserOp);
+
+    // connect to rpc
+    const [bundlerUrls, chainId] = await Promise.all([
+      getBundlerUrls(),
+      ethereum.request({ method: 'eth_chainId' }),
+    ]);
+    const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
+    const rpcResult = await rpcClient.send('eth_sendUserOperation', [
+      signedUserOp,
+      DEFAULT_ENTRY_POINT,
+    ]);
+
+    // store userOp hash pending
+    if (rpcResult.sucess === true) {
+      await storeUserOpHashPending(
+        rpcResult.data as string,
+        accountId,
+        chainId as string,
+      );
+
+      snap.request({
+        method: 'snap_dialog',
+        params: {
+          type: 'alert',
+          content: panel([
+            heading('User Operation Sent'),
+            text(`Sent from Smart account: ${signedUserOp.sender}`),
+            text(`User operation hash: ${rpcResult.data}`),
+          ]),
+        },
+      });
+    } else {
+      throw new Error(`Failed to send user op: ${rpcResult.data}`);
+    }
+  }
+
   #signTransaction(from: string, tx: JsonTx): Json {
     if (!tx.chainId) {
       throw new Error('Missing chainId');
     }
+
     // Patch the transaction to make sure that the `chainId` is a hex string.
-    // if (!tx.chainId.startsWith('0x')) {
-    //   tx.chainId = `0x${parseInt(tx.chainId, 10).toString(16)}`;
-    // }
+    if (!tx.chainId.startsWith('0x')) {
+      tx.chainId = `0x${parseInt(tx.chainId, 10).toString(16)}`;
+    }
 
     const wallet = this.#getWalletByAddress(from);
     const privateKey = Buffer.from(wallet.privateKey, 'hex');

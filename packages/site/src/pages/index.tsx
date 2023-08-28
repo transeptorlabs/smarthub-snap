@@ -12,6 +12,10 @@ import {
   convertToWei,
   estimateGas,
   getMMProvider,
+  getUserOpCallData,
+  estimatCreationGas,
+  estimateUserOperationGas,
+  getDummySignature,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -24,10 +28,11 @@ import {
   BundlerInputForm,
   AccountRequestDisplay,
   AccountActivity,
+  Faq,
 } from '../components';
 import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
 import { BigNumber, ethers } from 'ethers';
-import { EntryPoint__factory } from '@account-abstraction/contracts';
+import { EntryPoint__factory, UserOperationStruct } from '@account-abstraction/contracts';
 
 const Container = styled.div`
   display: flex;
@@ -101,10 +106,18 @@ const LineBreak = styled.hr`
   }
 `;
 
+const Title = styled.h2`
+  font-size: ${({ theme }) => theme.fontSizes.large};
+  margin: 0;
+  margin-bottom: 0rem;
+  ${({ theme }) => theme.mediaQueries.small} {
+    font-size: ${({ theme }) => theme.fontSizes.text};
+  }
+`;
+
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const [depositAmount, setDepositAmount] = useState('');
-  const [withDrawAddr, setWithDrawAddr] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [formBundlerUrls, setFormBundlerUrls] = useState({} as BundlerUrls);
   const [accountName, setAccountName] = useState('');
@@ -277,13 +290,13 @@ const Index = () => {
         encodedFunctionData,
       );
  
-      // set transation data
+      // set transation data (eth transaction type 2)
       const transactionData = await entryPointContract.populateTransaction.depositTo(state.scAccount.address, {
         type: 2,
         nonce: await provider.getTransactionCount(state.selectedSnapKeyringAccount.address, 'latest'),
         gasLimit: estimateGasAmount.toNumber(),
-        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? 0,
-        maxFeePerGas: feeData.maxFeePerGas ?? 0,
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? BigNumber.from(0),
+        maxFeePerGas: feeData.maxFeePerGas ?? BigNumber.from(0),
         value: depositInWei.toString(),
       })
       transactionData.chainId = parseChainId(state.chainId)
@@ -301,41 +314,69 @@ const Index = () => {
     }
   }
 
-  // const handleWithdrawSubmit = async (e: any) => {
-  //   e.preventDefault();
-  //   const withdrawAmountInWei = convertToWei(withdrawAmount);
-  //   if (!isValidAddress(withDrawAddr)) {
-  //     dispatch({ type: MetamaskActions.SetError, payload: new Error('Invalid address') });
-  //     return;
-  //   }
+  const handleWithdrawSubmit = async (e: any) => {
+    e.preventDefault();
+    const withdrawAmountInWei = convertToWei(withdrawAmount);
 
-  //   if (BigNumber.from(state.scAccount.deposit).lt(withdrawAmountInWei)) {
-  //     dispatch({ type: MetamaskActions.SetError, payload: new Error('Smart contract account, insufficient deposit') });
-  //     return;
-  //   }
+    // check the smart account has enough deposit
+    if (BigNumber.from(state.scAccount.deposit).lt(withdrawAmountInWei)) {
+      dispatch({ type: MetamaskActions.SetError, payload: new Error('Smart contract account, insufficient deposit') });
+      return;
+    }
 
-  //   try {
-  //     const encodedFunctionData = await encodeFunctionData(
-  //       getEntryPointContract(state.scAccount.entryPoint),
-  //       'withdrawTo',
-  //       [state.eoa.address, withdrawAmountInWei.toString()]
-  //     );
+    try {
+      const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+      const entryPointContract = new ethers.Contract(state.scAccount.entryPoint, EntryPoint__factory.abi)
 
-  //     await sendUserOperation(
-  //       state.scAccount.entryPoint,
-  //       encodedFunctionData,
-  //       state.eoa.address,
-  //     );
+      // get call data
+      const callData = await getUserOpCallData(
+        state.selectedSnapKeyringAccount.id,
+        entryPointContract.address,
+        BigNumber.from(0),
+        entryPointContract.interface.encodeFunctionData('withdrawTo', [state.selectedSnapKeyringAccount.address, withdrawAmountInWei.toString()]) // users intent(contract they want to interact with)
+      )
 
-  //     setWithdrawAmount('');
-  //     setWithDrawAddr('');
-  //     await refreshEOAState(state.eoa.address);
-  //     await getScAccountState(state.eoa.address);
-  //     await getAccountActivity(state.eoa.address, Number(state.scAccount.index))
-  //   } catch (e) {
-  //     dispatch({ type: MetamaskActions.SetError, payload: e });
-  //   }
-  // }
+      // set transation data (user operation)   
+      const userOpToSign: UserOperationStruct = {
+        sender: state.scAccount.address,
+        nonce: state.scAccount.nonce.toHexString(),
+        initCode: state.scAccount.initCode,
+        callData: callData,
+        callGasLimit: BigNumber.from(0).toHexString(),
+        verificationGasLimit: BigNumber.from(0).toHexString(),
+        preVerificationGas: BigNumber.from(0).toHexString(),
+        maxPriorityFeePerGas: BigNumber.from(0).toHexString(),
+        maxFeePerGas: BigNumber.from(0).toHexString(),
+        paymasterAndData: '0x', // no paymaster
+        signature: '0x'
+      }
+
+      // get dummy signature
+      userOpToSign.signature = await getDummySignature(userOpToSign, entryPointContract.address)
+
+      // get gas fee
+      const feeData = await provider.getFeeData()
+      const initGas = await estimatCreationGas(state.selectedSnapKeyringAccount.id)
+      const estimatGasResult = await estimateUserOperationGas(userOpToSign)
+      
+      userOpToSign.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas.toHexString(): BigNumber.from(0).toHexString()
+      userOpToSign.maxFeePerGas = feeData.maxFeePerGas ? feeData.maxFeePerGas.toHexString() : BigNumber.from(0).toHexString()
+      userOpToSign.callGasLimit = estimatGasResult.callGasLimit.toHexString()
+      userOpToSign.verificationGasLimit = estimatGasResult.verificationGas.add(initGas).toHexString()
+      userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
+    
+      // send request to keyring for approval
+      await sendRequest(
+        state.selectedSnapKeyringAccount.id,
+        'eth_sendTransaction',
+        [state.selectedSnapKeyringAccount.address, userOpToSign] // [from, transactionData]
+      );
+
+      setWithdrawAmount('');
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  }
 
   const handleClearActivity = async (e: any) => {
     e.preventDefault();
@@ -349,7 +390,7 @@ const Index = () => {
     await handleFetchBundlerUrls();
   }
 
-  // Input handlers
+  // Form input handlers
   const handleDepositAmountChange = async (e: any) => {
     // Regular expression to match only numbers
     const inputValue = e.target.value;
@@ -365,14 +406,6 @@ const Index = () => {
     const numberRegex = /^\d*\.?\d*$/;
     if (inputValue === '' || numberRegex.test(inputValue)) {
       setWithdrawAmount(e.target.value);
-    }
-  }
-
-  const handleWithdrawAddrChange = async (e: any) => {
-    const inputValue = e.target.value;
-    const charRegex = /^[A-Za-z0-9.]*$/;
-    if (inputValue === '' || charRegex.test(inputValue)) {
-      setWithDrawAddr(e.target.value);
     }
   }
 
@@ -429,14 +462,14 @@ const Index = () => {
         )}
       </CardContainer>
   
-      {/* Error message */}
+      {/* Error message display*/}
       {state.error && (
         <ErrorMessage>
           <b>An error happened:</b> {state.error.message}
         </ErrorMessage>
       )}
 
-      {/* Account tab (eoa details, smart account details, smart account activity)*/}
+      {/* Account tab (smart account details, deposit, withdraw, smart account activity)*/}
       {state.activeTab === AppTab.SmartAccount && (
         <CardContainer>
           {state.scAccount.connected && state.installedSnap && (
@@ -503,6 +536,32 @@ const Index = () => {
             />
           )}
 
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'Withdraw',
+                description: `Withdraw deposit from smart account`,
+                custom: <CommonInputForm
+                  key={"send-withdraw"}
+                  onSubmitClick={handleWithdrawSubmit}
+                  buttonText="Withdraw"
+                  inputs={[
+                      {
+                        id: "1",
+                        onInputChange: handleWithdrawAmountChange,
+                        inputValue: withdrawAmount,
+                        inputPlaceholder:"Enter amount"
+                      },
+                    ]
+                  }
+                />
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+              showTooltip
+            />
+          )}
+
           {state.selectedSnapKeyringAccount.id && state.installedSnap && (
             <Card
               content={{
@@ -548,9 +607,25 @@ const Index = () => {
               fullWidth
             />
           )}
+
+          <Title>FAQ</Title>
+          <Card
+            content={{
+              custom: <Faq queston={'What is ERC-4337 Relayer?  '} description={'bahhahah'} />
+            }}
+            fullWidth
+          />
+
+          <Card
+            content={{
+              custom: <Faq queston={'How does is ERC-4337 Relayer work?'} description={'bahhahah'} />
+            }}
+            fullWidth
+          />
         </CardContainer>
       )}
 
+      {/* Mangement tab */}
       {state.activeTab === AppTab.Management && (
         <CardContainer>
           {state.installedSnap && (
@@ -658,13 +733,13 @@ const Index = () => {
       )}
 
       <Notice>
-          <p>
-            Please note that the this snap is only available in MetaMask Flask,
-            and is actively being developed by{' '}
-            <a href="https://github.com/transeptorlabs" target="_blank">
-              Transeptor Labs
-            </a>
-          </p>
+        <p>
+          Please note that this snap is only available in MetaMask Flask,
+          and is actively being developed by{' '}
+          <a href="https://github.com/transeptorlabs" target="_blank">
+            Transeptor Labs
+          </a>
+        </p>
       </Notice>
     </Container>
   );

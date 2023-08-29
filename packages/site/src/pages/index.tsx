@@ -16,6 +16,7 @@ import {
   estimatCreationGas,
   estimateUserOperationGas,
   getDummySignature,
+  calcPreVerificationGas,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -362,9 +363,13 @@ const Index = () => {
       userOpToSign.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas.toHexString(): BigNumber.from(0).toHexString()
       userOpToSign.maxFeePerGas = feeData.maxFeePerGas ? feeData.maxFeePerGas.toHexString() : BigNumber.from(0).toHexString()
       userOpToSign.callGasLimit = estimatGasResult.callGasLimit.toHexString()
-      userOpToSign.verificationGasLimit = estimatGasResult.verificationGas.add(initGas).toHexString()
+      userOpToSign.verificationGasLimit = BigNumber.from(100000).toHexString()
       userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
-    
+
+      // add gas buffer
+      const preVerificationGasWithBuffer = calcPreVerificationGas(userOpToSign)
+      userOpToSign.preVerificationGas = BigNumber.from(preVerificationGasWithBuffer).toHexString()
+
       // send request to keyring for approval
       await sendRequest(
         state.selectedSnapKeyringAccount.id,

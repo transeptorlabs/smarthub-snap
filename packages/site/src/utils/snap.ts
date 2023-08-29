@@ -183,29 +183,6 @@ export const getUserOperationReceipt = async (
   return parsedResult as UserOperationReceipt;
 };
 
-export const getSmartAccountActivity = async (
-  userOpHashes: string[],
-  confirmedDepositTxHashes: string[],
-): Promise<SmartAccountActivity> => {
-
-  const pendingUserOpHashes: string[] = [];
-  const userOperationReceipts: UserOperationReceipt[] = [];
-  userOpHashes.forEach(async (userOpHash: string) => {
-    const receipt = await getUserOperationReceipt(userOpHash);
-    if (receipt === null) {
-      pendingUserOpHashes.push(userOpHash);
-    } else {
-      userOperationReceipts.push(receipt);
-    }
-  });
-
-  return {
-    pendingUserOpHashes,
-    userOperationReceipts,
-    confirmedDepositTxHashes: confirmedDepositTxHashes,
-  } as SmartAccountActivity;
-};
-
 export const clearActivityData = async (): Promise<boolean> => {
   return (await getMMProvider().request({
     method: 'wallet_invokeSnap',

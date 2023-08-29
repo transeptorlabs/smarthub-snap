@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
-import { BundlerUrls, SmartAccountActivity, SmartContractAccount } from "../types";
-import { bundlerUrls, fetchUserOpHashes, getAccountBalance, getChainId, getKeyringSnapRpcClient, getMMProvider, getScAccount, getSmartAccountActivity, getTxHashes, parseChainId, sendSupportedEntryPoints } from "../utils";
+import { BundlerUrls, SmartAccountActivity, SmartContractAccount, SnapKeyringAccountActivity } from "../types";
+import { bundlerUrls, fetchUserOpHashes, getAccountBalance, getChainId, getKeyringSnapRpcClient, getMMProvider, getScAccount, getSmartAccountActivity, getTxHashes, getUserOperationReceipt, getUserOperationReceipts, parseChainId, sendSupportedEntryPoints } from "../utils";
 import { KeyringAccount } from "@metamask/keyring-api";
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
@@ -94,17 +94,49 @@ export const useAcount = () => {
     return scAccount;
   };
 
-  const getAccountActivity = async (keyringAccountId: string): Promise<SmartAccountActivity> => {
+  const getAccountActivity = async (
+    keyringAccountId: string,
+  ): Promise<{
+    smartAccountActivity: SmartAccountActivity[];
+    snapKeyringAccountActivity: SnapKeyringAccountActivity[];
+  }> => {
     const userOpHashes = await fetchUserOpHashes(keyringAccountId);
-    const txHashes = await getTxHashes(keyringAccountId, state.chainId);
-    const result: SmartAccountActivity = await getSmartAccountActivity(userOpHashes, txHashes);
-    console.log('getAccountActivity result:', result)
+    const smartAccountActivity: SmartAccountActivity[] = []
+    for (const userOpHash of userOpHashes) {
+      smartAccountActivity.push(
+        {
+          userOpHash,
+          userOperationReceipts: await getUserOperationReceipt(userOpHash),
+        }
+      )
+    }
     dispatch({
       type: MetamaskActions.SetSmartAccountActivity,
-      payload: result,
+      payload: smartAccountActivity,
     });
-    return result;
-  }
+
+    const txHashes = await getTxHashes(keyringAccountId, state.chainId);
+    const snapKeyringAccountActivity: SnapKeyringAccountActivity[] = []
+    for (const txHash of txHashes) {
+      snapKeyringAccountActivity.push(
+        {
+          txHash,
+          transactionReceipt: null,
+        }
+      )
+    }
+    dispatch({
+      type: MetamaskActions.SetSnapKeyringAccountActivity,
+      payload: snapKeyringAccountActivity,
+    });
+
+    console.log('getAccountActivity result:', smartAccountActivity, snapKeyringAccountActivity)
+
+    return {
+      smartAccountActivity,
+      snapKeyringAccountActivity,
+    };
+  };
 
   const getBundlerUrls = async (): Promise<BundlerUrls> => {
     const urls = await bundlerUrls();

@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { connectSnap, convertToEth, filterPendingRequests, getMMProvider, getSignedTxs, getSnap, handleCopyToClipboard, storeTxHash, trimAccount } from '../utils';
 import { FaCloudDownloadAlt, FaRegLightbulb } from 'react-icons/fa';
 import { InstallFlaskButton, ConnectSnapButton, SimpleButton } from './Buttons';
-import { SupportedChainIdMap, UserOperation, UserOperationReceipt } from '../types';
+import { SmartAccountActivity, SnapKeyringAccountActivity, SupportedChainIdMap, UserOperation, UserOperationReceipt } from '../types';
 import { useContext, useState } from 'react';
 import { KeyringAccount, KeyringRequest } from "@metamask/keyring-api";
 import { ReactComponent as FlaskFox } from '../assets/flask_fox_account.svg';
@@ -497,6 +497,7 @@ export const AccountRequestDisplay = () => {
           // decode userOp intent call data
           const entryPointContract = new ethers.Contract(decodedCallData.dest, EntryPoint__factory.abi)
           const userIntentDecodedCallData = entryPointContract.interface.decodeFunctionData('withdrawTo', decodedCallData.func);
+          // const userIntentDecodedCallData = simpleAccount.interface.decodeFunctionData('withdrawDepositTo', decodedCallData.func);
 
           // get gas totals
           const amount = BigNumber.from(decodedCallData.value);
@@ -654,11 +655,114 @@ const ActivityFailed = styled.span`
 export const AccountActivity = () => {
   const [state] = useContext(MetaMaskContext);
 
+  const renderSmartAccountActivity = (item: SmartAccountActivity) => {
+
+    if(item.userOperationReceipts === null) {
+      return (
+        <ActivityItemContainer key={`${item.userOpHash}`}>
+          <ActivityItem>
+            <p>Status:</p>
+            <p><ActivityPending>Pending</ActivityPending></p>
+          </ActivityItem>
+
+          <ActivityItem>
+            <p>UserOp hash:</p>
+            <FlexRowNoMargin>
+              <p>{trimAccount(item.userOpHash)}</p>
+              <ActivityCopy onClick={e => handleCopyToClipboard(e, item.userOpHash)}>
+                <FaCopy />
+              </ActivityCopy>
+            </FlexRowNoMargin>
+          </ActivityItem>         
+        </ActivityItemContainer>
+      )
+
+    } else {
+      const sender = item.userOperationReceipts.sender;
+      const receipt = item.userOperationReceipts.receipt;
+
+      return (
+        <ActivityItemContainer key={`${item.userOperationReceipts.sender}-${item.userOperationReceipts.nonce.toString()}-${item.userOperationReceipts.receipt.transactionHash}`}>
+          <ActivityItem>
+            <p>Status:</p>
+            <p>{item.userOperationReceipts.success? <ActivitySuccess>Confirmed</ActivitySuccess>: <ActivityFailed>Failed</ActivityFailed>}</p>
+          </ActivityItem>
+
+          {!item.userOperationReceipts.success && item.userOperationReceipts.reason && (
+            <ActivityItem>
+              <p>Revert:</p>
+              <p>{item.userOperationReceipts.reason}</p>
+            </ActivityItem>
+          )}
+        
+          <ActivityItem>
+            <p>Sender:</p>
+            <FlexRowNoMargin>
+              <p>eth:{trimAccount(item.userOperationReceipts.sender)}</p>
+              <ActivityCopy onClick={e => handleCopyToClipboard(e, sender)}>
+                <FaCopy />
+              </ActivityCopy>
+            </FlexRowNoMargin>
+          </ActivityItem>
+
+          <ActivityItem>
+            <p>To:</p>
+            <FlexRowNoMargin>
+              <p>eth:{trimAccount(item.userOperationReceipts.receipt.to)}</p>
+              <ActivityCopy onClick={e => handleCopyToClipboard(e, receipt.to)}>
+                <FaCopy />
+              </ActivityCopy>
+            </FlexRowNoMargin>
+          </ActivityItem>
+        
+          <ActivityItem>
+            <p>Nonce:</p>
+            <p>{BigNumber.from(item.userOperationReceipts.nonce).toNumber()}</p>
+          </ActivityItem>
+
+          <ActivityItem>
+            <p>Gas Used(units):</p>
+            <p>{BigNumber.from(item.userOperationReceipts.actualGasUsed).toNumber()}</p>
+          </ActivityItem>
+
+          <ActivityItem>
+            <p>Gas Cost(Wei):</p>
+            <p>{BigNumber.from(item.userOperationReceipts.actualGasCost).toNumber()}</p>
+          </ActivityItem>
+
+          <ActivityItem>
+            <p>UserOp hash:</p>
+            <FlexRowNoMargin>
+              <p>{trimAccount(item.userOperationReceipts.userOpHash)}</p>
+              <ActivityCopy onClick={e => handleCopyToClipboard(e, item.userOpHash)}>
+                <FaCopy />
+              </ActivityCopy>
+            </FlexRowNoMargin>
+          </ActivityItem>  
+
+          <ActivityItem>
+            <p>Transaction hash:</p>
+            <FlexRowNoMargin>
+              <p>{trimAccount(receipt.transactionHash)}</p>
+              <ActivityCopy onClick={e => handleCopyToClipboard(e, receipt.transactionHash)}>
+                <FaCopy />
+              </ActivityCopy>
+            </FlexRowNoMargin>
+          </ActivityItem>     
+      </ActivityItemContainer>
+      )
+
+    }
+  }
+
   return (
     <>
+      {/* {state.smartAccountActivity.length > 0 && (
+        {renderSmartAccountActivity}
+      )} */}
       {/* Pending userOps */}
-      {state.smartAccountActivity.pendingUserOpHashes.length > 0 && (
-        state.smartAccountActivity.pendingUserOpHashes.map((item: string) => (
+      {/* {state.smartAccountActivity.length > 0 && (
+        state.smartAccountActivity.map((item: SmartAccountActivity) => (
           <ActivityItemContainer key={`${item}`}>
             <ActivityItem>
               <p>Status:</p>
@@ -674,13 +778,16 @@ export const AccountActivity = () => {
                 </ActivityCopy>
               </FlexRowNoMargin>
             </ActivityItem> 
+            </ActivityItem> 
+        
+            </ActivityItem>         
         
           </ActivityItemContainer>
         ))
-      )}
+      )} */}
 
       {/* Confirmed userOps */}
-      {state.smartAccountActivity.userOperationReceipts.length > 0 && (
+      {/* {state.smartAccountActivity.userOperationReceipts.length > 0 && (
         state.smartAccountActivity.userOperationReceipts.map((item: UserOperationReceipt) => (
           <ActivityItemContainer key={`${item.sender}-${item.nonce.toString()}-${item.receipt.transactionHash}`}>
             <ActivityItem>
@@ -751,14 +858,14 @@ export const AccountActivity = () => {
             </ActivityItem>     
           </ActivityItemContainer>
         ))
-      )}
+      )} */}
 
       {/* Pending eoa tx */}
 
       {/* Confirmed eoa tx */}
-      {state.smartAccountActivity.confirmedDepositTxHashes.length > 0 && (
-        state.smartAccountActivity.confirmedDepositTxHashes.map((item: string) => (
-          <ActivityItemContainer key={`${item}`}>
+      {state.snapKeyringAccountActivity.length > 0 && (
+        state.snapKeyringAccountActivity.map((item: SnapKeyringAccountActivity) => (
+          <ActivityItemContainer key={`${item.txHash}`}>
             <ActivityItem>
               <TextBold>Type:</TextBold>
               <TextBold>Send ETH transaction(Deposit)</TextBold>
@@ -772,8 +879,8 @@ export const AccountActivity = () => {
             <ActivityItem>
               <p>Transaction hash:</p>
               <FlexRowNoMargin>
-                <p>{trimAccount(item)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item)}>
+                <p>{trimAccount(item.txHash)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.txHash)}>
                   <FaCopy />
                 </ActivityCopy>
               </FlexRowNoMargin>

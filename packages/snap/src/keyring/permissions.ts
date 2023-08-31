@@ -18,9 +18,10 @@ export enum RequestMethods {
 
 export enum InternalMethod {
   // Smart account management
+  GetNextRequestId = 'get_next_request_id',
   SmartAccount = 'sc_account',
   GetUserOpsHashes = 'get_user_ops_hashes',
-  GetSignedTxs= 'get_signed_txs',
+  GetSignedTxs = 'get_signed_txs',
   GetTxHashes = 'get_tx_hashes',
   StoreTxHash = 'store_tx_hash',
   GetUserOpCallData = 'get_user_op_call_data',
@@ -93,6 +94,7 @@ export const PERMISSIONS = new Map<string, string[]>([
       RequestMethods.RejectRequest,
 
       // Smart account management methods
+      InternalMethod.GetNextRequestId,
       InternalMethod.SmartAccount,
       InternalMethod.GetUserOpsHashes,
       InternalMethod.GetSignedTxs,
@@ -143,6 +145,7 @@ export const PERMISSIONS = new Map<string, string[]>([
       RequestMethods.RejectRequest,
 
       // Smart account management methods
+      InternalMethod.GetNextRequestId,
       InternalMethod.SmartAccount,
       InternalMethod.GetUserOpsHashes,
       InternalMethod.GetSignedTxs,

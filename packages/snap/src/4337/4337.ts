@@ -19,19 +19,7 @@ const DEFAULT_INIT_CODE = (owner: string) => {
       owner,
       0,
     ]),
-  ])
-}
-
-export const getAccountInitCode = async (owner: string): Promise<string> => {
-  const provider = new ethers.providers.Web3Provider(ethereum as any);
-  const smartAccountAddress = await getSmartAccountAddress(owner);
-  const smartAccountAddressCode = await provider.getCode(smartAccountAddress)
-
-  if (smartAccountAddressCode.length > 2) {
-    return '0x'
-  } else {
-    return DEFAULT_INIT_CODE(owner)
-  }
+  ]);
 };
 
 // CALCULATE THE SENDER ADDRESS (aka: the smart account address)
@@ -46,15 +34,28 @@ export const getSmartAccountAddress = async (
       provider,
     );
 
-    await entryPointContract.callStatic.getSenderAddress(DEFAULT_INIT_CODE(owner));
+    await entryPointContract.callStatic.getSenderAddress(
+      DEFAULT_INIT_CODE(owner),
+    );
   } catch (e: any) {
     if (e.errorArgs === null) {
       throw e;
     }
-  
+
     return e.errorArgs.sender;
   }
   throw new Error('must handle revert');
+};
+
+export const getAccountInitCode = async (owner: string): Promise<string> => {
+  const provider = new ethers.providers.Web3Provider(ethereum as any);
+  const smartAccountAddress = await getSmartAccountAddress(owner);
+  const smartAccountAddressCode = await provider.getCode(smartAccountAddress);
+
+  if (smartAccountAddressCode.length > 2) {
+    return '0x';
+  }
+  return DEFAULT_INIT_CODE(owner);
 };
 
 // GENERATE THE CALLDATA

@@ -15,6 +15,7 @@ import {
   getUserOpHashes,
   getTxHashes,
   storeTxHash,
+  getNextRequestId,
 } from './state';
 import {
   EstimateCreationGasParams,
@@ -109,6 +110,10 @@ const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
   }
 
   switch (request.method) {
+    case InternalMethod.GetNextRequestId: {
+      return await getNextRequestId();
+    }
+
     case InternalMethod.SmartAccount: {
       const params: SmartAccountParams = (
         request.params as any[]
@@ -194,7 +199,7 @@ const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
         throw new Error('Account not found');
       }
 
-      const initCode = await getAccountInitCode(ownerAccount.address)
+      const initCode = await getAccountInitCode(ownerAccount.address);
       console.log('SNAPS/', 'initCode ', initCode);
       result = await estimateCreationGas(initCode);
       return JSON.stringify(result);
@@ -336,4 +341,3 @@ export const onRpcRequest: OnRpcRequestHandler = buildHandlersChain(
   keyringHandler,
   erc4337Handler,
 );
-

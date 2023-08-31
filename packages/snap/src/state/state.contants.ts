@@ -14,6 +14,7 @@ export const DEFAULT_STATE = {
     pendingRequests: {},
     signedTx: {},
   },
+  requestIdCounter: 0,
   bundlerUrls: DEFAULT_BUNDLER_URLS,
   smartAccountActivity: {},
 };

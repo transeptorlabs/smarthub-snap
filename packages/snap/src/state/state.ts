@@ -1,3 +1,4 @@
+import { BigNumber } from 'ethers';
 import { KeyringState } from '../keyring';
 import { DEFAULT_BUNDLER_URLS, DEFAULT_STATE } from './state.contants';
 
@@ -6,6 +7,7 @@ export const getState = async (
 ): Promise<{
   keyringState: KeyringState;
   bundlerUrls: { [chainId: string]: string };
+  requestIdCounter: number;
   smartAccountActivity: {
     [keyringAccountId: string]: {
       scAccount: {
@@ -22,6 +24,7 @@ export const getState = async (
     params: { operation: 'get' },
   })) as {
     keyringState: KeyringState;
+    requestIdCounter: number;
     bundlerUrls: { [chainId: string]: string };
     smartAccountActivity: {
       [keyringAccountId: string]: {
@@ -86,7 +89,8 @@ export const getUserOpHashes = async (
   chainId: string,
 ): Promise<string[]> => {
   const state = await getState(keyringAccountId);
-  return state.smartAccountActivity[keyringAccountId].scAccount[chainId].userOpHashes;
+  return state.smartAccountActivity[keyringAccountId].scAccount[chainId]
+    .userOpHashes;
 };
 
 export const storeUserOpHash = async (
@@ -134,7 +138,8 @@ export const getTxHashes = async (
   chainId: string,
 ): Promise<string[]> => {
   const state = await getState(keyringAccountId);
-  return state.smartAccountActivity[keyringAccountId].scAccount[chainId].txHashes;
+  return state.smartAccountActivity[keyringAccountId].scAccount[chainId]
+    .txHashes;
 };
 
 export const storeTxHash = async (
@@ -146,9 +151,9 @@ export const storeTxHash = async (
   const state = await getState(keyringAccountId);
 
   delete state.keyringState.signedTx[keyringRequestId];
-  state.smartAccountActivity[keyringAccountId].scAccount[
-    chainId
-  ].txHashes.push(txHash);
+  state.smartAccountActivity[keyringAccountId].scAccount[chainId].txHashes.push(
+    txHash,
+  );
 
   await snap.request({
     method: 'snap_manageState',
@@ -183,4 +188,16 @@ export const clearActivityData = async (): Promise<boolean> => {
     params: { operation: 'update', newState: state },
   });
   return true;
+};
+
+export const getNextRequestId = async (): Promise<number> => {
+  const state = await getState();
+  const nextId = BigNumber.from(state.requestIdCounter).add(1);
+
+  state.requestIdCounter = nextId.toNumber();
+  await snap.request({
+    method: 'snap_manageState',
+    params: { operation: 'update', newState: state },
+  });
+  return nextId.toNumber();
 };

@@ -29,14 +29,9 @@ import { v4 as uuid } from 'uuid';
 import { Wallet as EthersWallet, ethers } from 'ethers';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { deepHexlify } from '@account-abstraction/utils';
-import { resolveProperties } from 'ethers/lib/utils';
 import { heading, panel, text } from '@metamask/snaps-ui';
 import { HttpRpcClient } from '../client';
-import {
-  getBundlerUrls,
-  storeKeyRing,
-  storeUserOpHash,
-} from '../state/state';
+import { getBundlerUrls, storeKeyRing, storeUserOpHash } from '../state/state';
 import {
   isEvmChain,
   serializeTransaction,

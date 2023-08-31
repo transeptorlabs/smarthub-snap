@@ -27,30 +27,23 @@ import type { Json, JsonRpcRequest } from '@metamask/utils';
 import { v4 as uuid } from 'uuid';
 
 import { Wallet as EthersWallet, ethers } from 'ethers';
-import {
-  EntryPoint__factory,
-  UserOperationStruct,
-} from '@account-abstraction/contracts';
+import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { deepHexlify } from '@account-abstraction/utils';
-import { resolveProperties } from 'ethers/lib/utils';
 import { heading, panel, text } from '@metamask/snaps-ui';
 import { HttpRpcClient } from '../client';
-import {
-  getBundlerUrls,
-  storeKeyRing,
-  storeUserOpHashPending,
-} from '../state/state';
+import { getBundlerUrls, storeKeyRing, storeUserOpHash } from '../state/state';
 import {
   isEvmChain,
   serializeTransaction,
   isUniqueAccountName,
 } from '../utils';
 import { DEFAULT_ENTRY_POINT } from '../4337';
+import { UserOperation } from '../types';
 
 export type KeyringState = {
   wallets: Record<string, Wallet>;
   pendingRequests: Record<string, KeyringRequest>;
-  readyDepositTx: Record<string, string>;
+  signedTx: Record<string, string>;
 };
 
 export type Wallet = {
@@ -63,12 +56,12 @@ export class SimpleKeyring implements Keyring {
 
   #pendingRequests: Record<string, KeyringRequest>;
 
-  #readyDepositTx: Record<string, string>;
+  #signedTx: Record<string, string>;
 
   constructor(state: KeyringState) {
     this.#wallets = state.wallets;
     this.#pendingRequests = state.pendingRequests;
-    this.#readyDepositTx = state.readyDepositTx;
+    this.#signedTx = state.signedTx;
   }
 
   async listAccounts(): Promise<KeyringAccount[]> {
@@ -216,7 +209,7 @@ export class SimpleKeyring implements Keyring {
 
       delete this.#pendingRequests[_id];
       if (method === 'eth_signTransaction') {
-        this.#readyDepositTx[_id] = signature as string;
+        this.#signedTx[_id] = signature as string;
       }
 
       await this.#saveState();
@@ -297,7 +290,7 @@ export class SimpleKeyring implements Keyring {
       }
 
       case 'eth_sendTransaction': {
-        const [from, userOperation] = params as [string, UserOperationStruct];
+        const [from, userOperation] = params as [string, UserOperation];
         const provider = new ethers.providers.Web3Provider(ethereum as any);
         const entryPointContract = new ethers.Contract(
           DEFAULT_ENTRY_POINT,
@@ -316,9 +309,7 @@ export class SimpleKeyring implements Keyring {
         userOperation.signature = signature;
 
         // send the userOp
-        const hexifiedUserOp: UserOperationStruct = deepHexlify(
-          await resolveProperties(userOperation),
-        );
+        const hexifiedUserOp: UserOperation = deepHexlify(userOperation);
         await this.#handleSendUserOp(account.id, hexifiedUserOp);
 
         return signature;
@@ -358,7 +349,7 @@ export class SimpleKeyring implements Keyring {
 
   async #handleSendUserOp(
     accountId: string,
-    signedUserOp: UserOperationStruct,
+    signedUserOp: UserOperation,
   ): Promise<void> {
     console.log('SNAPS/', 'handle handleSendUserOp ', accountId, signedUserOp);
 
@@ -375,10 +366,10 @@ export class SimpleKeyring implements Keyring {
 
     // store userOp hash pending
     if (rpcResult.sucess === true) {
-      await storeUserOpHashPending(
-        rpcResult.data as string,
+      await storeUserOpHash(
         accountId,
         chainId as string,
+        rpcResult.data as string,
       );
 
       snap.request({
@@ -479,7 +470,7 @@ export class SimpleKeyring implements Keyring {
     await storeKeyRing({
       wallets: this.#wallets,
       pendingRequests: this.#pendingRequests,
-      readyDepositTx: this.#readyDepositTx,
+      signedTx: this.#signedTx,
     } as KeyringState);
   }
 }

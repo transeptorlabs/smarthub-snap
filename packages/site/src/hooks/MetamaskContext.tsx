@@ -8,9 +8,9 @@ import {
 } from 'react';
 import { AppTab, BundlerUrls, Snap } from '../types';
 import { isFlask, getSnap, KeyringState } from '../utils';
-import { SmartAccountActivity, SmartContractAccount } from '../types/erc-4337';
+import { AccountActivity, SmartContractAccount } from '../types/erc-4337';
 import { KeyringAccount } from "@metamask/keyring-api";
-import { BigNumber } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
 export type MetamaskState = {
   isFlask: boolean;
@@ -23,7 +23,7 @@ export type MetamaskState = {
   selectedSnapKeyringAccount: KeyringAccount;
   selectedAccountBalance: string;
   scAccount: SmartContractAccount;
-  smartAccountActivity: SmartAccountActivity;
+  accountActivity: AccountActivity[];
   bundlerUrls?: BundlerUrls;
 };
 
@@ -59,12 +59,7 @@ const initialState: MetamaskState = {
     factoryAddress: '',
     ownerAddress: '',
   },
-  smartAccountActivity: {
-    pendingUserOpHashes: [],
-    confirmedUserOpHashes: [],
-    userOperationReceipts: [],
-    confirmedDepositTxHashes: [],
-  },
+  accountActivity: [],
   bundlerUrls: undefined,
 };
 
@@ -89,7 +84,7 @@ export enum MetamaskActions {
   SetSnapKeyring = 'SetSnapKeyring',
   SetSelectedSnapKeyringAccount = "SetSelectedKeyringAccount",
   SetScAccount = "SetScAccount",
-  SetSmartAccountActivity = 'SetSmartAccountActivity',
+  SetAccountActivity = 'SetAccountActivity',
   SetSelectedAccountBalance = 'SetSelectedAccountBalance',
   SetClearAccount = 'SetClearAccount',
   SetBundlerUrls = 'SetBundlerUrls',
@@ -140,10 +135,10 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         scAccount: action.payload,
       };
 
-    case MetamaskActions.SetSmartAccountActivity:
+    case MetamaskActions.SetAccountActivity:
       return {
         ...state,
-        smartAccountActivity: action.payload,
+        accountActivity: action.payload,
       };
 
     case MetamaskActions.SetWalletListener:
@@ -199,11 +194,7 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
           factoryAddress: '',
           ownerAddress: '',
         },
-        smartAccountActivity: {
-          pendingUserOpHashes: [],
-          confirmedUserOpHashes: [],
-          userOperationReceipts: [],
-        },
+        accountActivity: [],
       };
     default:
       return state;

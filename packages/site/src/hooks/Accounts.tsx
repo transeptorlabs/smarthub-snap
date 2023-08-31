@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
-import { BundlerUrls, SmartAccountActivity, SmartContractAccount } from "../types";
-import { bundlerUrls, getAccountBalance, getChainId, getKeyringSnapRpcClient, getMMProvider, getScAccount, getSmartAccountActivity, parseChainId, sendSupportedEntryPoints } from "../utils";
+import { AccountActivity, AccountActivityType, BundlerUrls, SmartContractAccount } from "../types";
+import { bundlerUrls, fetchUserOpHashes, getAccountBalance, getChainId, getKeyringSnapRpcClient, getMMProvider, getNextRequestId, getScAccount, getTxHashes, getUserOperationReceipt, parseChainId, sendSupportedEntryPoints } from "../utils";
 import { KeyringAccount } from "@metamask/keyring-api";
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
@@ -51,17 +51,17 @@ export const useAcount = () => {
   };
 
   const sendRequest = async (keyringAccountId: string, method: string, params: any[] = []) => {
-    const result = await snapRpcClient.submitRequest({
+    const id = await getNextRequestId()
+    await snapRpcClient.submitRequest({
       account: keyringAccountId,
       scope: `eip155:${parseChainId(state.chainId)}`,
       request: {
-        id: '1', // TODO: generate random id
+        id: id.toString(),
         jsonrpc: '2.0',
         method,
         params: params,
       }
     });
-    console.log('send request result:', result)
     await getKeyringSnapAccounts()
   };
 
@@ -81,8 +81,6 @@ export const useAcount = () => {
       sendSupportedEntryPoints(),
     ]);
 
-    console.log('getSmartAccount result:', scAccount, supportedEntryPoints)
-
     dispatch({
       type: MetamaskActions.SetScAccount,
       payload: scAccount,
@@ -95,15 +93,41 @@ export const useAcount = () => {
     return scAccount;
   };
 
-  const getAccountActivity = async (keyringAccountId: string): Promise<SmartAccountActivity> => {
-    const result: SmartAccountActivity = await getSmartAccountActivity(keyringAccountId);
-    console.log('getAccountActivity result:', result)
+  const getAccountActivity = async (
+    keyringAccountId: string,
+  ): Promise<AccountActivity[]> => {
+    const userOpHashes = await fetchUserOpHashes(keyringAccountId);
+    const accountActivity: AccountActivity[] = []
+    for (const userOpHash of userOpHashes) {
+      accountActivity.push(
+        {
+          type: AccountActivityType.SmartContract,
+          userOpHash,
+          userOperationReceipt: await getUserOperationReceipt(userOpHash),
+        }
+      )
+    }
+
+    const txHashes = await getTxHashes(keyringAccountId, state.chainId);
+    for (const txHash of txHashes) {
+      accountActivity.push(
+        {
+          type: AccountActivityType.EOA,
+          txHash,
+          userOpHash: '',
+          userOperationReceipt: null,
+        }
+      )
+    }
     dispatch({
-      type: MetamaskActions.SetSmartAccountActivity,
-      payload: result,
+      type: MetamaskActions.SetAccountActivity,
+      payload: accountActivity,
     });
-    return result;
-  }
+
+    console.log('getAccountActivity result:', accountActivity)
+
+    return accountActivity;
+  };
 
   const getBundlerUrls = async (): Promise<BundlerUrls> => {
     const urls = await bundlerUrls();

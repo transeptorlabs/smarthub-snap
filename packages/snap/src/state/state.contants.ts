@@ -12,10 +12,9 @@ export const DEFAULT_STATE = {
   keyringState: {
     wallets: {},
     pendingRequests: {},
-    readyDepositTx: {},
+    signedTx: {},
   },
-  confirmedDepositTxHashes: [],
+  requestIdCounter: 0,
   bundlerUrls: DEFAULT_BUNDLER_URLS,
-  userOpHashesPending: {},
   smartAccountActivity: {},
 };

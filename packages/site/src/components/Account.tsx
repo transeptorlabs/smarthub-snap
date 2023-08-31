@@ -1,9 +1,9 @@
 import { MetaMaskContext, MetamaskActions, useAcount } from '../hooks';
 import styled from 'styled-components';
-import { connectSnap, convertToEth, filterPendingRequests, getDepositReadyTx, getMMProvider, getSnap, handleCopyToClipboard, storeDepositTxHash, trimAccount } from '../utils';
+import { connectSnap, convertToEth, filterPendingRequests, getMMProvider, getSignedTxs, getSnap, handleCopyToClipboard, storeTxHash, trimAccount } from '../utils';
 import { FaCloudDownloadAlt, FaRegLightbulb } from 'react-icons/fa';
 import { InstallFlaskButton, ConnectSnapButton, SimpleButton } from './Buttons';
-import { SupportedChainIdMap, UserOperationReceipt } from '../types';
+import { AccountActivity, AccountActivityType, SupportedChainIdMap, UserOperation } from '../types';
 import { useContext, useState } from 'react';
 import { KeyringAccount, KeyringRequest } from "@metamask/keyring-api";
 import { ReactComponent as FlaskFox } from '../assets/flask_fox_account.svg';
@@ -12,6 +12,7 @@ import { FaCopy } from "react-icons/fa";
 import { CommonInputForm } from './Form';
 import { BigNumber, ethers } from 'ethers';
 import { JsonTx } from '@ethereumjs/tx';
+import { EntryPoint__factory, SimpleAccount__factory } from '@account-abstraction/contracts';
 
 const Body = styled.div`
   padding: 2rem;
@@ -214,7 +215,7 @@ export const AccountModalDropdown = ({
 }) => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const [selectedAccount, setSelectedAccount] = useState<KeyringAccount>(state.selectedSnapKeyringAccount);
-  const {selectKeyringSnapAccount, getSmartAccount, createAccount, updateAccountBalance} = useAcount();
+  const {selectKeyringSnapAccount, getSmartAccount, createAccount, updateAccountBalance, getAccountActivity} = useAcount();
   const [accountName, setAccountName] = useState('');
 
   const featureList: {feature: string; description: string }[] = [
@@ -255,6 +256,7 @@ export const AccountModalDropdown = ({
     await selectKeyringSnapAccount(account);
     await getSmartAccount(account.id);
     await updateAccountBalance(account.address);
+    await getAccountActivity(account.id);
     closeModal();
   }
 
@@ -370,26 +372,32 @@ export const AccountRequestDisplay = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const { approveRequest, rejectRequest, getSmartAccount, getAccountActivity, updateAccountBalance, getKeyringSnapAccounts } = useAcount();
 
-  const handleApproveRequest = async (event: any, id: string) => {
+  const handleApproveRequest = async (event: any, requestId: string) => {
     try {
       event.preventDefault();
-      await approveRequest(id);
+      await approveRequest(requestId);
 
-      // send entrypoint deposit txs
-      const signedDepositTxs = await getDepositReadyTx()
-      if (signedDepositTxs[id]) {
-        console.log('signedDepositTxs(ready):', signedDepositTxs[id]);
+      // send signed entrypoint deposit txs
+      const signedTxs = await getSignedTxs()
+      console.log('signedTxs(before):', signedTxs, requestId)
+
+      if (signedTxs[requestId]) {
         const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
-        const res = await provider.sendTransaction(signedDepositTxs[id])
+        const res = await provider.sendTransaction(signedTxs[requestId])
         await res.wait();
 
-        console.log('Transaction sent. Transaction hash:', res.hash);
-
-        await storeDepositTxHash(res.hash, id);
+        console.log('Transaction hash:', res.hash);
+        await storeTxHash(
+          state.selectedSnapKeyringAccount.id,
+          res.hash,
+          requestId,
+          state.chainId,
+        );
+        console.log('signedTxs(after):',await getSignedTxs())
       }
 
-      await getSmartAccount(state.selectedSnapKeyringAccount.id);
       await getAccountActivity(state.selectedSnapKeyringAccount.id);
+      await getSmartAccount(state.selectedSnapKeyringAccount.id);
       await updateAccountBalance(state.selectedSnapKeyringAccount.address);
     } catch (e) {
       await getKeyringSnapAccounts();
@@ -412,30 +420,121 @@ export const AccountRequestDisplay = () => {
       case "eth_signTransaction":
         if ('params' in request.request) {
           const [from, tx] = request.request.params as [string, JsonTx, string]
-            const amount = BigNumber.from(tx.value);
-            const maxGas = BigNumber.from(tx.gasLimit);
-            const gasFee = BigNumber.from(tx.maxFeePerGas).add(BigNumber.from(tx.maxPriorityFeePerGas));
-            const maxFee = gasFee.mul(maxGas);
-            const total = gasFee.add(BigNumber.from(tx.value));
-            const maxAmount = maxFee.add(BigNumber.from(tx.value));
+
+          // decode user intent call data
+          const entryPointContract = new ethers.Contract(tx.to as string, EntryPoint__factory.abi)
+          const userIntentDecodedCallData = entryPointContract.interface.decodeFunctionData('depositTo', tx.data as string);
+
+          const amount = BigNumber.from(tx.value);
+          const maxGas = BigNumber.from(tx.gasLimit);
+          const gasFee = BigNumber.from(tx.maxFeePerGas).add(BigNumber.from(tx.maxPriorityFeePerGas));
+          const maxFee = gasFee.mul(maxGas);
+          const total = gasFee.add(BigNumber.from(tx.value));
+          const maxAmount = maxFee.add(BigNumber.from(tx.value));
   
-            return (
-              <>
-              <PendingRequestItem>
+          return (
+            <>
+            <PendingRequestItem>
+              <p>From:</p>
+              <p>{trimAccount(from)}</p>
+            </PendingRequestItem>
+
+            <PendingRequestItem>
+              <p>To:</p>
+              <p>{trimAccount(tx.to as string)}</p>
+            </PendingRequestItem>
+
+            <PendingRequestItem>
+              <p>Function:</p>
+              <p>depositTo</p>
+            </PendingRequestItem>
+
+            <PendingRequestItem>
+              <p>Recipient:</p>
+              <p>{trimAccount(userIntentDecodedCallData.account)}</p>
+            </PendingRequestItem>
+
+            <PendingRequestItem>
+              <p>Amount:</p>
+              <p>{convertToEth(amount.toString())} ETH</p>
+            </PendingRequestItem>
+
+            <PendingRequestItem>
+              <p>Gas Fee(estimated):</p>
+              <p>{convertToEth(gasFee.toString())} ETH</p>
+            </PendingRequestItem>
+
+            <PendingRequestItem>
+              <p>Max fee:</p>
+              <p>{convertToEth(maxFee.toString())} ETH</p>
+            </PendingRequestItem>
+            
+            <LineBreak></LineBreak>
+
+            <PendingRequestItem>
+              <TextBold>Total</TextBold>
+              <TextBold>{convertToEth(total.toString())} ETH</TextBold>
+            </PendingRequestItem>
+
+            <PendingRequestItem>
+              <p>Max(Amount + max fee)</p>
+              <p>{convertToEth(maxAmount.toString())} ETH</p>
+            </PendingRequestItem>
+            </>
+          );
+        } else {
+          throw new Error('Invalid request');
+        }
+      case "eth_sendTransaction":
+        if ('params' in request.request) {
+          const [from, userOp] = request.request.params as [string, UserOperation]
+
+          // decode userOp execute call data
+          const simpleAccount = new ethers.Contract(
+            userOp.sender,
+            SimpleAccount__factory.abi,
+          );
+          const decodedCallData = simpleAccount.interface.decodeFunctionData('execute', userOp.callData);
+
+          // decode userOp intent call data
+          const entryPointContract = new ethers.Contract(decodedCallData.dest, EntryPoint__factory.abi)
+          const userIntentDecodedCallData = entryPointContract.interface.decodeFunctionData('withdrawTo', decodedCallData.func);
+
+          // get gas totals
+          const amount = BigNumber.from(decodedCallData.value);
+          const maxGas = BigNumber.from(userOp.callGasLimit).add(BigNumber.from(userOp.verificationGasLimit));
+          const gasFee = BigNumber.from(userOp.maxFeePerGas).add(BigNumber.from(userOp.maxPriorityFeePerGas)).add(BigNumber.from(userOp.preVerificationGas));
+          const maxFee = gasFee.mul(maxGas);
+          const total = gasFee.add(BigNumber.from(decodedCallData.value));
+          const maxAmount = maxFee.add(BigNumber.from(decodedCallData.value));
+          
+          return (
+            <>
+            <PendingRequestItem>
                 <p>From:</p>
-                <p>{trimAccount(from)}</p>
+                <p>{trimAccount(userOp.sender)}</p>
               </PendingRequestItem>
   
               <PendingRequestItem>
                 <p>To:</p>
-                <p>{trimAccount(tx.to as string)}</p>
+                <p>{trimAccount(decodedCallData.dest as string)}</p>
               </PendingRequestItem>
   
               <PendingRequestItem>
-                <p>Entry point contract:</p>
-                <p>depositTo</p>
+                <p>Function:</p>
+                <p>withdrawTo</p>
               </PendingRequestItem>
   
+              <PendingRequestItem>
+                <p>Withdraw Address:</p>
+                <p>{trimAccount(userIntentDecodedCallData.withdrawAddress)}</p>
+              </PendingRequestItem>
+
+              <PendingRequestItem>
+                <p>Withdraw Amount:</p>
+                <p>{convertToEth(userIntentDecodedCallData.withdrawAmount.toString())} ETH</p>
+              </PendingRequestItem>
+
               <PendingRequestItem>
                 <p>Amount:</p>
                 <p>{convertToEth(amount.toString())} ETH</p>
@@ -462,37 +561,6 @@ export const AccountRequestDisplay = () => {
                 <p>Max(Amount + max fee)</p>
                 <p>{convertToEth(maxAmount.toString())} ETH</p>
               </PendingRequestItem>
-              </>
-            );
-        } else {
-          throw new Error('Invalid request');
-        }
-      case "eth_sendTransaction":
-        if ('params' in request.request) {
-          const [from, tx] = request.request.params as [string, JsonTx, string]
-          const gasFee = BigNumber.from(tx.maxFeePerGas).add(BigNumber.from(tx.maxPriorityFeePerGas));
-          
-          return (
-            <>
-            <PendingRequestItem>
-              <p>From:</p>
-              <p>{trimAccount(from)}</p>
-            </PendingRequestItem>
-
-            <PendingRequestItem>
-              <p>To:</p>
-              <p>{trimAccount(tx.to as string)}</p>
-            </PendingRequestItem>
-
-            <PendingRequestItem>
-              <p>Entry point contract:</p>
-              <p>withdrawTo</p>
-            </PendingRequestItem>
-
-            <PendingRequestItem>
-              <p>Gas Fee(estimated):</p>
-              <p>{convertToEth(gasFee.toString())} ETH</p>
-            </PendingRequestItem>
             </>
           );
         } else {
@@ -585,119 +653,111 @@ const ActivityFailed = styled.span`
   color: ${({ theme }) => theme.colors.error.alternative};
 `
 
-export const AccountActivity = () => {
+export const AccountActivityDisplay = () => {
   const [state] = useContext(MetaMaskContext);
 
-  return (
-    <>
-      {/* Pending userOps */}
-      {state.smartAccountActivity && (
-        state.smartAccountActivity.pendingUserOpHashes.map((item: string) => (
-          <ActivityItemContainer key={`${item}`}>
-            <ActivityItem>
-              <p>Status:</p>
-              <p><ActivityPending>Pending</ActivityPending></p>
-            </ActivityItem>
-
-            <ActivityItem>
-              <p>UserOp hash:</p>
-              <FlexRowNoMargin>
-                <p>{trimAccount(item)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item)}>
-                  <FaCopy />
-                </ActivityCopy>
-              </FlexRowNoMargin>
-            </ActivityItem> 
-        
-          </ActivityItemContainer>
-        ))
-      )}
-
-      {/* Confirmed userOps */}
-      {state.smartAccountActivity && (
-        state.smartAccountActivity.userOperationReceipts.map((item: UserOperationReceipt) => (
-          <ActivityItemContainer key={`${item.sender}-${item.nonce.toString()}-${item.receipt.transactionHash}`}>
-            <ActivityItem>
-              <p>Status:</p>
-              <p>{item.success? <ActivitySuccess>Confirmed</ActivitySuccess>: <ActivityFailed>Failed</ActivityFailed>}</p>
-            </ActivityItem>
-
-            {!item.success && item.reason && (
+  const renderAccountActivityItem = (item: AccountActivity) => {
+    switch (item.type) {
+      case AccountActivityType.SmartContract:
+        if (item.userOperationReceipt === null) {
+          return (
+            <>
               <ActivityItem>
-                <p>Revert:</p>
-                <p>{item.reason}</p>
+                <p>Status:</p>
+                <p><ActivityPending>Pending</ActivityPending></p>
               </ActivityItem>
-            )}
-           
-            <ActivityItem>
-              <p>Sender:</p>
-              <FlexRowNoMargin>
-                <p>eth:{trimAccount(item.sender)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.sender)}>
-                  <FaCopy />
-                </ActivityCopy>
-              </FlexRowNoMargin>
-            </ActivityItem>
+    
+              <ActivityItem>
+                <p>UserOp hash:</p>
+                <FlexRowNoMargin>
+                  <p>{trimAccount(item.userOpHash)}</p>
+                  <ActivityCopy onClick={e => handleCopyToClipboard(e, item.userOpHash)}>
+                    <FaCopy />
+                  </ActivityCopy>
+                </FlexRowNoMargin>
+              </ActivityItem>         
+            </>
+          )
+        } else {
+          const sender = item.userOperationReceipt.sender;
+          const receipt = item.userOperationReceipt.receipt;
 
-            <ActivityItem>
-              <p>To:</p>
-              <FlexRowNoMargin>
-                <p>eth:{trimAccount(item.receipt.to)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.receipt.to)}>
-                  <FaCopy />
-                </ActivityCopy>
-              </FlexRowNoMargin>
-            </ActivityItem>
-           
-            <ActivityItem>
-              <p>Nonce:</p>
-              <p>{BigNumber.from(item.nonce).toNumber()}</p>
-            </ActivityItem>
+          return (
+            <>
+              <ActivityItem>
+                <p>Status:</p>
+                <p>{item.userOperationReceipt.success? <ActivitySuccess>Confirmed</ActivitySuccess>: <ActivityFailed>Failed</ActivityFailed>}</p>
+              </ActivityItem>
+    
+              {!item.userOperationReceipt.success && item.userOperationReceipt.reason && (
+                <ActivityItem>
+                  <p>Revert:</p>
+                  <p>{item.userOperationReceipt.reason}</p>
+                </ActivityItem>
+              )}
+            
+              <ActivityItem>
+                <p>Sender:</p>
+                <FlexRowNoMargin>
+                  <p>eth:{trimAccount(item.userOperationReceipt.sender)}</p>
+                  <ActivityCopy onClick={e => handleCopyToClipboard(e, sender)}>
+                    <FaCopy />
+                  </ActivityCopy>
+                </FlexRowNoMargin>
+              </ActivityItem>
+    
+              <ActivityItem>
+                <p>To:</p>
+                <FlexRowNoMargin>
+                  <p>eth:{trimAccount(item.userOperationReceipt.receipt.to)}</p>
+                  <ActivityCopy onClick={e => handleCopyToClipboard(e, receipt.to)}>
+                    <FaCopy />
+                  </ActivityCopy>
+                </FlexRowNoMargin>
+              </ActivityItem>
+            
+              <ActivityItem>
+                <p>Nonce:</p>
+                <p>{BigNumber.from(item.userOperationReceipt.nonce).toNumber()}</p>
+              </ActivityItem>
+    
+              <ActivityItem>
+                <p>Actual Gas Used(units):</p>
+                <p>{BigNumber.from(item.userOperationReceipt.actualGasUsed).toNumber()}</p>
+              </ActivityItem>
+    
+              <ActivityItem>
+                <p>Actual Gas Cost:</p>
+                <p>{convertToEth(BigNumber.from(item.userOperationReceipt.actualGasCost).toString())} ETH</p>
+              </ActivityItem>
+    
+              <ActivityItem>
+                <p>UserOp hash:</p>
+                <FlexRowNoMargin>
+                  <p>{trimAccount(item.userOperationReceipt.userOpHash)}</p>
+                  <ActivityCopy onClick={e => handleCopyToClipboard(e, item.userOpHash)}>
+                    <FaCopy />
+                  </ActivityCopy>
+                </FlexRowNoMargin>
+              </ActivityItem>  
+    
+              <ActivityItem>
+                <p>Transaction hash:</p>
+                <FlexRowNoMargin>
+                  <p>{trimAccount(receipt.transactionHash)}</p>
+                  <ActivityCopy onClick={e => handleCopyToClipboard(e, receipt.transactionHash)}>
+                    <FaCopy />
+                  </ActivityCopy>
+                </FlexRowNoMargin>
+              </ActivityItem>     
+            </>
+          )
+        }
 
-            <ActivityItem>
-              <p>Gas Used(units):</p>
-              <p>{BigNumber.from(item.actualGasUsed).toNumber()}</p>
-            </ActivityItem>
-
-            <ActivityItem>
-              <p>Gas Cost(Wei):</p>
-              <p>{BigNumber.from(item.actualGasCost).toNumber()}</p>
-            </ActivityItem>
-
-            <ActivityItem>
-              <p>UserOp hash:</p>
-              <FlexRowNoMargin>
-                <p>{trimAccount(item.userOpHash)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.userOpHash)}>
-                  <FaCopy />
-                </ActivityCopy>
-              </FlexRowNoMargin>
-            </ActivityItem>  
-
-            <ActivityItem>
-              <p>Transaction hash:</p>
-              <FlexRowNoMargin>
-                <p>{trimAccount(item.receipt.transactionHash)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item.receipt.transactionHash)}>
-                  <FaCopy />
-                </ActivityCopy>
-              </FlexRowNoMargin>
-            </ActivityItem>     
-          </ActivityItemContainer>
-        ))
-      )}
-
-      {/* Pending eoa tx */}
-
-      {/* Confirmed eoa tx */}
-      {state.smartAccountActivity.confirmedDepositTxHashes.length > 0 && (
-        state.smartAccountActivity.confirmedDepositTxHashes.map((item: string) => (
-          <ActivityItemContainer key={`${item}`}>
-            <ActivityItem>
-              <TextBold>Type:</TextBold>
-              <TextBold>Send ETH transaction(Deposit)</TextBold>
-            </ActivityItem>
-
+      case AccountActivityType.EOA:
+        const txHash = item.txHash ? item.txHash : '';
+        return (
+          <>
             <ActivityItem>
               <p>Status:</p>
               <p>{<ActivitySuccess>Confirmed</ActivitySuccess>}</p>
@@ -706,12 +766,32 @@ export const AccountActivity = () => {
             <ActivityItem>
               <p>Transaction hash:</p>
               <FlexRowNoMargin>
-                <p>{trimAccount(item)}</p>
-                <ActivityCopy onClick={e => handleCopyToClipboard(e, item)}>
+                <p>{trimAccount(txHash)}</p>
+                <ActivityCopy onClick={e => handleCopyToClipboard(e, txHash)}>
                   <FaCopy />
                 </ActivityCopy>
               </FlexRowNoMargin>
             </ActivityItem>     
+          </>
+        )
+      default:
+        return (
+          <>
+          </>
+        );
+    }
+  }
+
+  return (
+    <>
+      {state.accountActivity.length > 0 && (
+        state.accountActivity.map((item: AccountActivity, index: number) => (
+          <ActivityItemContainer key={index}>
+            <ActivityItem>
+              <TextBold>Type:</TextBold>
+              <TextBold>{item.type === AccountActivityType.SmartContract ? 'Send UserOp transaction(Withdraw)': 'Send ETH transaction(Deposit)'}</TextBold>
+            </ActivityItem>
+            {renderAccountActivityItem(item)}
           </ActivityItemContainer>
         ))
       )}

@@ -1,8 +1,20 @@
-import { UserOperationStruct } from '@account-abstraction/contracts';
 import { BigNumber } from 'ethers';
+import { UserOperation } from './erc-4337.types';
 
 export type SmartAccountParams = {
   keyringAccountId: string;
+  chainId: string;
+};
+
+export type GetTxHashesParams = {
+  keyringAccountId: string;
+  chainId: string;
+};
+
+export type StoreTxHashParams = {
+  keyringAccountId: string;
+  txHash: string;
+  keyringRequestId: string;
   chainId: string;
 };
 
@@ -35,5 +47,5 @@ export type EstimateCreationGasParams = {
 };
 
 export type EstimateUserOperationGas = {
-  userOp: UserOperationStruct;
+  userOp: UserOperation;
 };

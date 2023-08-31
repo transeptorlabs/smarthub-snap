@@ -6,7 +6,6 @@ import {
   ReputationEntry,
   SmartContractAccount,
   BundlerUrls,
-  SmartAccountActivity,
   UserOperation,
   UserOperationReceipt,
   SignedTxs,
@@ -66,6 +65,19 @@ export const getSnap = async (version?: string): Promise<Snap | undefined> => {
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
 
 // ERC-4337 account management *****************************************************
+export const getNextRequestId = async (): Promise<number> => {
+  return (await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: {
+        method: 'get_next_request_id',
+        params: [],
+      },
+    },
+  })) as number;
+};
+
 export const getScAccount = async (
   keyringAccountId: string,
 ): Promise<SmartContractAccount> => {
@@ -92,7 +104,7 @@ export const getScAccount = async (
   } as SmartContractAccount;
 };
 
-export const getSignedTxs= async (): Promise<SignedTxs> => {
+export const getSignedTxs = async (): Promise<SignedTxs> => {
   const result = (await getMMProvider().request({
     method: 'wallet_invokeSnap',
     params: {
@@ -114,14 +126,17 @@ export const storeTxHash = async (
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'store_tx_hash', params: [
-        {
-          keyringAccountId,
-          txHash,
-          keyringRequestId,
-          chainId,
-        }
-      ] },
+      request: {
+        method: 'store_tx_hash',
+        params: [
+          {
+            keyringAccountId,
+            txHash,
+            keyringRequestId,
+            chainId,
+          },
+        ],
+      },
     },
   })) as boolean;
 };
@@ -140,7 +155,7 @@ export const getTxHashes = async (
           {
             keyringAccountId,
             chainId,
-          }
+          },
         ],
       },
     },

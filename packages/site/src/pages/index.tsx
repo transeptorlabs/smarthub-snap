@@ -17,6 +17,7 @@ import {
   estimateUserOperationGas,
   getDummySignature,
   calcPreVerificationGas,
+  getUserOperationReceipt,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -28,7 +29,7 @@ import {
   TabMenu,
   BundlerInputForm,
   AccountRequestDisplay,
-  AccountActivity,
+  AccountActivityDisplay,
   Faq,
 } from '../components';
 import { AppTab, BundlerUrls, SupportedChainIdMap, UserOperation } from '../types';
@@ -166,30 +167,57 @@ const Index = () => {
     initAccounts().catch((error) => dispatch({ type: MetamaskActions.SetError, payload: error }));
   }, [state.installedSnap]);
 
-
-  // useEffect(() => {
-  //   let interval: any
-  //   try {  
-  //     interval = setInterval(async () => {
-  //       if (state.eoa.connected === true && state.scAccount.connected === true) {
-  //         await Promise.all([
-  //           refreshEOAState(state.eoa.address),
-  //           getScAccountState(state.eoa.address),
-  //           getUserOpHashes(state.eoa.address, Number(state.scAccount.index)),
-  //         ]);
-  //       }
-  //     }, 10000) // 10 seconds
+  // realtime refresh - refreshes account activity every 10 seconds
+  useEffect(() => {
+    let interval: any
+    try {  
+      interval = setInterval(async () => {
+        if (state.accountActivity.length > 0) {
+          const accountActivity = state.accountActivity
+          for (const activity of accountActivity) {
+            if (activity.userOpHash !== '' && activity.userOperationReceipt === null) {
+              const userOpReceipt = await getUserOperationReceipt(activity.userOpHash)
+              activity.userOperationReceipt = userOpReceipt
+            }
+          }
+          
+          dispatch({
+            type: MetamaskActions.SetAccountActivity,
+            payload: accountActivity,
+          });
+        }
+      }, 10000) // 10 seconds
   
-  //     return () => {
-  //       clearInterval(interval);
-  //     };
+      return () => {
+        clearInterval(interval);
+      };
 
-  //   } catch (e) {
-  //     console.error('[ERROR] refreaher:', e.message);
-  //     dispatch({ type: MetamaskActions.SetError, payload: e });
-  //   } 
-  // }, [state.eoa, state.scAccount, state.smartAccountActivity]);
+    } catch (e) {
+      console.error('[ERROR] refreaher:', e.message);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    } 
+  }, [state.accountActivity]);
 
+  // realtime refresh - refreshes account balances every 12 seconds
+  useEffect(() => {
+    let interval: any
+    try {  
+      interval = setInterval(async () => {
+        if (state.scAccount.connected === true) {
+          await getSmartAccount(state.selectedSnapKeyringAccount.id);
+          await updateAccountBalance(state.selectedSnapKeyringAccount.address);
+        }
+      }, 12000) // 12 seconds
+  
+      return () => {
+        clearInterval(interval);
+      };
+
+    } catch (e) {
+      console.error('[ERROR] refreaher:', e.message);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    } 
+  }, [state.selectedSnapKeyringAccount, state.scAccount]);
 
   const handleFetchBundlerUrls = async () => {
     const urls = await getBundlerUrls();
@@ -363,12 +391,18 @@ const Index = () => {
       userOpToSign.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas.toHexString(): BigNumber.from(0).toHexString()
       userOpToSign.maxFeePerGas = feeData.maxFeePerGas ? feeData.maxFeePerGas.toHexString() : BigNumber.from(0).toHexString()
       userOpToSign.callGasLimit = estimatGasResult.callGasLimit.toHexString()
-      userOpToSign.verificationGasLimit = BigNumber.from(100000).toHexString()
-      userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
 
-      // add gas buffer
-      const preVerificationGasWithBuffer = calcPreVerificationGas(userOpToSign)
-      userOpToSign.preVerificationGas = BigNumber.from(preVerificationGasWithBuffer).toHexString()
+      if (initGas.eq(0)) {
+        userOpToSign.verificationGasLimit = BigNumber.from(100000).toHexString()
+        userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
+
+        // add gas buffer
+        const preVerificationGasWithBuffer = calcPreVerificationGas(userOpToSign)
+        userOpToSign.preVerificationGas = BigNumber.from(preVerificationGasWithBuffer).toHexString()
+      } else {
+        userOpToSign.verificationGasLimit = estimatGasResult.verificationGas.add(initGas).toHexString()
+        userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
+      }
 
       // send request to keyring for approval
       await sendRequest(
@@ -582,7 +616,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Activity',
-                custom: <AccountActivity />,
+                custom: <AccountActivityDisplay />,
               }}
               disabled={!state.isFlask}
               fullWidth

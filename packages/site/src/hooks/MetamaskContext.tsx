@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { AppTab, BundlerUrls, Snap } from '../types';
 import { isFlask, getSnap, KeyringState } from '../utils';
-import { SmartAccountActivity, SmartContractAccount, SnapKeyringAccountActivity, UserOperationReceipt } from '../types/erc-4337';
+import { AccountActivity, SmartContractAccount } from '../types/erc-4337';
 import { KeyringAccount } from "@metamask/keyring-api";
 import { BigNumber, ethers } from 'ethers';
 
@@ -23,8 +23,7 @@ export type MetamaskState = {
   selectedSnapKeyringAccount: KeyringAccount;
   selectedAccountBalance: string;
   scAccount: SmartContractAccount;
-  smartAccountActivity: SmartAccountActivity[]
-  snapKeyringAccountActivity: SnapKeyringAccountActivity[]
+  accountActivity: AccountActivity[];
   bundlerUrls?: BundlerUrls;
 };
 
@@ -60,8 +59,7 @@ const initialState: MetamaskState = {
     factoryAddress: '',
     ownerAddress: '',
   },
-  smartAccountActivity: [],
-  snapKeyringAccountActivity: [],
+  accountActivity: [],
   bundlerUrls: undefined,
 };
 
@@ -86,8 +84,7 @@ export enum MetamaskActions {
   SetSnapKeyring = 'SetSnapKeyring',
   SetSelectedSnapKeyringAccount = "SetSelectedKeyringAccount",
   SetScAccount = "SetScAccount",
-  SetSmartAccountActivity = 'SetSmartAccountActivity',
-  SetSnapKeyringAccountActivity = 'SetSnapKeyringAccountActivity',
+  SetAccountActivity = 'SetAccountActivity',
   SetSelectedAccountBalance = 'SetSelectedAccountBalance',
   SetClearAccount = 'SetClearAccount',
   SetBundlerUrls = 'SetBundlerUrls',
@@ -138,16 +135,10 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         scAccount: action.payload,
       };
 
-    case MetamaskActions.SetSmartAccountActivity:
+    case MetamaskActions.SetAccountActivity:
       return {
         ...state,
-        smartAccountActivity: action.payload,
-      };
-
-    case MetamaskActions.SetSnapKeyringAccountActivity:
-      return {
-        ...state,
-        snapKeyringAccountActivity: action.payload,
+        accountActivity: action.payload,
       };
 
     case MetamaskActions.SetWalletListener:
@@ -203,8 +194,7 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
           factoryAddress: '',
           ownerAddress: '',
         },
-        smartAccountActivity: [],
-        snapKeyringAccountActivity: [],
+        accountActivity: [],
       };
     default:
       return state;

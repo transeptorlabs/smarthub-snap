@@ -3,11 +3,13 @@ import {
   DEFAULT_BUNDLER_URLS,
   DEFAULT_STATE,
   clearActivityData,
+  getBundlerUrls,
   getKeyRing,
   getNextRequestId,
   getState,
   getTxHashes,
   getUserOpHashes,
+  storeBundlerUrl,
   storeKeyRing,
   storeTxHash,
   storeUserOpHash,
@@ -33,6 +35,20 @@ describe('state module - State', () => {
       expect(JSON.stringify(result)).toStrictEqual(
         JSON.stringify(DEFAULT_STATE),
       );
+    });
+
+    it('should initialize state for keyringAccountId when it does not exist', async () => {
+      (global as any).snap.request.mockReturnValue(Promise.resolve(null));
+      const keyringAccountId = uuid();
+
+      let result = await getState();
+      expect(JSON.stringify(result)).toStrictEqual(
+        JSON.stringify(DEFAULT_STATE),
+      );
+      expect(result.smartAccountActivity[keyringAccountId]).toBeUndefined();
+
+      result = await getState(keyringAccountId);
+      expect(result.smartAccountActivity[keyringAccountId]).toBeDefined();
     });
   });
 
@@ -109,14 +125,47 @@ describe('state module - State', () => {
   });
 
   describe('getBundlerUrls', () => {
-    it('placeholder', async () => {
-      expect(true).toBe(true);
+    it('should return a copy of state.bundlerUrls', async () => {
+      const mockState = {
+        keyringState: {
+          wallets: {},
+          pendingRequests: {},
+          signedTx: {},
+        },
+        requestIdCounter: 0,
+        bundlerUrls: DEFAULT_BUNDLER_URLS,
+        smartAccountActivity: {},
+      };
+
+      (global as any).snap.request.mockReturnValue(Promise.resolve(mockState));
+
+      const result = await getBundlerUrls();
+
+      expect(result).toStrictEqual(mockState.bundlerUrls);
     });
   });
 
   describe('storeBundlerUrl', () => {
-    it('placeholder', async () => {
-      expect(true).toBe(true);
+    it('should return a copy of state.bundlerUrls with newly added bundler Url', async () => {
+      const mockState = {
+        keyringState: {
+          wallets: {},
+          pendingRequests: {},
+          signedTx: {},
+        },
+        requestIdCounter: 0,
+        bundlerUrls: DEFAULT_BUNDLER_URLS,
+        smartAccountActivity: {},
+      };
+
+      (global as any).snap.request.mockReturnValue(Promise.resolve(mockState));
+      let result = await getBundlerUrls();
+      expect(result).toStrictEqual(mockState.bundlerUrls);
+
+      // add new bundler url
+      await storeBundlerUrl('0x1', 'https://bundler.url');
+      result = await getBundlerUrls();
+      expect(result['0x1']).toBe('https://bundler.url');
     });
   });
 

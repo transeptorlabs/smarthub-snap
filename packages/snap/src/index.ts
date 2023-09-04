@@ -6,6 +6,7 @@ import {
   handleKeyringRequest,
 } from '@metamask/keyring-api';
 import { BigNumber } from 'ethers';
+import { copyable, heading, panel, text } from '@metamask/snaps-ui';
 import { HttpRpcClient, getBalance } from './client';
 import {
   clearActivityData,
@@ -22,6 +23,7 @@ import {
   EstimateUserOperationGas,
   GetTxHashesParams,
   GetUserOpParams,
+  NotifyParams,
   SmartAccountActivityParams,
   SmartAccountParams,
   StoreTxHashParams,
@@ -93,7 +95,6 @@ const keyringHandler: OnRpcRequestHandler = async ({ request }) => {
  * @param args - The request handler args as object.
  * invoked the snap.
  * @param args.request - A validated JSON-RPC request object.
- * @returns The result of `snap_dialog`.
  * @throws If the request method is not valid for this snap.
  */
 const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
@@ -110,6 +111,24 @@ const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
   }
 
   switch (request.method) {
+    case InternalMethod.Notify: {
+      const params: NotifyParams = (request.params as any[])[0] as NotifyParams;
+
+      const display: any = [heading(params.heading), text(params.message)];
+
+      if (params.copyable !== '') {
+        display.push(copyable(params.copyable));
+      }
+
+      return snap.request({
+        method: 'snap_dialog',
+        params: {
+          type: 'alert',
+          content: panel(display),
+        },
+      });
+    }
+
     case InternalMethod.GetNextRequestId: {
       return await getNextRequestId();
     }

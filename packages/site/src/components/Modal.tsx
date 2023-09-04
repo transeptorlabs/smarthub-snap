@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
+import { useAcount } from '../hooks';
 
 const ModalWrapper = styled.div`
   position: fixed;
@@ -20,13 +21,20 @@ const ModalContent = styled.div`
   position: absolute;
   border-radius: ${({ theme }) => theme.radii.default};
   box-shadow: ${({ theme }) => theme.shadows.default};
-
 `;
+
+
+export enum ModalType {
+    Account = 'Account',
+    Network = 'Network',
+    Transaction = 'Transaction',
+}
 
 type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  modalType: ModalType,
   buttonRef?: React.RefObject<HTMLButtonElement>;
   top?: number;
   right?: number;
@@ -36,6 +44,7 @@ export const Modal = ({
     isOpen, 
     onClose, 
     children,
+    modalType,
     buttonRef,
     top,
     right,
@@ -43,11 +52,15 @@ export const Modal = ({
 
     const modalContentRef = useRef<HTMLDivElement>(null);
     const [modalPosition, setModalPosition] = useState({ top: 0, right: 0 });
+    const { rejectAllPendingRequests } = useAcount();
 
     useEffect(() => {
-        const handleOutsideClick = (event: MouseEvent) => {
+        const handleOutsideClick = async (event: MouseEvent) => {
             if (modalContentRef.current && !modalContentRef.current.contains(event.target as Node)) {
                 onClose();
+                if (modalType === ModalType.Transaction) {
+                    await rejectAllPendingRequests()
+                }
             }    
         };
 
@@ -78,18 +91,6 @@ export const Modal = ({
 
         return () => {
             document.body.style.overflow = 'auto';
-        };
-    }, [isOpen]);
-
-    useEffect(() => {
-        if (isOpen) {
-        document.body.style.overflow = 'hidden';
-        } else {
-        document.body.style.overflow = 'auto';
-        }
-
-        return () => {
-        document.body.style.overflow = 'auto';
         };
     }, [isOpen]);
 

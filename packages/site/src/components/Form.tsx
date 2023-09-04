@@ -1,4 +1,4 @@
-import { ComponentProps } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { SimpleButton } from './Buttons';
 
@@ -6,7 +6,6 @@ const Form = styled.form`
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
-  margin-bottom: 1rem;
 
   ${({ theme }) => theme.mediaQueries.small} {
     flex-direction: column;
@@ -15,17 +14,11 @@ const Form = styled.form`
 `;
 
 const InputField = styled.input`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: auto;
-  height: 40px;
-  padding: 0;
+  padding: 1rem;
   margin-right: 2rem;
-  margin-left: 2rem;
+  font-size: 16px;
 
   ${({ theme }) => theme.mediaQueries.small} {
-    width: 100%;
     margin-bottom: 1rem;
     margin-right: 0;
     margin-left: 0;
@@ -35,7 +28,6 @@ const InputField = styled.input`
 const InputContainer = styled.div`
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
 
   ${({ theme }) => theme.mediaQueries.small} {
     flex-direction: column;
@@ -111,6 +103,7 @@ type FormProps = {
     id: string;
     inputPlaceholder: string;
     inputValue: string;
+    type: 'text' | 'number';
     onInputChange(e: any): unknown;
   }[];
   onSubmitClick(e: any): unknown;
@@ -128,7 +121,7 @@ export const CommonInputForm = ({
           inputs.map((item: {id: string, inputPlaceholder: string, inputValue: string, onInputChange(e: any): unknown }) => (
             <InputField 
               key={item.id}
-              type="text" 
+              type={`item.type === 'number' ? 'number' : 'text'`} 
               placeholder={item.inputPlaceholder}
               value={item.inputValue}
               onChange={item.onInputChange}
@@ -151,6 +144,7 @@ type BundlerInputFormProps = {
   onInputChange(e: any): unknown;
   onSubmitClick(e: any): unknown;
 };
+
 export const BundlerInputForm = ({
   buttonText,
   chainId,

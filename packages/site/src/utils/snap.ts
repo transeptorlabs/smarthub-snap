@@ -65,6 +65,29 @@ export const getSnap = async (version?: string): Promise<Snap | undefined> => {
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
 
 // ERC-4337 account management *****************************************************
+export const notify = async (
+  heading: string,
+  message: string,
+  copyable: string,
+) => {
+  await getMMProvider().request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: {
+        method: 'notify',
+        params: [
+          {
+            heading,
+            message,
+            copyable,
+          },
+        ],
+      },
+    },
+  });
+};
+
 export const getNextRequestId = async (): Promise<number> => {
   return (await getMMProvider().request({
     method: 'wallet_invokeSnap',

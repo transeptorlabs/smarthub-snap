@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext, useAcount } from '../hooks';
 import {
@@ -9,15 +9,8 @@ import {
   clearActivityData,
   parseChainId,
   addBundlerUrl,
-  convertToWei,
-  estimateGas,
-  getMMProvider,
-  getUserOpCallData,
-  estimatCreationGas,
-  estimateUserOperationGas,
-  getDummySignature,
-  calcPreVerificationGas,
   getUserOperationReceipt,
+  notify,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -28,13 +21,14 @@ import {
   SimpleButton,
   TabMenu,
   BundlerInputForm,
-  AccountRequestDisplay,
   AccountActivityDisplay,
   Faq,
+  Modal,
+  EthereumTransactionModalComponent,
+  TransactionType,
+  ModalType,
 } from '../components';
-import { AppTab, BundlerUrls, SupportedChainIdMap, UserOperation } from '../types';
-import { BigNumber, ethers } from 'ethers';
-import { EntryPoint__factory } from '@account-abstraction/contracts';
+import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
 
 const Container = styled.div`
   display: flex;
@@ -108,6 +102,17 @@ const LineBreak = styled.hr`
   }
 `;
 
+const ButtonContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+
+  ${({ theme }) => theme.mediaQueries.small} {
+    flex-direction: column;
+  }
+`;
+
 const Title = styled.h2`
   font-size: ${({ theme }) => theme.fontSizes.large};
   margin: 0;
@@ -119,11 +124,12 @@ const Title = styled.h2`
 
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
-  const [depositAmount, setDepositAmount] = useState('');
-  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [formBundlerUrls, setFormBundlerUrls] = useState({} as BundlerUrls);
   const [accountName, setAccountName] = useState('');
   const [accountNameDelete, setAccountNameDelete] = useState('');
+  const [modalOpenTransaction, setModalOpenTransaction] = useState(false);
+  const transactionRef = useRef<any>(null);
+  const [transactionType, setTransactionType] = useState<TransactionType>(TransactionType.Deposit);
 
   const {
     getKeyringSnapAccounts, 
@@ -135,7 +141,6 @@ const Index = () => {
     getBundlerUrls,
     updateChainId,
     setChainIdListener,
-    sendRequest,
     updateAccountBalance,
   } = useAcount();
 
@@ -177,6 +182,10 @@ const Index = () => {
           for (const activity of accountActivity) {
             if (activity.userOpHash !== '' && activity.userOperationReceipt === null) {
               const userOpReceipt = await getUserOperationReceipt(activity.userOpHash)
+
+              if (userOpReceipt !== null) {
+                notify('Transaction confirmed (userOpHash)', 'View activity for details.', activity.userOpHash)
+              }
               activity.userOperationReceipt = userOpReceipt
             }
           }
@@ -198,7 +207,7 @@ const Index = () => {
     } 
   }, [state.accountActivity]);
 
-  // realtime refresh - refreshes account balances every 12 seconds
+  // realtime refresh - refreshes account balances every 5 seconds
   useEffect(() => {
     let interval: any
     try {  
@@ -207,7 +216,7 @@ const Index = () => {
           await getSmartAccount(state.selectedSnapKeyringAccount.id);
           await updateAccountBalance(state.selectedSnapKeyringAccount.address);
         }
-      }, 12000) // 12 seconds
+      }, 5000) // 5 seconds
   
       return () => {
         clearInterval(interval);
@@ -296,125 +305,16 @@ const Index = () => {
     }
   };
 
-  const handleDepositSubmit = async (e: any) => {
-    try {
-      e.preventDefault();
-      const depositInWei = convertToWei(depositAmount);
-  
-      // check the owner account has enough balance
-      if (BigNumber.from(state.selectedAccountBalance).lt(depositInWei)) {
-        dispatch({ type: MetamaskActions.SetError, payload: new Error('owner account has, insufficient funds.') });
-        return;
-      }
-      
-      const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
-      const entryPointContract = new ethers.Contract(state.scAccount.entryPoint, EntryPoint__factory.abi)
-
-      // estimate gas 
-      const feeData = await provider.getFeeData()
-      const encodedFunctionData = entryPointContract.interface.encodeFunctionData('depositTo', [state.scAccount.address]);
-      const estimateGasAmount = await estimateGas(
-        state.selectedSnapKeyringAccount.address,
-        state.scAccount.entryPoint,
-        encodedFunctionData,
-      );
- 
-      // set transation data (eth transaction type 2)
-      const transactionData = await entryPointContract.populateTransaction.depositTo(state.scAccount.address, {
-        type: 2,
-        nonce: await provider.getTransactionCount(state.selectedSnapKeyringAccount.address, 'latest'),
-        gasLimit: estimateGasAmount.toNumber(),
-        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? BigNumber.from(0),
-        maxFeePerGas: feeData.maxFeePerGas ?? BigNumber.from(0),
-        value: depositInWei.toString(),
-      })
-      transactionData.chainId = parseChainId(state.chainId)
-  
-      // send request to keyring for approval
-      await sendRequest(
-        state.selectedSnapKeyringAccount.id,
-        'eth_signTransaction',
-        [state.selectedSnapKeyringAccount.address, transactionData] // [from, transactionData]
-      );
-
-      setDepositAmount('');
-    } catch (e) {
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
+  const handleDepositClick = async (e: any) => {
+    e.preventDefault();
+    setTransactionType(TransactionType.Deposit)
+    setModalOpenTransaction(true)
   }
 
-  const handleWithdrawSubmit = async (e: any) => {
+  const handleWithdrawClick = async (e: any) => {
     e.preventDefault();
-    const withdrawAmountInWei = convertToWei(withdrawAmount);
-
-    // check the smart account has enough deposit
-    if (BigNumber.from(state.scAccount.deposit).lt(withdrawAmountInWei)) {
-      dispatch({ type: MetamaskActions.SetError, payload: new Error('Smart contract account, insufficient deposit') });
-      return;
-    }
-
-    try {
-      const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
-      const entryPointContract = new ethers.Contract(state.scAccount.entryPoint, EntryPoint__factory.abi)
-
-      // get call data
-      const callData = await getUserOpCallData(
-        state.selectedSnapKeyringAccount.id,
-        entryPointContract.address,
-        BigNumber.from(0),
-        entryPointContract.interface.encodeFunctionData('withdrawTo', [state.selectedSnapKeyringAccount.address, withdrawAmountInWei.toString()]) // users intent(contract they want to interact with)
-      )
-
-      // set transation data (user operation)   
-      const userOpToSign: UserOperation = {
-        sender: state.scAccount.address,
-        nonce: state.scAccount.nonce.toHexString(),
-        initCode: state.scAccount.initCode,
-        callData: callData,
-        callGasLimit: BigNumber.from(0).toHexString(),
-        verificationGasLimit: BigNumber.from(0).toHexString(),
-        preVerificationGas: BigNumber.from(0).toHexString(),
-        maxPriorityFeePerGas: BigNumber.from(0).toHexString(),
-        maxFeePerGas: BigNumber.from(0).toHexString(),
-        paymasterAndData: '0x', // no paymaster
-        signature: '0x'
-      }
-
-      // get dummy signature
-      userOpToSign.signature = await getDummySignature(userOpToSign, entryPointContract.address)
-
-      // get gas fee
-      const feeData = await provider.getFeeData()
-      const initGas = await estimatCreationGas(state.selectedSnapKeyringAccount.id)
-      const estimatGasResult = await estimateUserOperationGas(userOpToSign)
-
-      userOpToSign.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas.toHexString(): BigNumber.from(0).toHexString()
-      userOpToSign.maxFeePerGas = feeData.maxFeePerGas ? feeData.maxFeePerGas.toHexString() : BigNumber.from(0).toHexString()
-      userOpToSign.callGasLimit = estimatGasResult.callGasLimit.toHexString()
-
-      if (initGas.eq(0)) {
-        userOpToSign.verificationGasLimit = BigNumber.from(100000).toHexString()
-        userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
-
-        // add gas buffer
-        const preVerificationGasWithBuffer = calcPreVerificationGas(userOpToSign)
-        userOpToSign.preVerificationGas = BigNumber.from(preVerificationGasWithBuffer).toHexString()
-      } else {
-        userOpToSign.verificationGasLimit = estimatGasResult.verificationGas.add(initGas).toHexString()
-        userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
-      }
-
-      // send request to keyring for approval
-      await sendRequest(
-        state.selectedSnapKeyringAccount.id,
-        'eth_sendTransaction',
-        [state.selectedSnapKeyringAccount.address, userOpToSign] // [from, transactionData]
-      );
-
-      setWithdrawAmount('');
-    } catch (e) {
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
+    setTransactionType(TransactionType.Withdraw)
+    setModalOpenTransaction(true)
   }
 
   const handleClearActivity = async (e: any) => {
@@ -430,24 +330,6 @@ const Index = () => {
   }
 
   // Form input handlers
-  const handleDepositAmountChange = async (e: any) => {
-    // Regular expression to match only numbers
-    const inputValue = e.target.value;
-    const numberRegex = /^\d*\.?\d*$/;
-    if (inputValue === '' || numberRegex.test(inputValue)) {
-      setDepositAmount(e.target.value);
-    }
-  }
-
-  const handleWithdrawAmountChange = async (e: any) => {
-    // Regular expression to match only numbers
-    const inputValue = e.target.value;
-    const numberRegex = /^\d*\.?\d*$/;
-    if (inputValue === '' || numberRegex.test(inputValue)) {
-      setWithdrawAmount(e.target.value);
-    }
-  }
-
   const handleBundlerUrlChange = async (e: any, chainId: string) => {
     const inputValue = e.target.value;
     setFormBundlerUrls({
@@ -463,6 +345,10 @@ const Index = () => {
   const handleAccountNameDelete = async (e: any) => {
     setAccountNameDelete(e.target.value);
   }
+
+  const closeTransactionModal = () => {
+    setModalOpenTransaction(false);
+  };
 
   return (
     <Container>
@@ -510,7 +396,7 @@ const Index = () => {
 
       {/* Account tab (smart account details, deposit, withdraw, smart account activity)*/}
       {state.activeTab === AppTab.SmartAccount && (
-        <CardContainer>
+        <CardContainer ref={transactionRef}>
           {state.scAccount.connected && state.installedSnap && (
             <Card
               content={{
@@ -529,6 +415,11 @@ const Index = () => {
                     value: `${convertToEth(state.scAccount.balance)} ETH`,
                   },
                 ],
+                custom: 
+                <ButtonContainer>
+                  <SimpleButton text='Deposit' onClick={(e: any) => {handleDepositClick(e)}}></SimpleButton>
+                  <SimpleButton text='Withdraw' onClick={(e: any) => {handleWithdrawClick(e)}}></SimpleButton>
+                </ButtonContainer>
               }}
               disabled={!state.isFlask}
               copyDescription
@@ -539,78 +430,9 @@ const Index = () => {
             />
           )}
 
-          {state.scAccount.connected && state.installedSnap && (
-            <Card
-              content={{
-                title: 'Deposit',
-                descriptionBold: '(sender)',
-                description: `${state.selectedSnapKeyringAccount.address}`,
-                stats: [
-                  {
-                    id: `1`,
-                    title: 'Balance',
-                    value: `${convertToEth(state.selectedAccountBalance)} ETH`,
-                  },
-                ],
-                custom: <CommonInputForm
-                  key={"send-deposit"}
-                  onSubmitClick={handleDepositSubmit}
-                  buttonText="Deposit"
-                  inputs={[
-                      {
-                        id: "1",
-                        onInputChange: handleDepositAmountChange,
-                        inputValue: depositAmount,
-                        inputPlaceholder:"Enter amount"
-                      }
-                    ]
-                  }
-                />
-              }}
-              copyDescription
-              isAccount
-              disabled={!state.isFlask}
-              fullWidth
-              showTooltip
-            />
-          )}
-
-          {state.scAccount.connected && state.installedSnap && (
-            <Card
-              content={{
-                title: 'Withdraw',
-                description: `Withdraw deposit from smart account`,
-                custom: <CommonInputForm
-                  key={"send-withdraw"}
-                  onSubmitClick={handleWithdrawSubmit}
-                  buttonText="Withdraw"
-                  inputs={[
-                      {
-                        id: "1",
-                        onInputChange: handleWithdrawAmountChange,
-                        inputValue: withdrawAmount,
-                        inputPlaceholder:"Enter amount"
-                      },
-                    ]
-                  }
-                />
-              }}
-              disabled={!state.isFlask}
-              fullWidth
-              showTooltip
-            />
-          )}
-
-          {state.selectedSnapKeyringAccount.id && state.installedSnap && (
-            <Card
-              content={{
-                title: 'Pending Request',
-                custom: <AccountRequestDisplay />
-              }}
-              disabled={!state.isFlask}
-              fullWidth
-            />
-          )}
+          <Modal modalType={ModalType.Transaction} isOpen={modalOpenTransaction} buttonRef={transactionRef} onClose={closeTransactionModal} top={100} right={0}>
+            <EthereumTransactionModalComponent  transactionType={transactionType}/>
+          </Modal>
           
           {state.scAccount.connected && state.installedSnap && (
             <Card
@@ -637,7 +459,8 @@ const Index = () => {
                         id: "1",
                         onInputChange: handleAccountNameChange,
                         inputValue: accountName,
-                        inputPlaceholder:"Enter account name"
+                        inputPlaceholder:"Enter account name",
+                        type: 'text',
                       }
                     ]}
                   />,
@@ -681,7 +504,8 @@ const Index = () => {
                         id: "1",
                         onInputChange: handleAccountNameChange,
                         inputValue: accountName,
-                        inputPlaceholder:"Enter account name"
+                        inputPlaceholder:"Enter account name",
+                        type: 'text',
                       }
                     ]}
                   />,
@@ -705,7 +529,8 @@ const Index = () => {
                         id: "1",
                         onInputChange: handleAccountNameDelete,
                         inputValue: accountNameDelete,
-                        inputPlaceholder:"Enter account name"
+                        inputPlaceholder:"Enter account name",
+                        type: 'text',
                       }
                     ]}
                   />,

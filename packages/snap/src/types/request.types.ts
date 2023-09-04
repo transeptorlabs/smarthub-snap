@@ -1,6 +1,12 @@
 import { BigNumber } from 'ethers';
 import { UserOperation } from './erc-4337.types';
 
+export type NotifyParams = {
+  heading: string;
+  message: string;
+  copyable: string;
+};
+
 export type SmartAccountParams = {
   keyringAccountId: string;
   chainId: string;

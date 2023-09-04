@@ -5,7 +5,7 @@ import { getThemePreference } from '../utils';
 import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
 import { SupportedChainIdMap } from '../types';
-import { Modal } from './Modal';
+import { Modal, ModalType } from './Modal';
 import { FaCaretDown, FaCaretUp } from "react-icons/fa";
 import { AccountHeaderDisplay, AccountModalDropdown } from './Account';
 import { NetworkModalDropdown } from './Network';
@@ -86,12 +86,12 @@ export const Header = ({
   return (
     <HeaderWrapper>
       {/* Network Modal*/}
-      <Modal isOpen={modalOpenNetwork} onClose={closeNetworkModal} buttonRef={networkRef} right={5}>
+      <Modal modalType={ModalType.Network} isOpen={modalOpenNetwork} onClose={closeNetworkModal} buttonRef={networkRef} right={5}>
         <NetworkModalDropdown closeModal={closeNetworkModal}/>
       </Modal>
 
       {/* Account Modal*/}
-      <Modal isOpen={modalOpenAccount} onClose={closeAccountModal} buttonRef={accountRef} right={80}>
+      <Modal modalType={ModalType.Account} isOpen={modalOpenAccount} onClose={closeAccountModal} buttonRef={accountRef} right={80}>
         <AccountModalDropdown closeModal={closeAccountModal}/>
       </Modal>
 

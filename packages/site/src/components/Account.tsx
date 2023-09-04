@@ -6,13 +6,14 @@ import { InstallFlaskButton, ConnectSnapButton, SimpleButton } from './Buttons';
 import { AccountActivity, AccountActivityType, SupportedChainIdMap, UserOperation } from '../types';
 import { useContext, useState } from 'react';
 import { KeyringAccount, KeyringRequest } from "@metamask/keyring-api";
-import { ReactComponent as FlaskFox } from '../assets/flask_fox_account.svg';
 import { BlockieAccountModal } from './Blockie-Icon';
-import { FaCopy } from "react-icons/fa";
+import { FaCopy, FaArrowAltCircleRight } from "react-icons/fa";
 import { CommonInputForm } from './Form';
 import { BigNumber, ethers } from 'ethers';
 import { JsonTx } from '@ethereumjs/tx';
 import { EntryPoint__factory, SimpleAccount__factory } from '@account-abstraction/contracts';
+import EthereumLogo from '../assets/icons/eth.svg';
+import { ReactComponent as FlaskFox } from '../assets/flask_fox_account.svg';
 
 const Body = styled.div`
   padding: 2rem;
@@ -131,37 +132,6 @@ const ConnectedIndicator = styled.div`
   background-color: green;
 `;
 
-const PendingRequestContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  width:: 100%;
-  background-color: ${({ theme }) => theme.colors.card.default};
-  margin-top: 0;
-  margin-bottom: 2.4rem;
-  padding: 2.4rem;  
-  border: 1px solid ${({ theme }) => theme.colors.border.default};
-  border-radius: ${({ theme }) => theme.radii.default};
-  box-shadow: ${({ theme }) => theme.shadows.default};
-  align-self: stretch;
-  ${({ theme }) => theme.mediaQueries.small} {
-    margin-top: 1.2rem;
-    margin-bottom: 1.2rem;
-    padding: 0;
-  }
-`;
-
-const PendingRequestItem = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-
-  ${({ theme }) => theme.mediaQueries.small} {
-    flex-direction: column;
-    padding: 2.4rem;  
-  }
-`;
-
-
 export const AccountHeaderDisplay = () => {
     const [state] = useContext(MetaMaskContext);
     if (!state.isFlask) {
@@ -273,7 +243,6 @@ export const AccountModalDropdown = ({
     setAccountName(e.target.value);
   }
 
-
   if (!state.isFlask) {
     return (
       <Body>
@@ -337,7 +306,9 @@ export const AccountModalDropdown = ({
                   id: "1",
                   onInputChange: handleAccountNameChange,
                   inputValue: accountName,
-                  inputPlaceholder:"Enter account name"
+                  inputPlaceholder:"Enter account name",
+                  type: 'text'
+                  
                 }
               ]}
               />
@@ -368,52 +339,80 @@ export const AccountModalDropdown = ({
   );
 };
 
-export const AccountRequestDisplay = () => {
-  const [state, dispatch] = useContext(MetaMaskContext);
-  const { approveRequest, rejectRequest, getSmartAccount, getAccountActivity, updateAccountBalance, getKeyringSnapAccounts } = useAcount();
+const PendingRequestContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  width:: 100%;
+  margin: 0;
+  padding-left: 2.4rem;  
+  padding-right: 2.4rem;  
+  padding-bottom: 2.4rem;  
+  align-self: stretch;
+  ${({ theme }) => theme.mediaQueries.small} {
+    margin-top: 1.2rem;
+    margin-bottom: 1.2rem;
+    padding: 0;
+  }
+`;
 
-  const handleApproveRequest = async (event: any, requestId: string) => {
-    try {
-      event.preventDefault();
-      await approveRequest(requestId);
+const PendingRequestItem = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+`;
 
-      // send signed entrypoint deposit txs
-      const signedTxs = await getSignedTxs()
-      console.log('signedTxs(before):', signedTxs, requestId)
+const RequestContractDetails = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 1rem;
+  background-color: ${({ theme }) => theme.colors.card.default};
+  border: 1px solid ${({ theme }) => theme.colors.border.default};
+  border-radius: 10px;
+  box-shadow: ${({ theme }) => theme.shadows.default};
+  margin-bottom: 2.5rem;
+  width: fit-content;
+`;
 
-      if (signedTxs[requestId]) {
-        const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
-        const res = await provider.sendTransaction(signedTxs[requestId])
-        await res.wait();
+const EthTransactionContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+`
 
-        console.log('Transaction hash:', res.hash);
-        await storeTxHash(
-          state.selectedSnapKeyringAccount.id,
-          res.hash,
-          requestId,
-          state.chainId,
-        );
-        console.log('signedTxs(after):',await getSignedTxs())
-      }
+const EthTransactionItemContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  background-color: ${({ theme }) => theme.colors.card.default};
+  border: 1px solid ${({ theme }) => theme.colors.border.default};
+  border-radius: ${({ theme }) => theme.radii.default};
+  box-shadow: ${({ theme }) => theme.shadows.default};
+  margin-bottom: 2.5rem;
+`
 
-      await getAccountActivity(state.selectedSnapKeyringAccount.id);
-      await getSmartAccount(state.selectedSnapKeyringAccount.id);
-      await updateAccountBalance(state.selectedSnapKeyringAccount.address);
-    } catch (e) {
-      await getKeyringSnapAccounts();
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
-  };
+const EthTransferIconContainer = styled.div`
+display: flex;
+flex-direction: column;
+align-items: center;
+margin-bottom: 2.5rem;
+`
 
-  const handleRejectRequest = async (event: any, id: string) => {
-    try {
-      event.preventDefault();
-      console.log('reject request click:', id)
-      await rejectRequest(id);
-    } catch (e) {
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
-  };
+const EthLogoContainer = styled.div`
+  margin-right: auto;
+  margin-left: auto;
+`;
+
+export const AccountRequestDisplay = ({
+  approveRequestClick,
+  rejectRequestClick
+}: {
+  approveRequestClick(e: any, requestId: string): unknown;
+  rejectRequestClick(e: any, requestId: string): unknown;
+}) => {
+  const [state] = useContext(MetaMaskContext);
 
   const renderRequestDetails = (request: KeyringRequest) => {
     switch (request.request.method) {
@@ -434,38 +433,50 @@ export const AccountRequestDisplay = () => {
   
           return (
             <>
-            <PendingRequestItem>
-              <p>From:</p>
-              <p>{trimAccount(from)}</p>
-            </PendingRequestItem>
+            <RequestContractDetails>
+              <Text>{trimAccount(tx.to as string)}: DEPOSIT TO</Text>
+            </RequestContractDetails>
 
-            <PendingRequestItem>
-              <p>To:</p>
-              <p>{trimAccount(tx.to as string)}</p>
-            </PendingRequestItem>
+            <EthTransactionContainer>
+              <EthTransactionItemContainer>
+                <EthLogoContainer>
+                  <img
+                      src={EthereumLogo}
+                      width={38}
+                      height={38}
+                      alt='Etherum logo'
+                    />
+                </EthLogoContainer>
+                <p>(owner EOA)</p>
+                <TextBold>{trimAccount(from)}</TextBold>
+              </EthTransactionItemContainer>
 
+              <EthTransferIconContainer>
+                <FaArrowAltCircleRight size={25} />
+                <TextBold>{convertToEth(amount.toString())} ETH</TextBold>
+              </EthTransferIconContainer>
+      
+              <EthTransactionItemContainer>
+                <EthLogoContainer>
+                  <img
+                      src={EthereumLogo}
+                      width={38}
+                      height={38}
+                      alt='Etherum logo'
+                    />
+                </EthLogoContainer>
+                <p>(smart account)</p>
+                <TextBold>{trimAccount(userIntentDecodedCallData.account)}</TextBold>
+              </EthTransactionItemContainer>
+            </EthTransactionContainer>
+    
             <PendingRequestItem>
-              <p>Function:</p>
-              <p>depositTo</p>
-            </PendingRequestItem>
-
-            <PendingRequestItem>
-              <p>Recipient:</p>
-              <p>{trimAccount(userIntentDecodedCallData.account)}</p>
-            </PendingRequestItem>
-
-            <PendingRequestItem>
-              <p>Amount:</p>
-              <p>{convertToEth(amount.toString())} ETH</p>
-            </PendingRequestItem>
-
-            <PendingRequestItem>
-              <p>Gas Fee(estimated):</p>
+              <p>Gas Fee(estimated)</p>
               <p>{convertToEth(gasFee.toString())} ETH</p>
             </PendingRequestItem>
 
             <PendingRequestItem>
-              <p>Max fee:</p>
+              <p>Max fee</p>
               <p>{convertToEth(maxFee.toString())} ETH</p>
             </PendingRequestItem>
             
@@ -501,7 +512,7 @@ export const AccountRequestDisplay = () => {
           const userIntentDecodedCallData = entryPointContract.interface.decodeFunctionData('withdrawTo', decodedCallData.func);
 
           // get gas totals
-          const amount = BigNumber.from(decodedCallData.value);
+          const amount = BigNumber.from(decodedCallData.value).add(userIntentDecodedCallData.withdrawAmount);
           const maxGas = BigNumber.from(userOp.callGasLimit).add(BigNumber.from(userOp.verificationGasLimit));
           const gasFee = BigNumber.from(userOp.maxFeePerGas).add(BigNumber.from(userOp.maxPriorityFeePerGas)).add(BigNumber.from(userOp.preVerificationGas));
           const maxFee = gasFee.mul(maxGas);
@@ -510,37 +521,45 @@ export const AccountRequestDisplay = () => {
           
           return (
             <>
-            <PendingRequestItem>
-                <p>From:</p>
-                <p>{trimAccount(userOp.sender)}</p>
-              </PendingRequestItem>
-  
-              <PendingRequestItem>
-                <p>To:</p>
-                <p>{trimAccount(decodedCallData.dest as string)}</p>
-              </PendingRequestItem>
-  
-              <PendingRequestItem>
-                <p>Function:</p>
-                <p>withdrawTo</p>
-              </PendingRequestItem>
-  
-              <PendingRequestItem>
-                <p>Withdraw Address:</p>
-                <p>{trimAccount(userIntentDecodedCallData.withdrawAddress)}</p>
-              </PendingRequestItem>
 
-              <PendingRequestItem>
-                <p>Withdraw Amount:</p>
-                <p>{convertToEth(userIntentDecodedCallData.withdrawAmount.toString())} ETH</p>
-              </PendingRequestItem>
+              <RequestContractDetails>
+                <Text>{trimAccount(decodedCallData.dest as string)}: WITHDRAW TO</Text>
+              </RequestContractDetails> 
 
-              <PendingRequestItem>
-                <p>Amount:</p>
-                <p>{convertToEth(amount.toString())} ETH</p>
-              </PendingRequestItem>
-  
-              <PendingRequestItem>
+              <EthTransactionContainer>
+                <EthTransactionItemContainer>
+                  <EthLogoContainer>
+                    <img
+                        src={EthereumLogo}
+                        width={38}
+                        height={38}
+                        alt='Etherum logo'
+                      />
+                  </EthLogoContainer>
+                  <p>(smart account)</p>
+                  <TextBold>{trimAccount(userOp.sender)}</TextBold>
+                </EthTransactionItemContainer>
+
+                <EthTransferIconContainer>
+                  <FaArrowAltCircleRight size={25} />
+                  <TextBold>{convertToEth(amount.toString())} ETH</TextBold>
+                </EthTransferIconContainer>
+        
+                <EthTransactionItemContainer>
+                  <EthLogoContainer>
+                    <img
+                        src={EthereumLogo}
+                        width={38}
+                        height={38}
+                        alt='Etherum logo'
+                      />
+                  </EthLogoContainer>
+                  <p>(owner EOA)</p>
+                  <TextBold>{trimAccount(userIntentDecodedCallData.withdrawAddress)}</TextBold>
+                </EthTransactionItemContainer>
+              </EthTransactionContainer>
+
+                <PendingRequestItem>
                 <p>Gas Fee(estimated):</p>
                 <p>{convertToEth(gasFee.toString())} ETH</p>
               </PendingRequestItem>
@@ -579,15 +598,10 @@ export const AccountRequestDisplay = () => {
       {state.snapKeyring.pendingRequests && (
         filterPendingRequests(state.snapKeyring.pendingRequests, state.selectedSnapKeyringAccount.id).map((item: KeyringRequest) => (
           <PendingRequestContainer key={`${item.request.id}-${item.account}`}>
-            <PendingRequestItem>
-              <TextBold>Type</TextBold>
-              <TextBold>{item.request.method === 'eth_signTransaction' ? 'Send ETH transaction' : 'Send User Operation'}</TextBold>
-            </PendingRequestItem> 
-            
             {renderRequestDetails(item)}
             <PendingRequestItem>
-              <SimpleButton text={'Reject'} onClick={(e: any) => {handleRejectRequest(e, item.request.id)}}></SimpleButton>
-              <SimpleButton text={'Confirm'} onClick={(e: any) => {handleApproveRequest(e, item.request.id)}}></SimpleButton>
+              <SimpleButton text={'Reject'} onClick={(e: any) => {rejectRequestClick(e, item.request.id)}}></SimpleButton>
+              <SimpleButton text={'Confirm'} onClick={(e: any) => {approveRequestClick(e, item.request.id)}}></SimpleButton>
             </PendingRequestItem>  
           </PendingRequestContainer>
         ))
@@ -789,7 +803,7 @@ export const AccountActivityDisplay = () => {
           <ActivityItemContainer key={index}>
             <ActivityItem>
               <TextBold>Type:</TextBold>
-              <TextBold>{item.type === AccountActivityType.SmartContract ? 'Send UserOp transaction(Withdraw)': 'Send ETH transaction(Deposit)'}</TextBold>
+              <TextBold>{item.type === AccountActivityType.SmartContract ? 'Withdraw': 'Deposit'}</TextBold>
             </ActivityItem>
             {renderAccountActivityItem(item)}
           </ActivityItemContainer>

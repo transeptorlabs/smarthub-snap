@@ -75,6 +75,14 @@ export const useAcount = () => {
     await getKeyringSnapAccounts()
   };
 
+  const rejectAllPendingRequests = async () => {
+    const pendingRequests = await snapRpcClient.listRequests();
+    for (const rq of pendingRequests) {
+      await snapRpcClient.rejectRequest(rq.request.id);
+    }
+    await getKeyringSnapAccounts()
+  }
+
   const getSmartAccount = async (keyringAccountId: string): Promise<SmartContractAccount> => {
     const [scAccount, supportedEntryPoints] = await Promise.all([
       getScAccount(keyringAccountId),
@@ -123,8 +131,6 @@ export const useAcount = () => {
       type: MetamaskActions.SetAccountActivity,
       payload: accountActivity,
     });
-
-    console.log('getAccountActivity result:', accountActivity)
 
     return accountActivity;
   };
@@ -184,5 +190,6 @@ export const useAcount = () => {
     approveRequest,
     rejectRequest,
     updateAccountBalance,
+    rejectAllPendingRequests,
   }
 }

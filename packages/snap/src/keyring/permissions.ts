@@ -26,6 +26,7 @@ export enum InternalMethod {
   StoreTxHash = 'store_tx_hash',
   GetUserOpCallData = 'get_user_op_call_data',
   EstimateCreationGas = 'estimate_creation_gas',
+  Notify = 'notify',
 
   // ERC-4337 methods eth namespace
   SendUserOperation = 'eth_sendUserOperation',
@@ -102,6 +103,7 @@ export const PERMISSIONS = new Map<string, string[]>([
       InternalMethod.StoreTxHash,
       InternalMethod.GetUserOpCallData,
       InternalMethod.EstimateCreationGas,
+      InternalMethod.Notify,
 
       // ERC-4337 methods eth namespace
       InternalMethod.SendUserOperation,
@@ -153,6 +155,7 @@ export const PERMISSIONS = new Map<string, string[]>([
       InternalMethod.StoreTxHash,
       InternalMethod.GetUserOpCallData,
       InternalMethod.EstimateCreationGas,
+      InternalMethod.Notify,
 
       // ERC-4337 methods eth namespace
       InternalMethod.SendUserOperation,

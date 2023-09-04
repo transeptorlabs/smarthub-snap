@@ -8,7 +8,7 @@ import { AccountRequestDisplay } from './Account';
 import { convertToEth, convertToWei, estimateGas, parseChainId, trimAccount } from '../utils/eth';
 import { BlockieAccountModal } from './Blockie-Icon';
 import { BigNumber, ethers } from 'ethers';
-import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getSignedTxs, getUserOpCallData, storeTxHash } from '../utils';
+import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getSignedTxs, getUserOpCallData, notify, storeTxHash } from '../utils';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { UserOperation } from '../types';
 
@@ -88,7 +88,7 @@ enum Stage {
     EnterAmount = 'Enter Amount',
     Review = 'Review',
     Loading = 'Loading',
-    Confirmed = 'Confirmed',
+    Sent = 'Sent',
     Failed = 'Failed',
 }
 
@@ -102,7 +102,7 @@ export const EthereumTransactionModalComponent = ({
   }: {
     transactionType: TransactionType;
   }) => {
-  const [state, dispatch] = useContext(MetaMaskContext);
+  const [state] = useContext(MetaMaskContext);
   const [status, setStatus] = useState<Stage>(Stage.EnterAmount);
   const [amount, setAmount] = useState<string>('');
   const [failMessage, setFailMessage] = useState<string>('User denied the transaction signature.');
@@ -113,7 +113,7 @@ export const EthereumTransactionModalComponent = ({
     const depositInWei = convertToWei(amount);
   
     // check the owner account has enough balance
-    if (BigNumber.from(state.selectedAccountBalance).lt(depositInWei)) {
+    if (BigNumber.from(depositInWei).gte(state.selectedAccountBalance)) {
         throw new Error('Owner account has, insufficient funds.')
     }
     
@@ -152,7 +152,7 @@ export const EthereumTransactionModalComponent = ({
     const withdrawAmountInWei = convertToWei(amount);
 
     // check the smart account has enough deposit
-    if (BigNumber.from(state.scAccount.deposit).lt(withdrawAmountInWei)) {
+    if (BigNumber.from(withdrawAmountInWei).gte(state.scAccount.deposit)) {
       throw new Error('Smart contract account, insufficient deposit')
     }
 
@@ -229,7 +229,6 @@ export const EthereumTransactionModalComponent = ({
         }
     
         setStatus(Stage.Review);
-        setAmount('');
     } catch (e) {
         setAmount('');
         setFailMessage(e.message)
@@ -248,8 +247,6 @@ export const EthereumTransactionModalComponent = ({
 
   const handleApproveClick = async (event: any, requestId: string) => {
     try {
-      console.log('approve request click:', requestId)
-
       event.preventDefault();
       setStatus(Stage.Loading);
 
@@ -258,36 +255,29 @@ export const EthereumTransactionModalComponent = ({
 
       // send tx
       const signedTxs = await getSignedTxs()
-      console.log('signedTxs(before):', signedTxs, requestId)
 
       if (signedTxs[requestId]) {
         const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
         const res = await provider.sendTransaction(signedTxs[requestId])
         await res.wait();
 
-        console.log('Transaction hash:', res.hash);
         await storeTxHash(
           state.selectedSnapKeyringAccount.id,
           res.hash,
           requestId,
           state.chainId,
         );
-        console.log('signedTxs(after):',await getSignedTxs())
+        notify('Transaction confirmed (txHash)', 'View activity for details.', res.hash)
       }
 
-      setStatus(Stage.Confirmed);
+      setStatus(Stage.Sent);
       setSuccessMessage(`${amount} ETH successfully sent.`);
 
       await getAccountActivity(state.selectedSnapKeyringAccount.id);
       await getSmartAccount(state.selectedSnapKeyringAccount.id);
       await updateAccountBalance(state.selectedSnapKeyringAccount.address);
     } catch (e) {
-        const parsedError = JSON.parse(e.message)
-        if (parsedError.data.message) {
-            setFailMessage(parsedError.data.message)
-        } else {
-            setFailMessage(e.message)
-        }
+        setFailMessage(e.message)
         setStatus(Stage.Failed);
         await getKeyringSnapAccounts();
     }
@@ -295,10 +285,10 @@ export const EthereumTransactionModalComponent = ({
 
   const handleRejectClick = async (event: any, requestId: string) => {
     try {
-      console.log('reject request click:', requestId)
       event.preventDefault();
       setStatus(Stage.Loading);
       await rejectRequest(requestId);
+      setAmount('');
       setStatus(Stage.EnterAmount);
     } catch (e) {
       setFailMessage(e.message)
@@ -377,13 +367,13 @@ export const EthereumTransactionModalComponent = ({
                     <Text>{failMessage}</Text>
                 </Container>
             )
-        case Stage.Confirmed:
+        case Stage.Sent:
             return (
                 <Container>
                     <IconContainer>
                         <FaCheckCircle size={80} color='#32a852' />
                     </IconContainer>
-                    <Status>Deposit successfully sent</Status>
+                    <Status>{transactionType === TransactionType.Deposit ? 'Deposit' : 'Withdraw'} successfully sent</Status>
                     <Text>{successMessage}</Text>
                 </Container>
             )

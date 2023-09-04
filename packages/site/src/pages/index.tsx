@@ -10,6 +10,7 @@ import {
   parseChainId,
   addBundlerUrl,
   getUserOperationReceipt,
+  notify,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -25,10 +26,9 @@ import {
   Modal,
   EthereumTransactionModalComponent,
   TransactionType,
+  ModalType,
 } from '../components';
-import { AppTab, BundlerUrls, SupportedChainIdMap, UserOperation } from '../types';
-import { BigNumber, ethers } from 'ethers';
-import { EntryPoint__factory } from '@account-abstraction/contracts';
+import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
 
 const Container = styled.div`
   display: flex;
@@ -182,6 +182,10 @@ const Index = () => {
           for (const activity of accountActivity) {
             if (activity.userOpHash !== '' && activity.userOperationReceipt === null) {
               const userOpReceipt = await getUserOperationReceipt(activity.userOpHash)
+
+              if (userOpReceipt !== null) {
+                notify('Transaction confirmed (userOpHash)', 'View activity for details.', activity.userOpHash)
+              }
               activity.userOperationReceipt = userOpReceipt
             }
           }
@@ -203,7 +207,7 @@ const Index = () => {
     } 
   }, [state.accountActivity]);
 
-  // realtime refresh - refreshes account balances every 10 seconds
+  // realtime refresh - refreshes account balances every 5 seconds
   useEffect(() => {
     let interval: any
     try {  
@@ -212,7 +216,7 @@ const Index = () => {
           await getSmartAccount(state.selectedSnapKeyringAccount.id);
           await updateAccountBalance(state.selectedSnapKeyringAccount.address);
         }
-      }, 10000) // 12 seconds
+      }, 5000) // 5 seconds
   
       return () => {
         clearInterval(interval);
@@ -426,7 +430,7 @@ const Index = () => {
             />
           )}
 
-          <Modal isOpen={modalOpenTransaction} buttonRef={transactionRef} onClose={closeTransactionModal} top={100} right={0}>
+          <Modal modalType={ModalType.Transaction} isOpen={modalOpenTransaction} buttonRef={transactionRef} onClose={closeTransactionModal} top={100} right={0}>
             <EthereumTransactionModalComponent  transactionType={transactionType}/>
           </Modal>
           

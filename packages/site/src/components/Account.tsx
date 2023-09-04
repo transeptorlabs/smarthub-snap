@@ -359,11 +359,6 @@ const PendingRequestItem = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-
-  ${({ theme }) => theme.mediaQueries.small} {
-    flex-direction: column;
-    padding: 2.4rem;  
-  }
 `;
 
 const RequestContractDetails = styled.div`
@@ -476,12 +471,12 @@ export const AccountRequestDisplay = ({
             </EthTransactionContainer>
     
             <PendingRequestItem>
-              <p>Gas Fee(estimated):</p>
+              <p>Gas Fee(estimated)</p>
               <p>{convertToEth(gasFee.toString())} ETH</p>
             </PendingRequestItem>
 
             <PendingRequestItem>
-              <p>Max fee:</p>
+              <p>Max fee</p>
               <p>{convertToEth(maxFee.toString())} ETH</p>
             </PendingRequestItem>
             
@@ -517,7 +512,7 @@ export const AccountRequestDisplay = ({
           const userIntentDecodedCallData = entryPointContract.interface.decodeFunctionData('withdrawTo', decodedCallData.func);
 
           // get gas totals
-          const amount = BigNumber.from(decodedCallData.value);
+          const amount = BigNumber.from(decodedCallData.value).add(userIntentDecodedCallData.withdrawAmount);
           const maxGas = BigNumber.from(userOp.callGasLimit).add(BigNumber.from(userOp.verificationGasLimit));
           const gasFee = BigNumber.from(userOp.maxFeePerGas).add(BigNumber.from(userOp.maxPriorityFeePerGas)).add(BigNumber.from(userOp.preVerificationGas));
           const maxFee = gasFee.mul(maxGas);
@@ -526,37 +521,45 @@ export const AccountRequestDisplay = ({
           
           return (
             <>
-            <PendingRequestItem>
-                <p>From:</p>
-                <p>{trimAccount(userOp.sender)}</p>
-              </PendingRequestItem>
-  
-              <PendingRequestItem>
-                <p>To:</p>
-                <p>{trimAccount(decodedCallData.dest as string)}</p>
-              </PendingRequestItem>
-  
-              <PendingRequestItem>
-                <p>Function:</p>
-                <p>withdrawTo</p>
-              </PendingRequestItem>
-  
-              <PendingRequestItem>
-                <p>Withdraw Address:</p>
-                <p>{trimAccount(userIntentDecodedCallData.withdrawAddress)}</p>
-              </PendingRequestItem>
 
-              <PendingRequestItem>
-                <p>Withdraw Amount:</p>
-                <p>{convertToEth(userIntentDecodedCallData.withdrawAmount.toString())} ETH</p>
-              </PendingRequestItem>
+              <RequestContractDetails>
+                <Text>{trimAccount(decodedCallData.dest as string)}: WITHDRAW TO</Text>
+              </RequestContractDetails> 
 
-              <PendingRequestItem>
-                <p>Amount:</p>
-                <p>{convertToEth(amount.toString())} ETH</p>
-              </PendingRequestItem>
-  
-              <PendingRequestItem>
+              <EthTransactionContainer>
+                <EthTransactionItemContainer>
+                  <EthLogoContainer>
+                    <img
+                        src={EthereumLogo}
+                        width={38}
+                        height={38}
+                        alt='Etherum logo'
+                      />
+                  </EthLogoContainer>
+                  <p>(smart account)</p>
+                  <TextBold>{trimAccount(userOp.sender)}</TextBold>
+                </EthTransactionItemContainer>
+
+                <EthTransferIconContainer>
+                  <FaArrowAltCircleRight size={25} />
+                  <TextBold>{convertToEth(amount.toString())} ETH</TextBold>
+                </EthTransferIconContainer>
+        
+                <EthTransactionItemContainer>
+                  <EthLogoContainer>
+                    <img
+                        src={EthereumLogo}
+                        width={38}
+                        height={38}
+                        alt='Etherum logo'
+                      />
+                  </EthLogoContainer>
+                  <p>(owner EOA)</p>
+                  <TextBold>{trimAccount(userIntentDecodedCallData.withdrawAddress)}</TextBold>
+                </EthTransactionItemContainer>
+              </EthTransactionContainer>
+
+                <PendingRequestItem>
                 <p>Gas Fee(estimated):</p>
                 <p>{convertToEth(gasFee.toString())} ETH</p>
               </PendingRequestItem>
@@ -800,7 +803,7 @@ export const AccountActivityDisplay = () => {
           <ActivityItemContainer key={index}>
             <ActivityItem>
               <TextBold>Type:</TextBold>
-              <TextBold>{item.type === AccountActivityType.SmartContract ? 'Send UserOp transaction(Withdraw)': 'Send ETH transaction(Deposit)'}</TextBold>
+              <TextBold>{item.type === AccountActivityType.SmartContract ? 'Withdraw': 'Deposit'}</TextBold>
             </ActivityItem>
             {renderAccountActivityItem(item)}
           </ActivityItemContainer>

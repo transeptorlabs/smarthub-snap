@@ -371,18 +371,6 @@ export class SimpleKeyring implements Keyring {
         chainId as string,
         rpcResult.data as string,
       );
-
-      snap.request({
-        method: 'snap_dialog',
-        params: {
-          type: 'alert',
-          content: panel([
-            heading('User Operation Sent'),
-            text(`Sent from Smart account: ${signedUserOp.sender}`),
-            text(`User operation hash: ${rpcResult.data}`),
-          ]),
-        },
-      });
     } else {
       throw new Error(`Failed to send user op: ${rpcResult.data}`);
     }

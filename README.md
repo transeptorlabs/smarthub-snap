@@ -10,6 +10,7 @@ MetaMask Snap. Roadmap [here](https://hackmd.io/@V00D00-child/SJOnAnxF2#Roadmap)
 > :warning: **This repository is currently under active development.**
 
 ## Features
+
 - In dapp transaction flow. You don't need to confirm transactions/user operations in the browser extension window. Enjoy a web2-like experience with full in-dapp confirm/reject transaction flow.
 - Access and control smart accounts with MetaMask. Enjoy smart contract functionality with ease and convenience.
 - Manage ERC-4337 accounts deposit/withdraw and with supported entrypoint contract(paymaster support coming soon).

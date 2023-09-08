@@ -9,7 +9,17 @@ MetaMask Snap. Roadmap [here](https://hackmd.io/@V00D00-child/SJOnAnxF2#Roadmap)
 
 > :warning: **This repository is currently under active development.**
 
-![screens shot](./screen-shot.jpg)
+## Features
+- In dapp transaction flow. You don't need to confirm transactions/user operations in the browser extension window. Enjoy a web2-like experience with full in-dapp confirm/reject transaction flow.
+- Access and control smart accounts with MetaMask. Enjoy smart contract functionality with ease and convenience.
+- Manage ERC-4337 accounts deposit/withdraw and with supported entrypoint contract(paymaster support coming soon).
+- No lock-in; bring your own bundler; use the settings tab to choose which bundler URL to send user operations to.
+- Sign/send regular Ethereum transactions with the owner EOA of the smart account.
+- Get wallet notifications when transactions/user operations and confirmed onchain.
+
+## Demo
+
+https://github.com/transeptorlabs/erc-4337-relayer/assets/34751375/c3ac806a-68bb-477f-a647-53f9f834da53
 
 ## Why
 
@@ -29,11 +39,8 @@ To interact with the Snaps, you must install [MetaMask Flask](https://metamask.i
 
 ### Requirements
 
-**Note: This snap is not compatible with latest stable version of MetaMask Flask**
-
-- Change the version of MetaMask Flask to `10.33.1-flask.0` in `chrome://extensions/` to use this snap.
+- A version od MetaMask Flask to `=> 10.34.4-flask.0`
 - Uses this page to [Revert back to earlier version flask](https://support.metamask.io/hc/en-us/articles/360016336611-Revert-back-to-earlier-version-or-add-custom-build-to-Chrome):
-- Used MetaMask Extension [releases page](https://github.com/MetaMask/metamask-extension/releases) to download a `10.33.1-flask.0` version of flask.
 
 ## Contributing
 

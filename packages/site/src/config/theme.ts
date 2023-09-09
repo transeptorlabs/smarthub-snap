@@ -124,6 +124,11 @@ export const dark: DefaultTheme = {
       alternative: '#109133',
       muted: '#bff5ce',
     },
+    pending: {
+      default: '#8093ff',
+      alternative: '#8093ff',
+      muted: '#bff5ce',
+    },
   },
   ...theme,
 };

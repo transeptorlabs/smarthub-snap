@@ -18,9 +18,10 @@ MetaMask Snap. Roadmap [here](https://hackmd.io/@V00D00-child/SJOnAnxF2#Roadmap)
 - Sign/send regular Ethereum transactions with the owner EOA of the smart account.
 - Get wallet notifications when transactions/user operations and confirmed onchain.
 
-## Demo
+## Preview video
 
-https://github.com/transeptorlabs/erc-4337-relayer/assets/34751375/c3ac806a-68bb-477f-a647-53f9f834da53
+[![How to use Transeptor Labs ERC-4337 Relayer MetaMask Snap](https://img.youtube.com/vi/yP091c8tKrE/0.jpg)](https://www.youtube.com/watch?v=yP091c8tKrE)
+
 
 ## Why
 

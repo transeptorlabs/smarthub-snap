@@ -22,7 +22,6 @@ MetaMask Snap. Roadmap [here](https://hackmd.io/@V00D00-child/SJOnAnxF2#Roadmap)
 
 [![How to use Transeptor Labs ERC-4337 Relayer MetaMask Snap](https://img.youtube.com/vi/yP091c8tKrE/0.jpg)](https://www.youtube.com/watch?v=yP091c8tKrE)
 
-
 ## Why
 
 ERC-4337: Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.

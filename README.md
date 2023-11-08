@@ -34,13 +34,15 @@ MetaMask Snap. Roadmap [here](https://hackmd.io/@V00D00-child/SJOnAnxF2#Roadmap)
 To interact with the Snaps, you must install [MetaMask Flask](https://metamask.io/flask/), a canary distribution for developers that provides access to upcoming features.
 
 - A version od MetaMask Flask to `=> 10.34.4-flask.0`. Uses this page to [Revert back to earlier version flask](https://support.metamask.io/hc/en-us/articles/360016336611-Revert-back-to-earlier-version-or-add-custom-build-to-Chrome):
-
+- Docker
+- yarn
+- npm
 
 ## Set up
 
 The snap requires a connection to ERC4337 Bundler. We will use Transeptor Bundler running alongside a geth client to set up the local ERC-4337 environment. Follow the steps below to set up the local environment:
 
-1. Copy values in `.env.sample` to a .env file.
+1. Create a `.env` file and copy values in `.env.sample` to a the `.env` file.
 2. Run `make bundler` to start the bundler.
 
 
@@ -64,11 +66,12 @@ yarn set version 3.2.1
 yarn install 
 ```
 
+Set `SNAP_ORIGIN=prod:http://localhost:8080` in local `.env` file
 ```shell
 yarn start
 ```
 
-Set `SNAP_ORIGIN=prod:http://localhost:8080` in local `.env` file
+Site will be running on [http://localhost:8000](http://localhost:8000)
 
 ## Testing and Linting
 

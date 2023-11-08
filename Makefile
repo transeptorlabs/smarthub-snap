@@ -1,11 +1,11 @@
-# Simple local development makefile for bundler.
+# Simple local development makefile.
 
 bundler:
-	chmod +x ./start-bundler
-	./start-bundler
+	chmod +x ./start-bundler.sh
+	./start-bundler.sh
 
 start:
-	@echo "Start bundler and site."
+	@echo "Start snap and site."
 	yarn start
 
 snap:

@@ -18,7 +18,8 @@
     "url": "https://transeptorlabs.io"
   },
   "workspaces": [
-    "packages/*"
+    "packages/snap",
+    "packages/site"
   ],
   "scripts": {
     "build": "yarn workspaces foreach --parallel --topological --verbose run build",

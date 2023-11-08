@@ -1,5 +1,5 @@
 export const DEFAULT_BUNDLER_URLS = {
-  '0x539': 'http://localhost:3000/rpc', // 1337 - private
+  '0x539': 'http://localhost:4337/rpc', // 1337 - private
   '0x5': '', // goerli
   // '0x1': '', // ethereum mainnet
   // '0x89': '', // polygon mainnet

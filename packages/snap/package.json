@@ -2,6 +2,7 @@
   "name": "@transeptor/erc-4337-relayer",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://github.com/transeptorlabs/erc-4337-relayer/tree/main/packages/snap#readme",
   "description": "A MetaMask snap the wraps ERC-4337 eth namespace methods",
   "repository": {
     "type": "git",

@@ -147,21 +147,24 @@ export const EthereumTransactionModalComponent = ({
     );
 
     // set transation data (eth transaction type 2)
-    const transactionData = await entryPointContract.populateTransaction.depositTo(state.scAccount.address, {
-    type: 2,
-    nonce: await provider.getTransactionCount(state.selectedSnapKeyringAccount.address, 'latest'),
-    gasLimit: estimateGasAmount.toNumber(),
-    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? BigNumber.from(0),
-    maxFeePerGas: feeData.maxFeePerGas ?? BigNumber.from(0),
-    value: depositInWei.toString(),
-    })
+    const transactionData = await entryPointContract.populateTransaction.depositTo(state.scAccount.address,
+      {
+        // Type 2 Transactions (EIP-1559)
+        from: state.selectedSnapKeyringAccount.address,
+        nonce: await provider.getTransactionCount(state.selectedSnapKeyringAccount.address, 'latest'),
+        gasLimit: estimateGasAmount.toNumber(),
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? BigNumber.from(0),
+        maxFeePerGas: feeData.maxFeePerGas ?? BigNumber.from(0),
+        value: depositInWei.toString(),
+      }
+    )
     transactionData.chainId = parseChainId(state.chainId)
 
     // send request to keyring for approval
     await sendRequest(
     state.selectedSnapKeyringAccount.id,
     'eth_signTransaction',
-    [state.selectedSnapKeyringAccount.address, transactionData] // [from, transactionData]
+    [state.selectedSnapKeyringAccount.address, 'eoa', transactionData] // [from, type,transactionData]
     );
   }
 
@@ -178,10 +181,10 @@ export const EthereumTransactionModalComponent = ({
 
     // get call data
     const callData = await getUserOpCallData(
-        state.selectedSnapKeyringAccount.id,
-        entryPointContract.address,
-        BigNumber.from(0),
-        entryPointContract.interface.encodeFunctionData('withdrawTo', [state.selectedSnapKeyringAccount.address, withdrawAmountInWei.toString()]) // users intent(contract they want to interact with)
+      state.selectedSnapKeyringAccount.id,
+      entryPointContract.address,
+      BigNumber.from(0),
+      entryPointContract.interface.encodeFunctionData('withdrawTo', [state.selectedSnapKeyringAccount.address, withdrawAmountInWei.toString()]) // users intent(contract they want to interact with)
     )
 
     // set transation data (user operation)   
@@ -212,22 +215,22 @@ export const EthereumTransactionModalComponent = ({
     userOpToSign.callGasLimit = estimatGasResult.callGasLimit.toHexString()
 
     if (initGas.eq(0)) {
-        userOpToSign.verificationGasLimit = BigNumber.from(100000).toHexString()
-        userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
+      userOpToSign.verificationGasLimit = BigNumber.from(100000).toHexString()
+      userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
 
-        // add gas buffer
-        const preVerificationGasWithBuffer = calcPreVerificationGas(userOpToSign)
-        userOpToSign.preVerificationGas = BigNumber.from(preVerificationGasWithBuffer).toHexString()
+      // add gas buffer
+      const preVerificationGasWithBuffer = calcPreVerificationGas(userOpToSign)
+      userOpToSign.preVerificationGas = BigNumber.from(preVerificationGasWithBuffer).toHexString()
     } else {
-        userOpToSign.verificationGasLimit = estimatGasResult.verificationGas.add(initGas).toHexString()
-        userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
+      userOpToSign.verificationGasLimit = estimatGasResult.verificationGas.add(initGas).toHexString()
+      userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
     }
 
     // send request to keyring for approval
     await sendRequest(
-        state.selectedSnapKeyringAccount.id,
-        'eth_sendTransaction',
-        [state.selectedSnapKeyringAccount.address, userOpToSign] // [from, transactionData]
+      state.selectedSnapKeyringAccount.id,
+      'eth_sendTransaction',
+      [state.selectedSnapKeyringAccount.address, 'eip4337', userOpToSign] // [from, type, transactionData]
     );
   }
 

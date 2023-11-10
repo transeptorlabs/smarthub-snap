@@ -200,15 +200,12 @@ describe('state module - State', () => {
   });
 
   describe('storeTxHash', () => {
-    it('should store a user confirmed userOpHash', async () => {
+    it('should store a user confirmed txHash', async () => {
       const keyringAccountId = uuid();
       const mockState = {
         keyringState: {
           wallets: {},
           pendingRequests: {},
-          signedTx: {
-            '1': 'mockSignedTx',
-          },
         },
         requestIdCounter: 0,
         bundlerUrls: DEFAULT_BUNDLER_URLS,
@@ -230,18 +227,12 @@ describe('state module - State', () => {
 
       (global as any).snap.request.mockReturnValue(Promise.resolve(mockState));
 
-      const stateBefore = await getState();
-      expect(stateBefore.keyringState.signedTx['1']).toBe('mockSignedTx');
+      let stateBefore = await getTxHashes(keyringAccountId, '0x1');
+      expect(stateBefore).toStrictEqual(['hash1', 'hash2']);
 
-      let result = await getTxHashes(keyringAccountId, '0x1');
-      expect(result).toStrictEqual(['hash1', 'hash2']);
-
-      await storeTxHash(keyringAccountId, 'hash5', '1', '0x1');
-      result = await getTxHashes(keyringAccountId, '0x1');
+      await storeTxHash(keyringAccountId, 'hash5', '0x1');
+      const result = await getTxHashes(keyringAccountId, '0x1');
       expect(result).toStrictEqual(['hash1', 'hash2', 'hash5']);
-
-      const stateAfter = await getState();
-      expect(stateAfter.keyringState.signedTx['1']).toBeUndefined();
     });
   });
 
@@ -290,9 +281,6 @@ describe('state module - State', () => {
         keyringState: {
           wallets: {},
           pendingRequests: {},
-          signedTx: {
-            '1': 'mockSignedTx',
-          },
         },
         requestIdCounter: 0,
         bundlerUrls: DEFAULT_BUNDLER_URLS,
@@ -302,7 +290,7 @@ describe('state module - State', () => {
       (global as any).snap.request.mockReturnValue(Promise.resolve(mockState));
 
       const keyring = await getKeyRing();
-      expect(keyring.signedTx['1']).toBe('mockSignedTx');
+      expect(keyring).toStrictEqual(mockState.keyringState);
     });
   });
 
@@ -312,9 +300,6 @@ describe('state module - State', () => {
         keyringState: {
           wallets: {},
           pendingRequests: {},
-          signedTx: {
-            '1': 'mockSignedTx',
-          },
         },
         requestIdCounter: 0,
         bundlerUrls: DEFAULT_BUNDLER_URLS,
@@ -325,11 +310,7 @@ describe('state module - State', () => {
 
       await storeKeyRing({
         wallets: {},
-        pendingRequests: {},
-        signedTx: {
-          '1': 'mockSignedTx',
-          '2': 'mockSignedTx2',
-        },
+        pendingRequests: {}
       });
 
       expect((global as any).snap.request).toHaveBeenCalledWith({
@@ -338,7 +319,7 @@ describe('state module - State', () => {
       });
 
       const keyringAfter = await getKeyRing();
-      expect(keyringAfter.signedTx['2']).toBe('mockSignedTx2');
+      expect(keyringAfter).toStrictEqual(mockState.keyringState);
     });
   });
 

@@ -12,7 +12,6 @@ export const DEFAULT_STATE = {
   keyringState: {
     wallets: {},
     pendingRequests: {},
-    signedTx: {},
   },
   requestIdCounter: 0,
   bundlerUrls: DEFAULT_BUNDLER_URLS,

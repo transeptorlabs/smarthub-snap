@@ -40,7 +40,11 @@ export const useAcount = () => {
   };
 
   const createAccount = async (accountName: string) => {
-    const newAccount = await snapRpcClient.createAccount(accountName);
+    const newAccount = await snapRpcClient.createAccount(accountName, {
+      options:{
+        name: accountName,
+      }
+    });
     await getKeyringSnapAccounts()
     return newAccount
   };

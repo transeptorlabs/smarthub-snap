@@ -3,14 +3,15 @@ import styled from 'styled-components';
 import { ClipLoader } from 'react-spinners';
 import { CommonInputForm } from './Form';
 import { FaRegTimesCircle, FaCheckCircle } from 'react-icons/fa';
-import { MetaMaskContext, MetamaskActions, useAcount } from '../hooks';
+import { MetaMaskContext, useAcount } from '../hooks';
 import { AccountRequestDisplay } from './Account';
 import { convertToEth, convertToWei, estimateGas, parseChainId, trimAccount } from '../utils/eth';
 import { BlockieAccountModal } from './Blockie-Icon';
 import { BigNumber, ethers } from 'ethers';
-import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getSignedTxs, getUserOpCallData, notify, storeTxHash } from '../utils';
+import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getSignedTxs, getUserOpCallData, handleCopyToClipboard, notify, storeTxHash } from '../utils';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { UserOperation } from '../types';
+import { FaCopy } from "react-icons/fa";
 
 const Body = styled.div`
   padding: 2rem 0;
@@ -34,6 +35,11 @@ const FlexCol = styled.div`
   display: flex;
   flex-direction: column;
   align-items: left;
+`;
+
+const FlexRow = styled.div`
+  display: flex;
+  flex-direction: row;
 `;
 
 const AccountContainer = styled.div`
@@ -83,6 +89,17 @@ const TextBold = styled.p`
   margin: 0;
   margin-bottom: .5rem;
 `; 
+
+const AccountCopy = styled.div`
+  margin-left: 4rem;
+  margin-top: auto;
+  margin-bottom: 0;
+  margin-right: 5rem;
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary.main};
+    cursor: pointer;
+  }
+`;
 
 enum Stage {
     EnterAmount = 'Enter Amount',
@@ -303,16 +320,21 @@ export const EthereumTransactionModalComponent = ({
                 <FlexCol>
                     {transactionType === TransactionType.Deposit ? 
                         (
-                            <FlexCol>
-                                <AccountContainer>
-                                    <BlockieAccountModal/>
-                                    <FlexCol>
-                                        <TextBold>(owner EOA)</TextBold>
+                          <FlexCol>
+                              <AccountContainer>
+                                  <BlockieAccountModal/>
+                                  <FlexCol>
+                                      <TextBold>(owner EOA)</TextBold>
+                                      <FlexRow>
                                         <Text>{trimAccount(state.selectedSnapKeyringAccount.address)}</Text>
-                                    </FlexCol>
-                                </AccountContainer>
-                                <Text>Available to deposit {convertToEth(state.selectedAccountBalance)} ETH</Text>
-                            </FlexCol>
+                                        <AccountCopy onClick={e => handleCopyToClipboard(e, state.selectedSnapKeyringAccount.address)}>
+                                          <FaCopy />
+                                        </AccountCopy>
+                                      </FlexRow>
+                                  </FlexCol>
+                              </AccountContainer>
+                              <Text>Available to deposit {convertToEth(state.selectedAccountBalance)} ETH</Text>
+                          </FlexCol>
                         ) 
                         : 
                         (
@@ -321,7 +343,12 @@ export const EthereumTransactionModalComponent = ({
                                     <BlockieAccountModal/>
                                     <FlexCol>
                                         <TextBold>(smart account)</TextBold>
+                                        <FlexRow>
                                         <Text>{trimAccount(state.scAccount.address)}</Text>
+                                        <AccountCopy onClick={e => handleCopyToClipboard(e, state.scAccount.address)}>
+                                          <FaCopy />
+                                        </AccountCopy>
+                                      </FlexRow>
                                     </FlexCol>
                                 </AccountContainer>
                                 <Text>Available to withdraw {convertToEth(state.scAccount.deposit)} ETH</Text>

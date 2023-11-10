@@ -419,6 +419,8 @@ const Index = () => {
                 <ButtonContainer>
                   <SimpleButton text='Deposit' onClick={(e: any) => {handleDepositClick(e)}}></SimpleButton>
                   <SimpleButton text='Withdraw' onClick={(e: any) => {handleWithdrawClick(e)}}></SimpleButton>
+                  <SimpleButton text='Send' onClick={(e: any) => {() =>{}}}></SimpleButton>
+                  <SimpleButton text='Bridge' onClick={(e: any) => {() =>{}}}></SimpleButton>
                 </ButtonContainer>
               }}
               disabled={!state.isFlask}

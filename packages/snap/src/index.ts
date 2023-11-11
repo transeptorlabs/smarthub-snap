@@ -56,12 +56,7 @@ let keyring: SimpleKeyring;
  * @returns True if the caller has permission to execute the request.
  */
 function hasPermission(origin: string, method: string): boolean {
-  const hasPermission = Boolean(
-    PERMISSIONS.get(origin)?.includes(method),
-  );
-  console.log('SNAPS/', 'hasPermission check', hasPermission);
-
-  return hasPermission;
+  return PERMISSIONS.get(origin)?.includes(method) ?? false;
 };
 
 const intitKeyRing = async () => {
@@ -78,6 +73,10 @@ const intitKeyRing = async () => {
  * @throws If the request method is not valid for this snap.
  */
 export const onRpcRequest: OnRpcRequestHandler = async ({ origin, request }) => {
+  console.log(
+    `SNAPS/RPC request (origin="${origin}"):`,
+    JSON.stringify(request, undefined, 2),
+  );
 
   // Check if origin is allowed to call method.
   if (!hasPermission(origin, request.method)) {
@@ -127,30 +126,40 @@ export const onRpcRequest: OnRpcRequestHandler = async ({ origin, request }) => 
         request.params as any[]
       )[0] as SmartAccountParams;
 
-      const ownerAccount: KeyringAccount | undefined = await keyring.getAccount(
+      const keyringAccount: KeyringAccount | undefined = await keyring.getAccount(
         params.keyringAccountId,
       );
-      if (!ownerAccount) {
+      if (!keyringAccount) {
         throw new Error('Account not found');
       }
 
-      const scAddress = await getSmartAccountAddress(ownerAccount.address);
-      const [balance, nonce, deposit] = await Promise.all([
+      const owner = keyringAccount.options.owner as string | undefined;
+      if (!owner) {
+        throw new Error('Owner not found');
+      }
+
+      const scAddress = await getSmartAccountAddress(owner);
+      const [smartAcountBalance, ownerBalance, nonce, deposit,] = await Promise.all([
         await getBalance(scAddress),
+        await getBalance(owner),
         await getNonce(scAddress),
         await getDeposit(scAddress),
       ]);
 
       result = JSON.stringify({
-        initCode: await getAccountInitCode(ownerAccount.address),
+        initCode: await getAccountInitCode(owner),
         address: scAddress,
-        balance,
+        balance: smartAcountBalance, // in wei
         nonce,
         index: BigNumber.from(0),
         entryPoint: DEFAULT_ENTRY_POINT,
         factoryAddress: DEFAULT_ACCOUNT_FACTORY,
         deposit,
-        ownerAddress: ownerAccount.address,
+        ownerAddress: owner,
+        owner: {
+          address: owner,
+          balance: ownerBalance, // in wei
+        }
       });
 
       return result;
@@ -349,6 +358,11 @@ export const onKeyringRequest: OnKeyringRequestHandler = async ({
   origin,
   request,
 }) => {
+  console.log(
+    `SNAPS/Keyring request (origin="${origin}"):`,
+    JSON.stringify(request, undefined, 2),
+  );
+  
   // Check if origin is allowed to call method.
   if (!hasPermission(origin, request.method)) {
     throw new Error(

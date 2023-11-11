@@ -7,7 +7,7 @@
     "url": "https://github.com/transeptorlabs/erc-4337-snap.git"
   },
   "source": {
-    "shasum": "j0If8vPoISlrEt2eoykQWuDwqZULnZKSHrJDxEniUqI=",
+    "shasum": "TDxQsOZ5JqOCikBVPdg0P8H/XNCA4ImQHb+0f/PjHxM=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
@@ -20,8 +20,7 @@
   "initialPermissions": {
     "snap_dialog": {},
     "endowment:rpc": {
-      "dapps": true,
-      "snaps": false
+      "dapps": true
     },
     "endowment:ethereum-provider": {},
     "endowment:network-access": {},
@@ -29,7 +28,8 @@
     "snap_manageAccounts": {},
     "endowment:keyring": {
       "allowedOrigins": [
-        "https://snap.transeptorlabs.io"
+        "https://transeptorlabs.github.io",
+        "http://localhost:8000"
       ]
     },
     "snap_getEntropy": {}

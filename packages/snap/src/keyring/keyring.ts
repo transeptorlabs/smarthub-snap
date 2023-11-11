@@ -42,7 +42,7 @@ import {
   serializeTransaction,
   isUniqueAccountName,
 } from '../utils';
-import { DEFAULT_ENTRY_POINT } from '../4337';
+import { DEFAULT_ENTRY_POINT, getSmartAccountAddress } from '../4337';
 import { UserOperation } from '../types';
 import packageInfo from '../../package.json';
 
@@ -122,25 +122,35 @@ export class SimpleKeyring implements Keyring {
   async createAccount(
     options: Record<string, Json> = {},
   ): Promise<KeyringAccount> {
+    console.log(
+      `SNAPS/Keyring handler (createAccount):`,
+      JSON.stringify(options, undefined, 2),
+    );
 
     // extract name from options
-    const name = options.name as string;
+    const name = options?.name as string | undefined
     if (!name) {
       throw new Error('Account name is required');
     }
 
-    const { privateKey, address } = await this.#generateKeyPair(name);
     if (!isUniqueAccountName(name, Object.values(this.#wallets))) {
       throw new Error(`Account name already in use: ${name}`);
     }
+    const { privateKey, address } = await this.#generateKeyPair(name);
+
+    // Remove any sensitve data, since the
+    // account object is exposed to external components, such as MetaMask and
+    // the snap UI. The name is kept because it is not considered sensitive and is used to derive the private key.
+    options = {}
+    options.name = name
+    options.owner = address
+    const scAddress = await getSmartAccountAddress(address);
 
     const account: KeyringAccount = {
       id: uuid(),
       options,
-      address,
+      address: scAddress,
       methods: [
-        // TODO: Not supported by Keyring API
-        // 'eth_sendTransaction',
         EthMethod.PersonalSign,
         EthMethod.Sign,
         EthMethod.SignTransaction,

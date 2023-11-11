@@ -34,14 +34,6 @@ export enum InternalMethod {
   ClearActivityData = 'clear_activity_data',
 }
 
-// Not used yet
-export enum SigningMethods {
-  SignTransaction = 'sign_transaction',
-  SignTypedData = 'eth_signTypedData',
-  SignPersonalMessage = 'personal_sign',
-  EthSign = 'eth_sign',
-}
-
 export const PERMISSIONS = new Map<string, string[]>([
   [
     'metamask',
@@ -70,7 +62,6 @@ export const PERMISSIONS = new Map<string, string[]>([
       KeyringRpcMethod.ListRequests,
       KeyringRpcMethod.SubmitRequest,
       KeyringRpcMethod.ApproveRequest,
-      // TODO: Thid is not missing: KeyringRpcMethod.DeleteRequest,
       KeyringRpcMethod.RejectRequest,
 
       // ******************************

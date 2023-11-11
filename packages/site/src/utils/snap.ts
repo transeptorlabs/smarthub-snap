@@ -124,6 +124,10 @@ export const getScAccount = async (
     deposit: BigNumber.from(parsedResult.deposit).toString(),
     connected: true,
     ownerAddress: parsedResult.ownerAddress,
+    owner: {
+      address: parsedResult.owner.address,
+      balance: BigNumber.from(parsedResult.owner.balance).toString(),
+    }
   } as SmartContractAccount;
 };
 

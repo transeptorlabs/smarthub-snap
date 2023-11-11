@@ -124,14 +124,21 @@ export const EthereumTransactionModalComponent = ({
   const [amount, setAmount] = useState<string>('');
   const [failMessage, setFailMessage] = useState<string>('User denied the transaction signature.');
   const [successMessage, setSuccessMessage] = useState<string>('');
-  const { sendRequest, approveRequest, rejectRequest, getSmartAccount, getAccountActivity, updateAccountBalance, getKeyringSnapAccounts } = useAcount();
+  const {
+    sendRequest,
+    approveRequest,
+    rejectRequest,
+    getSmartAccount,
+    getAccountActivity,
+    getKeyringSnapAccounts,
+  } = useAcount();
 
   const handleDepositSubmit = async () => {
     const depositInWei = convertToWei(amount);
   
     // check the owner account has enough balance
-    if (BigNumber.from(depositInWei).gte(state.selectedAccountBalance)) {
-        throw new Error('Owner account has, insufficient funds.')
+    if (BigNumber.from(depositInWei).gte(state.scAccount.owner.balance)) {
+      throw new Error('Owner account has, insufficient funds.')
     }
     
     const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
@@ -236,23 +243,23 @@ export const EthereumTransactionModalComponent = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     try {
-        e.preventDefault();
+      e.preventDefault();
 
-        setStatus(Stage.Loading);
-    
-        if (transactionType === TransactionType.Deposit) {
-            await handleDepositSubmit()
-        } else if (transactionType === TransactionType.Withdraw) {
-            await handleWithdrawSubmit()
-        } else {
-            throw new Error('Invalid transaction type');
-        }
-    
-        setStatus(Stage.Review);
+      setStatus(Stage.Loading);
+
+      if (transactionType === TransactionType.Deposit) {
+        await handleDepositSubmit();
+      } else if (transactionType === TransactionType.Withdraw) {
+        await handleWithdrawSubmit();
+      } else {
+        throw new Error('Invalid transaction type');
+      }
+
+      setStatus(Stage.Review);
     } catch (e) {
-        setAmount('');
-        setFailMessage(e.message)
-        setStatus(Stage.Failed);
+      setAmount('');
+      setFailMessage(e.message);
+      setStatus(Stage.Failed);
     }
   };
 
@@ -295,7 +302,6 @@ export const EthereumTransactionModalComponent = ({
 
       await getAccountActivity(state.selectedSnapKeyringAccount.id);
       await getSmartAccount(state.selectedSnapKeyringAccount.id);
-      await updateAccountBalance(state.selectedSnapKeyringAccount.address);
     } catch (e) {
         setFailMessage(e.message)
         setStatus(Stage.Failed);
@@ -318,106 +324,122 @@ export const EthereumTransactionModalComponent = ({
 
   const renderStage = () => {
     switch (status) {
-        case Stage.EnterAmount:
-            return (
-                <FlexCol>
-                    {transactionType === TransactionType.Deposit ? 
-                        (
-                          <FlexCol>
-                              <AccountContainer>
-                                  <BlockieAccountModal/>
-                                  <FlexCol>
-                                      <TextBold>(owner EOA)</TextBold>
-                                      <FlexRow>
-                                        <Text>{trimAccount(state.selectedSnapKeyringAccount.address)}</Text>
-                                        <AccountCopy onClick={e => handleCopyToClipboard(e, state.selectedSnapKeyringAccount.address)}>
-                                          <FaCopy />
-                                        </AccountCopy>
-                                      </FlexRow>
-                                  </FlexCol>
-                              </AccountContainer>
-                              <Text>Available to deposit {convertToEth(state.selectedAccountBalance)} ETH</Text>
-                          </FlexCol>
-                        ) 
-                        : 
-                        (
-                            <FlexCol>
-                                <AccountContainer>
-                                    <BlockieAccountModal/>
-                                    <FlexCol>
-                                        <TextBold>(smart account)</TextBold>
-                                        <FlexRow>
-                                        <Text>{trimAccount(state.scAccount.address)}</Text>
-                                        <AccountCopy onClick={e => handleCopyToClipboard(e, state.scAccount.address)}>
-                                          <FaCopy />
-                                        </AccountCopy>
-                                      </FlexRow>
-                                    </FlexCol>
-                                </AccountContainer>
-                                <Text>Available to withdraw {convertToEth(state.scAccount.deposit)} ETH</Text>
-                            </FlexCol>
-                        )
-                    }
-                    <CommonInputForm
-                        key={"send-amount"}
-                        onSubmitClick={handleSubmit}
-                        buttonText="Review"
-                        inputs={
-                            [
-                                {
-                                    id: "1",
-                                    onInputChange: handleAmountChange,
-                                    inputValue: amount,
-                                    inputPlaceholder:"ETH Amount",
-                                    type: 'number'
-                                },
-                            ]
+      case Stage.EnterAmount:
+        return (
+          <FlexCol>
+            {transactionType === TransactionType.Deposit ? (
+              <FlexCol>
+                <AccountContainer>
+                  <BlockieAccountModal />
+                  <FlexCol>
+                    <TextBold>(owner)</TextBold>
+                    <FlexRow>
+                      <Text>
+                        {trimAccount(state.selectedSnapKeyringAccount.options.owner as string)}
+                      </Text>
+                      <AccountCopy
+                        onClick={(e) =>
+                          handleCopyToClipboard(
+                            e,
+                            state.selectedSnapKeyringAccount.options.owner as string,
+                          )
                         }
-                    />
-
-                </FlexCol>
-            );
-        case Stage.Review:
-            return (
-                <AccountRequestDisplay approveRequestClick={handleApproveClick} rejectRequestClick={handleRejectClick} />
-            )
-        case Stage.Loading:
-            return (
-                <SpinnerContainer>
-                    <ClipLoader color="#8093ff" size={50} />
-                </SpinnerContainer>
-            );
-        case Stage.Failed:
-            return (
-                <Container>
-                    <IconContainer>
-                        <FaRegTimesCircle size={80} color='#d73a49' />
-                    </IconContainer>
-                    <Status>Transaction Failed</Status>
-                    <Text>{failMessage}</Text>
-                </Container>
-            )
-        case Stage.Sent:
-            return (
-                <Container>
-                    <IconContainer>
-                        <FaCheckCircle size={80} color='#32a852' />
-                    </IconContainer>
-                    <Status>{transactionType === TransactionType.Deposit ? 'Deposit' : 'Withdraw'} successfully sent</Status>
-                    <Text>{successMessage}</Text>
-                </Container>
-            )
+                      >
+                        <FaCopy />
+                      </AccountCopy>
+                    </FlexRow>
+                    <Text>Balance:{' '}{convertToEth(state.scAccount.owner.balance)} ETH
+                </Text>
+                  </FlexCol>
+                </AccountContainer>
+             
+              </FlexCol>
+            ) : (
+              <FlexCol>
+                <AccountContainer>
+                  <BlockieAccountModal />
+                  <FlexCol>
+                    <TextBold>(smart account)</TextBold>
+                    <FlexRow>
+                      <Text>{trimAccount(state.scAccount.address)}</Text>
+                      <AccountCopy
+                        onClick={(e) =>
+                          handleCopyToClipboard(e, state.scAccount.address)
+                        }
+                      >
+                        <FaCopy />
+                      </AccountCopy>
+                    </FlexRow>
+                    <Text>Total deposit: {convertToEth(state.scAccount.deposit)}{' '}ETH</Text>
+                  </FlexCol>
+                </AccountContainer>
+              </FlexCol>
+            )}
+            <CommonInputForm
+              key={'send-amount'}
+              onSubmitClick={handleSubmit}
+              buttonText="Review"
+              inputs={[
+                {
+                  id: '1',
+                  onInputChange: handleAmountChange,
+                  inputValue: amount,
+                  inputPlaceholder: 'ETH Amount',
+                  type: 'number',
+                },
+              ]}
+            />
+          </FlexCol>
+        );
+      case Stage.Review:
+        return (
+          <AccountRequestDisplay
+            approveRequestClick={handleApproveClick}
+            rejectRequestClick={handleRejectClick}
+          />
+        );
+      case Stage.Loading:
+        return (
+          <SpinnerContainer>
+            <ClipLoader color="#8093ff" size={50} />
+          </SpinnerContainer>
+        );
+      case Stage.Failed:
+        return (
+          <Container>
+            <IconContainer>
+              <FaRegTimesCircle size={80} color="#d73a49" />
+            </IconContainer>
+            <Status>Transaction Failed</Status>
+            <Text>{failMessage}</Text>
+          </Container>
+        );
+      case Stage.Sent:
+        return (
+          <Container>
+            <IconContainer>
+              <FaCheckCircle size={80} color="#32a852" />
+            </IconContainer>
+            <Status>
+              {transactionType === TransactionType.Deposit
+                ? 'Deposit'
+                : 'Withdraw'}{' '}
+              successfully sent
+            </Status>
+            <Text>{successMessage}</Text>
+          </Container>
+        );
     }
   };
 
   return (
     <Body>
-        <Container>
-            {status !== Stage.Loading && (
-                <TextTitle>{status}: {transactionType}</TextTitle>
-            )}
-            {renderStage()}
-        </Container>
+      <Container>
+        {status !== Stage.Loading && (
+          <TextTitle>{status}: {transactionType}</TextTitle>
+        )}
+        {renderStage()}
+      </Container>
     </Body>
   );
 };

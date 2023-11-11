@@ -16,7 +16,10 @@ export enum ReputationStatus {
 export type SmartContractAccount = {
   initCode: string;
   address: string;
-  ownerAddress: string;
+  owner: {
+    address: string;
+    balance: string;
+  }
   balance: string;
   nonce: BigNumber;
   index: BigNumber;

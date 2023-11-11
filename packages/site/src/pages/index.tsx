@@ -141,7 +141,6 @@ const Index = () => {
     getBundlerUrls,
     updateChainId,
     setChainIdListener,
-    updateAccountBalance,
   } = useAcount();
 
   useEffect(() => {
@@ -163,7 +162,6 @@ const Index = () => {
         if (account.length > 0) {
           await selectKeyringSnapAccount(account[0]);
           await getSmartAccount(account[0].id);
-          await updateAccountBalance(account[0].address);
           await getAccountActivity(account[0].id);
         }
       }
@@ -202,7 +200,7 @@ const Index = () => {
       };
 
     } catch (e) {
-      console.error('[ERROR] refreaher:', e.message);
+      console.error('[ERROR] refresher:', e.message);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     } 
   }, [state.accountActivity]);
@@ -214,7 +212,6 @@ const Index = () => {
       interval = setInterval(async () => {
         if (state.scAccount.connected === true) {
           await getSmartAccount(state.selectedSnapKeyringAccount.id);
-          await updateAccountBalance(state.selectedSnapKeyringAccount.address);
         }
       }, 5000) // 5 seconds
   
@@ -223,7 +220,7 @@ const Index = () => {
       };
 
     } catch (e) {
-      console.error('[ERROR] refreaher:', e.message);
+      console.error('[ERROR] refresher:', e.message);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     } 
   }, [state.selectedSnapKeyringAccount, state.scAccount]);
@@ -269,64 +266,88 @@ const Index = () => {
   };
 
   const handleCreateAccount = async (event: any) => {
-    event.preventDefault();
-    const newAccount = await createAccount(accountName)
-    await selectKeyringSnapAccount(newAccount);
-    await getSmartAccount(newAccount.id);
-    await updateAccountBalance(newAccount.address);
-    setAccountName('')
+    try {
+      event.preventDefault();
+      const newAccount = await createAccount(accountName)
+      await selectKeyringSnapAccount(newAccount);
+      await getSmartAccount(newAccount.id);
+      setAccountName('')
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   };
 
   const handleDeleteAccount = async (event: any) => {
-    event.preventDefault();
-    let keyringAccountIdFound = ''
-    state.snapKeyring.accounts.forEach(account => {
-      if (account.name === accountNameDelete)
-      keyringAccountIdFound =  account.id
-    })
-
-    if (keyringAccountIdFound === '') {
-      dispatch({ type: MetamaskActions.SetError, payload: new Error('Account name not found.') });
-    } else {
-      await deleteAccount(keyringAccountIdFound)
-
-      // update selected to first account when the deleted account it the current selected account
-      if(keyringAccountIdFound === state.selectedSnapKeyringAccount.id) {
-        const accounts = await getKeyringSnapAccounts()
-        if (accounts.length > 0) {
-          await selectKeyringSnapAccount(accounts[0]);
-          await getSmartAccount(accounts[0].id);
-          await getAccountActivity(accounts[0].id);
-        } else {
-          dispatch({ type: MetamaskActions.SetClearAccount, payload: true })
+    try {
+      event.preventDefault();
+      let keyringAccountIdFound = ''
+      state.snapKeyring.accounts.forEach(account => {
+        if (account.options.name as string === accountNameDelete)
+        keyringAccountIdFound =  account.id
+      })
+  
+      if (keyringAccountIdFound === '') {
+        dispatch({ type: MetamaskActions.SetError, payload: new Error('Account name not found.') });
+      } else {
+        await deleteAccount(keyringAccountIdFound)
+  
+        // update selected to first account when the deleted account it the current selected account
+        if(keyringAccountIdFound === state.selectedSnapKeyringAccount.id) {
+          const accounts = await getKeyringSnapAccounts()
+          console.log('accounts after delet:', accounts)
+          if (accounts.length > 0) {
+            await selectKeyringSnapAccount(accounts[0]);
+            await getSmartAccount(accounts[0].id);
+            await getAccountActivity(accounts[0].id);
+          } else {
+            dispatch({ type: MetamaskActions.SetClearAccount, payload: true })
+          }
         }
+        setAccountNameDelete('')
       }
-      setAccountNameDelete('')
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
 
   const handleDepositClick = async (e: any) => {
-    e.preventDefault();
-    setTransactionType(TransactionType.Deposit)
-    setModalOpenTransaction(true)
+    try {
+      e.preventDefault();
+      setTransactionType(TransactionType.Deposit)
+      setModalOpenTransaction(true)
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   }
 
   const handleWithdrawClick = async (e: any) => {
-    e.preventDefault();
-    setTransactionType(TransactionType.Withdraw)
-    setModalOpenTransaction(true)
+    try {
+      e.preventDefault();
+      setTransactionType(TransactionType.Withdraw)
+      setModalOpenTransaction(true)
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   }
 
   const handleClearActivity = async (e: any) => {
-    e.preventDefault();
-    await clearActivityData();
-    await handleFetchBundlerUrls();
+    try {
+      e.preventDefault();
+      await clearActivityData();
+      await handleFetchBundlerUrls();
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   }
 
   const handleBundlerUrlSubmit = async (e: any, chainId: string) => {
-    e.preventDefault();
-    await addBundlerUrl(chainId, formBundlerUrls[chainId]);
-    await handleFetchBundlerUrls();
+    try {
+      e.preventDefault();
+      await addBundlerUrl(chainId, formBundlerUrls[chainId]);
+      await handleFetchBundlerUrls();
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   }
 
   // Form input handlers
@@ -401,8 +422,8 @@ const Index = () => {
             <Card
               content={{
                 title: 'Smart Account',
-                description: `${state.scAccount.address}`,
-                descriptionBold: `${state.selectedSnapKeyringAccount.name}`,
+                description: `${state.selectedSnapKeyringAccount.address}`,
+                descriptionBold: `${state.selectedSnapKeyringAccount.options.name}`,
                 stats: [
                   {
                     id: `1`,
@@ -419,8 +440,8 @@ const Index = () => {
                 <ButtonContainer>
                   <SimpleButton text='Deposit' onClick={(e: any) => {handleDepositClick(e)}}></SimpleButton>
                   <SimpleButton text='Withdraw' onClick={(e: any) => {handleWithdrawClick(e)}}></SimpleButton>
-                  <SimpleButton text='Send' onClick={(e: any) => {() =>{}}}></SimpleButton>
-                  <SimpleButton text='Bridge' onClick={(e: any) => {() =>{}}}></SimpleButton>
+                  {/* <SimpleButton text='Send' onClick={(e: any) => {() =>{}}}></SimpleButton>
+                  <SimpleButton text='Bridge' onClick={(e: any) => {() =>{}}}></SimpleButton> */}
                 </ButtonContainer>
               }}
               disabled={!state.isFlask}

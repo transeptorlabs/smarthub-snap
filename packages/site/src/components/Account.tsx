@@ -170,7 +170,7 @@ export const AccountHeaderDisplay = () => {
         <PrimaryText> 
           {state.selectedSnapKeyringAccount.address === '' ? 
             'No account selected' :
-            state.selectedSnapKeyringAccount.name
+            state.selectedSnapKeyringAccount.options.name as string
           }
         </PrimaryText>
       </FlexColWrapperLeft>
@@ -185,7 +185,7 @@ export const AccountModalDropdown = ({
 }) => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const [selectedAccount, setSelectedAccount] = useState<KeyringAccount>(state.selectedSnapKeyringAccount);
-  const {selectKeyringSnapAccount, getSmartAccount, createAccount, updateAccountBalance, getAccountActivity} = useAcount();
+  const {selectKeyringSnapAccount, getSmartAccount, createAccount, getAccountActivity} = useAcount();
   const [accountName, setAccountName] = useState('');
 
   const featureList: {feature: string; description: string }[] = [
@@ -222,12 +222,11 @@ export const AccountModalDropdown = ({
 
   const handleAccountChange = async (event: any, account: KeyringAccount) => {
     event.preventDefault();
+    closeModal();
     setSelectedAccount(account);
     await selectKeyringSnapAccount(account);
     await getSmartAccount(account.id);
-    await updateAccountBalance(account.address);
     await getAccountActivity(account.id);
-    closeModal();
   }
 
   const handleCreateAccount = async (event: any) => {
@@ -326,7 +325,7 @@ export const AccountModalDropdown = ({
             <BlockieAccountModal/>
             <FlexColWrapperLeft>
                 <FlexRowWrapper>
-                  <TextBold>{account.name}</TextBold>
+                  <TextBold>{account.options.name as string}</TextBold>
                 </FlexRowWrapper>
 
             </FlexColWrapperLeft>
@@ -597,11 +596,11 @@ export const AccountRequestDisplay = ({
     <>
       {state.snapKeyring.pendingRequests && (
         filterPendingRequests(state.snapKeyring.pendingRequests, state.selectedSnapKeyringAccount.id).map((item: KeyringRequest) => (
-          <PendingRequestContainer key={`${item.request.id}-${item.account}`}>
+          <PendingRequestContainer key={`${item.id}-${item.account}`}>
             {renderRequestDetails(item)}
             <PendingRequestItem>
-              <SimpleButton text={'Reject'} onClick={(e: any) => {rejectRequestClick(e, item.request.id)}}></SimpleButton>
-              <SimpleButton text={'Confirm'} onClick={(e: any) => {approveRequestClick(e, item.request.id)}}></SimpleButton>
+              <SimpleButton text={'Reject'} onClick={(e: any) => {rejectRequestClick(e, item.id)}}></SimpleButton>
+              <SimpleButton text={'Confirm'} onClick={(e: any) => {approveRequestClick(e, item.id)}}></SimpleButton>
             </PendingRequestItem>  
           </PendingRequestContainer>
         ))

@@ -219,8 +219,12 @@ export class SimpleKeyring implements Keyring {
   }
 
   async submitRequest(request: KeyringRequest): Promise<SubmitRequestResponse> {
-    console.log('SNAPS/', ' submitRequest requests', JSON.stringify(request));
-    return this.#syncSubmitRequest(request);
+    console.log('SNAPS/submitRequest requests:', JSON.stringify(request, undefined, 2));
+
+    if (request.scope !== 'async' && request.scope !== 'sync') {
+      throw new Error(`Invalid request scope: ${request.scope}, must be 'async' or 'sync'`);
+    }
+    return request.scope == 'sync' ? this.#syncSubmitRequest(request) : this.#asyncSubmitRequest(request);
   }
 
   #getCurrentUrl(): string {
@@ -299,7 +303,8 @@ export class SimpleKeyring implements Keyring {
 
   async rejectRequest(id: string): Promise<void> {
     const request: KeyringRequest = await this.getRequest(id);
-    console.log('SNAPS/', ' rejectRequest requests', JSON.stringify(request));
+    console.log('SNAPS/rejectRequest requests:', JSON.stringify(request, undefined, 2));
+
     if (request === undefined) {
       throw new Error(`Request '${id}' not found`);
     }
@@ -363,8 +368,6 @@ export class SimpleKeyring implements Keyring {
     accountId: string,
     signedUserOp: UserOperation,
   ): Promise<void> {
-    console.log('SNAPS/', 'handle handleSendUserOp ', accountId, signedUserOp);
-
     // connect to rpc
     const [bundlerUrls, chainId] = await Promise.all([
       getBundlerUrls(),

@@ -114,7 +114,6 @@ export const PERMISSIONS = new Map<string, string[]>([
       KeyringRpcMethod.ListRequests,
       KeyringRpcMethod.SubmitRequest,
       KeyringRpcMethod.ApproveRequest,
-      // TODO: Thid is not missing: KeyringRpcMethod.DeleteRequest,
       KeyringRpcMethod.RejectRequest,
 
       // ******************************

@@ -29,6 +29,8 @@ import {
   ModalType,
 } from '../components';
 import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
+import snapPackageInfo from '../../../snap/package.json';
+import packageInfo from '../../package.json';
 
 const Container = styled.div`
   display: flex;
@@ -496,14 +498,55 @@ const Index = () => {
           <Title>FAQ</Title>
           <Card
             content={{
-              custom: <Faq queston={'What is ERC-4337 Relayer?  '} description={'bahhahah'} />
+              custom: <Faq queston={'Why ERC-4337 Relayer needed?'} description={'Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.'} />
+            }}
+            fullWidth
+          />
+          <Card
+            content={{
+              custom: <Faq queston={'What is ERC-4337 Relayer?'} description={'ERC-4337 Relayer is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.'} />
             }}
             fullWidth
           />
 
           <Card
             content={{
-              custom: <Faq queston={'How does is ERC-4337 Relayer work?'} description={'bahhahah'} />
+              custom: <Faq queston={'How does is ERC-4337 Relayer work?'} description={'The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components.'} />
+            }}
+            fullWidth
+          />
+
+        <Card
+            content={{
+              custom: <Faq queston={'What is ERC-4337?'} description={'bahahaha'} />
+            }}
+            fullWidth
+          />
+
+          <Card
+            content={{
+              custom: <Faq queston={'What is a smart account?'} description={'bahahaha'} />
+            }}
+            fullWidth
+          />
+
+          <Card
+            content={{
+              custom: <Faq queston={'What is a Deposit?'} description={'Your smart account will need a deposit with the entry point contract to pay for gas fees.'} />
+            }}
+            fullWidth
+          />
+
+          <Card
+            content={{
+              custom: <Faq queston={'What is a Withdraw?'} description={'bahahaha'} />
+            }}
+            fullWidth
+          />
+
+          <Card
+            content={{
+              custom: <Faq queston={'How is does smart account ownership work?'} description={'bahahaha'} />
             }}
             fullWidth
           />
@@ -572,9 +615,12 @@ const Index = () => {
           {state.installedSnap && (
             <Card
               content={{
-                title: 'Bundler RPC Urls',
-                description: 'A list of bundler RPC Url to relay your user operations.',
-                custom: createBundlerUrlForm()
+                title: 'Snap Info',
+                listItems: [
+                  `Snap version(installed): ${state.installedSnap.version}`,
+                  `Snap version(expected): ${snapPackageInfo.version}`,
+                  `Dapp version: ${packageInfo.version}`
+                ],
               }}
               disabled={!state.isFlask}
               fullWidth
@@ -584,8 +630,9 @@ const Index = () => {
           {state.installedSnap && (
             <Card
               content={{
-                title: 'ERC-4337 Relayer is installed and ready to use',
-                description: `Installed with v${state.installedSnap.version}. Use MetaMask settings page, to see the more details on the installed snap.`,
+                title: 'Bundler RPC Urls',
+                description: 'A list of bundler RPC Url to relay your user operations.',
+                custom: createBundlerUrlForm()
               }}
               disabled={!state.isFlask}
               fullWidth

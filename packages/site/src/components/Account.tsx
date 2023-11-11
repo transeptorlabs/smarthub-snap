@@ -222,8 +222,8 @@ export const AccountModalDropdown = ({
 
   const handleAccountChange = async (event: any, account: KeyringAccount) => {
     event.preventDefault();
-    closeModal();
     setSelectedAccount(account);
+    closeModal();
     await selectKeyringSnapAccount(account);
     await getSmartAccount(account.id);
     await getAccountActivity(account.id);

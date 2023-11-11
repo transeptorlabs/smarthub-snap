@@ -4,6 +4,7 @@ import { AccountActivity, AccountActivityType, BundlerUrls, SmartContractAccount
 import { bundlerUrls, fetchUserOpHashes, getAccountBalance, getChainId, getKeyringSnapRpcClient, getMMProvider, getNextRequestId, getScAccount, getTxHashes, getUserOperationReceipt, parseChainId, sendSupportedEntryPoints } from "../utils";
 import { KeyringAccount } from "@metamask/keyring-api";
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
+import type { Json } from '@metamask/utils';
 
 export const useAcount = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
@@ -43,18 +44,60 @@ export const useAcount = () => {
     await getKeyringSnapAccounts()
   };
 
-  const sendRequest = async (keyringAccountId: string, method: string, params: any[] = []) => {
-    const id = await getNextRequestId()
-    await snapRpcClient.submitRequest({
+  const sendRequestAsync = async (
+    keyringAccountId: string,
+    method: string,
+    params: any[] = [],
+  ): Promise<{
+    pending: boolean;
+    redirect?: {
+      url: string;
+      message: string;
+    };
+  }> => {
+    const id = await getNextRequestId();
+    const result = await snapRpcClient.submitRequest({
       id: id.toString(),
       account: keyringAccountId,
-      scope: `eip155:${parseChainId(state.chainId)}`,
+      scope: 'async',
       request: {
         method,
         params: params,
-      }
+      },
     });
-    await getKeyringSnapAccounts()
+    await getKeyringSnapAccounts();
+
+    return result as {
+      pending: boolean;
+      redirect?: {
+        url: string;
+        message: string;
+      };
+    };
+  };
+
+  const sendRequestSync = async (
+    keyringAccountId: string,
+    method: string,
+    params: any[] = [],
+  ): Promise<{
+    pending: false;
+    result: Json;
+  }> => {
+    const id = await getNextRequestId();
+    const result = await snapRpcClient.submitRequest({
+      id: id.toString(),
+      account: keyringAccountId,
+      scope: 'sync',
+      request: {
+        method,
+        params: params,
+      },
+    });
+    return result as {
+      pending: false;
+      result: Json;
+    };
   };
 
   const approveRequest = async (requestId: string) => {
@@ -178,7 +221,8 @@ export const useAcount = () => {
     getBundlerUrls,
     updateChainId,
     getWalletChainId,
-    sendRequest,
+    sendRequestAsync,
+    sendRequestSync,
     approveRequest,
     rejectRequest,
     rejectAllPendingRequests,

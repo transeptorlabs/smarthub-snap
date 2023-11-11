@@ -125,7 +125,8 @@ export const EthereumTransactionModalComponent = ({
   const [failMessage, setFailMessage] = useState<string>('User denied the transaction signature.');
   const [successMessage, setSuccessMessage] = useState<string>('');
   const {
-    sendRequest,
+    sendRequestSync,
+    sendRequestAsync,
     approveRequest,
     rejectRequest,
     getSmartAccount,
@@ -168,11 +169,12 @@ export const EthereumTransactionModalComponent = ({
     transactionData.chainId = parseChainId(state.chainId)
 
     // send request to keyring for approval
-    await sendRequest(
-    state.selectedSnapKeyringAccount.id,
-    'eth_signTransaction',
-    [state.selectedSnapKeyringAccount.address, 'eoa', transactionData] // [from, type,transactionData]
+    const result = await sendRequestAsync(
+      state.selectedSnapKeyringAccount.id,
+      'eth_signTransaction',
+      [state.selectedSnapKeyringAccount.address, 'eoa', transactionData] // [from, type, transactionData]
     );
+    console.log('transactionData(signed)', result)
   }
 
   const handleWithdrawSubmit = async () => {
@@ -234,7 +236,7 @@ export const EthereumTransactionModalComponent = ({
     }
 
     // send request to keyring for approval
-    await sendRequest(
+    await sendRequestSync(
       state.selectedSnapKeyringAccount.id,
       'eth_sendTransaction',
       [state.selectedSnapKeyringAccount.address, 'eip4337', userOpToSign] // [from, type, transactionData]
@@ -393,10 +395,13 @@ export const EthereumTransactionModalComponent = ({
         );
       case Stage.Review:
         return (
-          <AccountRequestDisplay
-            approveRequestClick={handleApproveClick}
-            rejectRequestClick={handleRejectClick}
-          />
+          <>
+          <p>Review..</p>
+          </>
+          // <AccountRequestDisplay
+          //   approveRequestClick={handleApproveClick}
+          //   rejectRequestClick={handleRejectClick}
+          // />
         );
       case Stage.Loading:
         return (

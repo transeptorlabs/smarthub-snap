@@ -1,4 +1,4 @@
-# SmartHub
+# SmartHub Snap
 
 This repository contains Transeptor Labs SmartHub Snap.
 

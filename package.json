@@ -28,8 +28,8 @@
     "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write",
     "lint:misc": "prettier '**/*.json' '**/*.md' '!**/CHANGELOG.md' '**/*.yml' --ignore-path .gitignore",
     "start": "yarn workspaces foreach --parallel --interlaced --verbose run start",
-    "start-site": "yarn workspace @transeptor/site run start",
-    "start-snap": "yarn workspace @transeptor/erc-4337-relayer run start",
+    "start-site": "yarn workspace @transeptor-labs/smarthub-site run start",
+    "start-snap": "yarn workspace @transeptor-labs/smarthub-snap run start",
     "test": "yarn workspaces foreach --parallel --topological --verbose run test"
   },
   "devDependencies": {

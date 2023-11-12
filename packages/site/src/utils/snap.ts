@@ -127,7 +127,7 @@ export const getScAccount = async (
     owner: {
       address: parsedResult.owner.address,
       balance: BigNumber.from(parsedResult.owner.balance).toString(),
-    }
+    },
   } as SmartContractAccount;
 };
 

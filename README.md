@@ -4,7 +4,6 @@
 [![codecov](https://img.shields.io/codecov/c/github/transeptorlabs/erc-4337-relayer.svg?style=flat-square)](https://app.codecov.io/gh/transeptorlabs/erc-4337-relayer)
 ![Github workflow build status(main)](https://img.shields.io/github/actions/workflow/status/transeptorlabs/erc-4337-relayer/build-test.yml?branch=main)
 
-
 ## Overview
 
 - **Why**: ERC-4337(aka: Account abstraction) introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.
@@ -42,7 +41,6 @@ The snap requires a connection to ERC4337 Bundler. We will use Transeptor Bundle
 2. `git submodule update --init`
 3. Run `make bundler` to start the bundler.
 
-
 The Bundler will start running on [http://localhost:3000/rpc](http://localhost:3000/rpc). You will
 need to have [Metamask Flask](https://metamask.io/flask/) installed and listening to
 `localhost:8545` network.
@@ -60,10 +58,11 @@ yarn set version 3.2.1
 ```
 
 ```shell
-yarn install 
+yarn install
 ```
 
 Set `SNAP_ORIGIN=prod:http://localhost:8080` in local `.env` file
+
 ```shell
 yarn start
 ```

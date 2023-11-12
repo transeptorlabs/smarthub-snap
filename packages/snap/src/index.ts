@@ -1,4 +1,7 @@
-import type { OnRpcRequestHandler, OnKeyringRequestHandler } from '@metamask/snaps-types';
+import type {
+  OnRpcRequestHandler,
+  OnKeyringRequestHandler,
+} from '@metamask/snaps-types';
 import {
   KeyringAccount,
   MethodNotSupportedError,
@@ -48,16 +51,15 @@ import {
 let keyring: SimpleKeyring;
 
 /**
- * Handle execution permissions.
+ * Verify if the caller can call the requested method.
  *
- * @param args - Request arguments.
- * @param args.origin - Caller origin.
- * @param args.request - Request to execute.
- * @returns True if the caller has permission to execute the request.
+ * @param origin - Caller origin.
+ * @param method - Method being called.
+ * @returns True if the caller is allowed to call the method, false otherwise.
  */
 function hasPermission(origin: string, method: string): boolean {
   return PERMISSIONS.get(origin)?.includes(method) ?? false;
-};
+}
 
 const intitKeyRing = async () => {
   const keyringState: KeyringState = await getKeyRing();
@@ -67,12 +69,15 @@ const intitKeyRing = async () => {
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
  *
- * @param args - The request handler args as object.
- * invoked the snap.
- * @param args.request - A validated JSON-RPC request object.
- * @throws If the request method is not valid for this snap.
+ * @param args - Request arguments.
+ * @param args.request - Request to execute.
+ * @param args.origin - Caller origin.
+ * @returns The execution result.
  */
-export const onRpcRequest: OnRpcRequestHandler = async ({ origin, request }) => {
+export const onRpcRequest: OnRpcRequestHandler = async ({
+  origin,
+  request,
+}) => {
   console.log(
     `SNAPS/RPC request (origin="${origin}"):`,
     JSON.stringify(request, undefined, 2),
@@ -126,9 +131,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({ origin, request }) => 
         request.params as any[]
       )[0] as SmartAccountParams;
 
-      const keyringAccount: KeyringAccount | undefined = await keyring.getAccount(
-        params.keyringAccountId,
-      );
+      const keyringAccount: KeyringAccount | undefined =
+        await keyring.getAccount(params.keyringAccountId);
       if (!keyringAccount) {
         throw new Error('Account not found');
       }
@@ -139,12 +143,13 @@ export const onRpcRequest: OnRpcRequestHandler = async ({ origin, request }) => 
       }
 
       const scAddress = await getSmartAccountAddress(owner);
-      const [smartAcountBalance, ownerBalance, nonce, deposit,] = await Promise.all([
-        await getBalance(scAddress),
-        await getBalance(owner),
-        await getNonce(scAddress),
-        await getDeposit(scAddress),
-      ]);
+      const [smartAcountBalance, ownerBalance, nonce, deposit] =
+        await Promise.all([
+          await getBalance(scAddress),
+          await getBalance(owner),
+          await getNonce(scAddress),
+          await getDeposit(scAddress),
+        ]);
 
       result = JSON.stringify({
         initCode: await getAccountInitCode(owner),
@@ -159,7 +164,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({ origin, request }) => 
         owner: {
           address: owner,
           balance: ownerBalance, // in wei
-        }
+        },
       });
 
       return result;
@@ -352,6 +357,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({ origin, request }) => 
  *
  * @param args - Request arguments.
  * @param args.request - Request to execute.
+ * @param args.origin - Caller origin.
  * @returns The execution result.
  */
 export const onKeyringRequest: OnKeyringRequestHandler = async ({
@@ -362,7 +368,7 @@ export const onKeyringRequest: OnKeyringRequestHandler = async ({
     `SNAPS/Keyring request (origin="${origin}"):`,
     JSON.stringify(request, undefined, 2),
   );
-  
+
   // Check if origin is allowed to call method.
   if (!hasPermission(origin, request.method)) {
     throw new Error(

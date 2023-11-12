@@ -1,15 +1,7 @@
 {
   "name": "@transeptor-labs/smarthub-snap",
   "version": "0.1.0",
-  "homepage": "https://github.com/transeptorlabs/smarthub-snap/#readme",
   "description": "A MetaMask snap the helps you manage ERC-4337 smart account",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/transeptorlabs/smarthub-snap.git"
-  },
-  "bugs": {
-    "url": "https://github.com/transeptorlabs/smarthub-snap/issues"
-  },
   "keywords": [
     "metamask",
     "snap",
@@ -17,6 +9,14 @@
     "smart account",
     "ERC-4337"
   ],
+  "homepage": "https://github.com/transeptorlabs/smarthub-snap/#readme",
+  "bugs": {
+    "url": "https://github.com/transeptorlabs/smarthub-snap/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/transeptorlabs/smarthub-snap.git"
+  },
   "license": "MIT",
   "author": {
     "name": "Transeptor Labs",

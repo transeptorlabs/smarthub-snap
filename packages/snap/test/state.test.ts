@@ -227,7 +227,7 @@ describe('state module - State', () => {
 
       (global as any).snap.request.mockReturnValue(Promise.resolve(mockState));
 
-      let stateBefore = await getTxHashes(keyringAccountId, '0x1');
+      const stateBefore = await getTxHashes(keyringAccountId, '0x1');
       expect(stateBefore).toStrictEqual(['hash1', 'hash2']);
 
       await storeTxHash(keyringAccountId, 'hash5', '0x1');
@@ -310,7 +310,7 @@ describe('state module - State', () => {
 
       await storeKeyRing({
         wallets: {},
-        pendingRequests: {}
+        pendingRequests: {},
       });
 
       expect((global as any).snap.request).toHaveBeenCalledWith({

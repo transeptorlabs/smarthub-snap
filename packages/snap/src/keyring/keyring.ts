@@ -31,12 +31,10 @@ import {
 import { KeyringEvent } from '@metamask/keyring-api/dist/events';
 import type { Json, JsonRpcRequest } from '@metamask/utils';
 import { v4 as uuid } from 'uuid';
-
 import { Wallet as EthersWallet, ethers } from 'ethers';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { deepHexlify } from '@account-abstraction/utils';
-import { HttpRpcClient } from '../client';
-import { getBundlerUrls, storeKeyRing, storeUserOpHash } from '../state/state';
+import { storeKeyRing } from '../state/state';
 import {
   isEvmChain,
   serializeTransaction,
@@ -58,6 +56,7 @@ export type Wallet = {
 
 export class SimpleKeyring implements Keyring {
   #wallets: Record<string, Wallet>;
+
   #pendingRequests: Record<string, KeyringRequest>;
 
   constructor(state: KeyringState) {
@@ -128,7 +127,7 @@ export class SimpleKeyring implements Keyring {
     );
 
     // extract name from options
-    const name = options?.name as string | undefined
+    const name = options?.name as string | undefined;
     if (!name) {
       throw new Error('Account name is required');
     }
@@ -137,19 +136,13 @@ export class SimpleKeyring implements Keyring {
       throw new Error(`Account name already in use: ${name}`);
     }
     const { privateKey, address } = await this.#generateKeyPair(name);
-
-    // Remove any sensitve data, since the
-    // account object is exposed to external components, such as MetaMask and
-    // the snap UI. The name is kept because it is not considered sensitive and is used to derive the private key.
-    options = {}
-    options.name = name
-    options.owner = address
-    const scAddress = await getSmartAccountAddress(address);
-
     const account: KeyringAccount = {
       id: uuid(),
-      options,
-      address: scAddress,
+      options: {
+        name,
+        owner: address,
+      }, // only include name and owner in options
+      address: await getSmartAccountAddress(address),
       methods: [
         EthMethod.PersonalSign,
         EthMethod.Sign,
@@ -174,7 +167,7 @@ export class SimpleKeyring implements Keyring {
   }
 
   async updateAccount(account: KeyringAccount): Promise<void> {
-    const currentAccount = this.#wallets[account.id].account
+    const currentAccount = this.#wallets[account.id].account;
     if (currentAccount === undefined) {
       throw new Error(`Account '${account.id}' not found`);
     }
@@ -189,7 +182,7 @@ export class SimpleKeyring implements Keyring {
       options: currentAccount.options,
     };
 
-    if (account.options.name, currentAccount.options.name) {
+    if (account.options.name !== currentAccount.options.name) {
       throw new Error(`Account name can not change: ${account.options.name}`);
     }
 
@@ -219,12 +212,19 @@ export class SimpleKeyring implements Keyring {
   }
 
   async submitRequest(request: KeyringRequest): Promise<SubmitRequestResponse> {
-    console.log('SNAPS/submitRequest requests:', JSON.stringify(request, undefined, 2));
+    console.log(
+      'SNAPS/submitRequest requests:',
+      JSON.stringify(request, undefined, 2),
+    );
 
     if (request.scope !== 'async' && request.scope !== 'sync') {
-      throw new Error(`Invalid request scope: ${request.scope}, must be 'async' or 'sync'`);
+      throw new Error(
+        `Invalid request scope: ${request.scope}, must be 'async' or 'sync'`,
+      );
     }
-    return request.scope == 'sync' ? this.#syncSubmitRequest(request) : this.#asyncSubmitRequest(request);
+    return request.scope === 'sync'
+      ? this.#syncSubmitRequest(request)
+      : this.#asyncSubmitRequest(request);
   }
 
   #getCurrentUrl(): string {
@@ -270,7 +270,7 @@ export class SimpleKeyring implements Keyring {
     const result = await this.#handleSigningRequest(method, params);
     return {
       pending: false,
-      result: result,
+      result,
     };
   }
 
@@ -280,6 +280,7 @@ export class SimpleKeyring implements Keyring {
       if (request === undefined) {
         throw new Error(`Request '${id}' not found`);
       }
+
       console.log(
         'SNAPS/',
         ' approveRequest requests',
@@ -288,7 +289,7 @@ export class SimpleKeyring implements Keyring {
 
       const result = await this.#handleSigningRequest(
         request.method,
-        request.params as Json ?? [],
+        (request.params as Json) ?? [],
       );
 
       delete this.#pendingRequests[id];
@@ -303,7 +304,10 @@ export class SimpleKeyring implements Keyring {
 
   async rejectRequest(id: string): Promise<void> {
     const request: KeyringRequest = await this.getRequest(id);
-    console.log('SNAPS/rejectRequest requests:', JSON.stringify(request, undefined, 2));
+    console.log(
+      'SNAPS/rejectRequest requests:',
+      JSON.stringify(request, undefined, 2),
+    );
 
     if (request === undefined) {
       throw new Error(`Request '${id}' not found`);
@@ -322,32 +326,35 @@ export class SimpleKeyring implements Keyring {
       }
 
       case EthMethod.SignTransaction: {
-        const [from, type, tx] = params as [string, string, JsonTx | UserOperation];
+        const [from, type, tx] = params as [
+          string,
+          string,
+          JsonTx | UserOperation,
+        ];
         if (type === 'eoa') {
           return await this.#signTransactionEthers(from, tx as JsonTx);
         } else if (type === 'eip4337') {
-          return await this.#signUserOp(from, tx as UserOperation) as Json;
-        } else {
-          throw new Error(`Unknown account type: ${type}`);
+          return (await this.#signUserOp(from, tx as UserOperation)) as Json;
         }
+        throw new Error(`Unknown account type: ${type}`);
       }
 
       case EthMethod.SignTypedDataV1: {
-        const [from, data] = params as [string,Json];
+        const [from, data] = params as [string, Json];
         return this.#signTypedData(from, data, {
           version: SignTypedDataVersion.V1,
         });
       }
 
       case EthMethod.SignTypedDataV3: {
-        const [from, data] = params as [string,Json];
+        const [from, data] = params as [string, Json];
         return this.#signTypedData(from, data, {
           version: SignTypedDataVersion.V3,
         });
       }
 
       case EthMethod.SignTypedDataV4: {
-        const [from, data] = params as [string,Json];
+        const [from, data] = params as [string, Json];
         return this.#signTypedData(from, data, {
           version: SignTypedDataVersion.V4,
         });
@@ -364,34 +371,10 @@ export class SimpleKeyring implements Keyring {
     }
   }
 
-  async #handleSendUserOp(
-    accountId: string,
-    signedUserOp: UserOperation,
-  ): Promise<void> {
-    // connect to rpc
-    const [bundlerUrls, chainId] = await Promise.all([
-      getBundlerUrls(),
-      ethereum.request({ method: 'eth_chainId' }),
-    ]);
-    const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
-    const rpcResult = await rpcClient.send('eth_sendUserOperation', [
-      signedUserOp,
-      DEFAULT_ENTRY_POINT,
-    ]);
-
-    // store userOp hash pending
-    if (rpcResult.sucess === true) {
-      await storeUserOpHash(
-        accountId,
-        chainId as string,
-        rpcResult.data as string,
-      );
-    } else {
-      throw new Error(`Failed to send user op: ${rpcResult.data}`);
-    }
-  }
-
-  async #signUserOp(from: string, userOp: UserOperation): Promise<UserOperation> {
+  async #signUserOp(
+    from: string,
+    userOp: UserOperation,
+  ): Promise<UserOperation> {
     const provider = new ethers.providers.Web3Provider(ethereum as any);
     const entryPointContract = new ethers.Contract(
       DEFAULT_ENTRY_POINT,
@@ -400,18 +383,14 @@ export class SimpleKeyring implements Keyring {
     );
 
     // sign the userOp
-    const { privateKey, account } = this.#getWalletByAddress(from);
+    const { privateKey } = this.#getWalletByAddress(from);
     const wallet = new EthersWallet(privateKey);
     userOp.signature = '0x';
     const userOpHash = ethers.utils.arrayify(
       await entryPointContract.getUserOpHash(userOp),
     );
     const signature = await wallet.signMessage(userOpHash);
-    userOp.signature = signature;
-
-    // hexlify the signed userOp
-    const hexifiedUserOp: UserOperation = deepHexlify(userOp);
-    return hexifiedUserOp;
+    return deepHexlify({ ...userOp, signature });
   }
 
   async #signTransactionEthers(from: string, tx: JsonTx): Promise<string> {

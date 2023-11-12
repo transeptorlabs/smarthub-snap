@@ -19,7 +19,7 @@ export type SmartContractAccount = {
   owner: {
     address: string;
     balance: string;
-  }
+  };
   balance: string;
   nonce: BigNumber;
   index: BigNumber;

@@ -1,12 +1,15 @@
 # SmartHub
+
 This repository contains Transeptor Labs SmartHub Snap.
 
 SmartHub is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity. Our snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components. Allowing users to easily create and manage their smart accounts.
 
 ## What is a snap
+
 [MetaMask Snaps](https://metamask.io/snaps/) allows anyone to safely expand the capabilities of MetaMask. A snap is a program that isolated environment that can customize the wallet experience.
 
 ## Custom Methods
+
 SmartHub snap adds extra features to MetaMask by including custom RPC methods that work with ERC-4337 core components. Allowing users to easily create and manage their smart accounts. Dapps can invoke these methods using the `wallet_invokeSnap` RPC method. The Snap must be installed and the caller must have the permission to communicate with the Snap, or the request is rejected.
 
 ### ERC-4337 account management
@@ -14,6 +17,7 @@ SmartHub snap adds extra features to MetaMask by including custom RPC methods th
 Custom RPC method that allows dapps to manage smart accounts.
 
 #### notify
+
 Notifies users with a custom copyable message via `snap_dialog` alert UI.
 
 ```TS
@@ -36,6 +40,7 @@ await window.ethereum.request({
 ```
 
 #### get_next_request_id
+
 Get the next keyring request ID.
 
 ```TS
@@ -52,11 +57,8 @@ const result = await window.ethereum.request({
 console.log(result);
 ```
 
-
-
-
-
 #### sc_account
+
 Returns information about the smart account with the given keyring Account Id.
 
 ```TS
@@ -90,6 +92,7 @@ console.log(result);
 ```
 
 #### get_user_ops_hashes
+
 Returns a list of confirmed operations hashes for the given keyring Account Id.
 
 ```TS
@@ -112,6 +115,7 @@ console.log(result);
 ```
 
 #### clear_activity_data
+
 Clears all the smart account activity data from the snap storage.
 
 ```TS
@@ -128,6 +132,7 @@ await window.ethereum.request({
 ```
 
 #### add_bundler_url
+
 Add a new bundler url to the snap storage.
 
 ```TS
@@ -144,6 +149,7 @@ await window.ethereum.request({
 ```
 
 #### get_bundler_urls
+
 Returns a list of all the bundler urls in the snap storage.
 
 ```TS
@@ -163,11 +169,12 @@ const result: BundlerUrls = await window.ethereum.request({
 console.log(result);
 ```
 
-### Build ERC-4337 
+### Build ERC-4337
 
 Custom RPC method that helps dapps build ERC-4337 user operations.
 
 #### get_user_op_call_data
+
 Generates the call data for the given user operation.
 
 ```TS
@@ -193,6 +200,7 @@ console.log(result);
 ```
 
 #### estimate_creation_gas
+
 Estimates the gas cost for creating a new counter factual smart account.
 
 ```TS
@@ -215,9 +223,11 @@ console.log(BigNumber.from(parsedResult) as BigNumber);
 ```
 
 ### ERC-4337 eth and debug methods
+
 Wraps all the eth and debug methods for [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337).
 
 Methods supported by the snap:
+
 - eth_supportedEntryPoints
 - eth_estimateUserOperationGas
 - eth_getUserOperationByHash
@@ -233,6 +243,7 @@ Methods supported by the snap:
 To invoke any of these methods use the `wallet_invokeSnap` RPC method.
 
 This example shows how to invoke the `eth_supportedEntryPoints` method, but the same applies to all the other methods.
+
 ```TS
 await window.ethereum.request({
     method: 'wallet_invokeSnap',
@@ -247,10 +258,13 @@ await window.ethereum.request({
 ```
 
 ## Keyring methods
+
 Used MetaMask keyring to create and manage accounts that are natively supported within the extension, appearing in MetaMask's UI, and can be used with dapps. Dapps can invoke these methods using the `KeyringSnapRpcClient` instance.
 
 ### Create Account
+
 Creates a new ERC-4337 smart account and adds it to the keyring. Returns the new account's address.
+
 ```TS
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
@@ -262,7 +276,9 @@ const newAccount = await client.createAccount({
 ```
 
 ### Delete Account
+
 Deletes the smart account with the given ID from the keyring.
+
 ```TS
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
@@ -271,7 +287,9 @@ await client.deleteAccount(keyringAccountId);
 ```
 
 ### List Accounts
+
 Returns a list of all the smart accounts in the keyring.
+
 ```TS
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
@@ -280,7 +298,9 @@ const accounts = await client.listAccounts();
 ```
 
 ### List Request
+
 Returns a list of all the smart account pending requests in the keyring.
+
 ```TS
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
@@ -289,17 +309,21 @@ const pendingRequests = await client.listRequests();
 ```
 
 ### Approve Request
+
 Approves a smart account pending request in the keyring.
+
 ```TS
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
 const client: KeyringSnapRpcClient = new KeyringSnapRpcClient('npm:@transeptor-labs/smarthub-snap', window.ethereum);
-    
+
 await client.approveRequest('requestId');
 ```
 
 ### Reject Request
+
 Rejects a smart account pending request in the keyring.
+
 ```TS
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
@@ -309,7 +333,9 @@ await client.rejectRequest(requestId);
 ```
 
 ### Send Request Async
+
 Sends a request to the keyring that will be handled asynchronously waiting for the user to approve or reject it.
+
 ```TS
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 
@@ -327,7 +353,9 @@ const result = await snapRpcClient.submitRequest({
 ```
 
 ### Send Request Sync
+
 Sends a request to the keyring that will be handled synchronously(immediately) returning the result of the request.
+
 ```TS
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 

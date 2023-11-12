@@ -1,18 +1,18 @@
 {
   "version": "0.1.0",
-  "description": "A MetaMask snap the wraps ERC-4337 eth namespace methods.",
-  "proposedName": "ERC-4337 Relayer",
+  "description": "A snap the helps you manage ERC-4337 smart account",
+  "proposedName": "SmartHub",
   "repository": {
     "type": "git",
-    "url": "https://github.com/transeptorlabs/erc-4337-snap.git"
+    "url": "https://github.com/transeptorlabs/smarthub-snap.git"
   },
   "source": {
-    "shasum": "pzjrsPDQ9FhkEXf/5NqGi+3G6G92E3/L2Lh134QsOKA=",
+    "shasum": "VdbGSpRmEPAgnbLMmvYcAfvYeoKgJHC1v2kknbsLV0M=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
         "iconPath": "images/icon.svg",
-        "packageName": "@transeptor/erc-4337-relayer",
+        "packageName": "@transeptor-labs/smarthub-snap",
         "registry": "https://registry.npmjs.org/"
       }
     }
@@ -20,13 +20,18 @@
   "initialPermissions": {
     "snap_dialog": {},
     "endowment:rpc": {
-      "dapps": true,
-      "snaps": false
+      "dapps": true
     },
     "endowment:ethereum-provider": {},
     "endowment:network-access": {},
     "snap_manageState": {},
     "snap_manageAccounts": {},
+    "endowment:keyring": {
+      "allowedOrigins": [
+        "https://transeptorlabs.github.io",
+        "http://localhost:8000"
+      ]
+    },
     "snap_getEntropy": {}
   },
   "manifestVersion": "0.1"

@@ -3,14 +3,15 @@ import styled from 'styled-components';
 import { ClipLoader } from 'react-spinners';
 import { CommonInputForm } from './Form';
 import { FaRegTimesCircle, FaCheckCircle } from 'react-icons/fa';
-import { MetaMaskContext, MetamaskActions, useAcount } from '../hooks';
+import { MetaMaskContext, useAcount } from '../hooks';
 import { AccountRequestDisplay } from './Account';
 import { convertToEth, convertToWei, estimateGas, parseChainId, trimAccount } from '../utils/eth';
 import { BlockieAccountModal } from './Blockie-Icon';
 import { BigNumber, ethers } from 'ethers';
-import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getSignedTxs, getUserOpCallData, notify, storeTxHash } from '../utils';
+import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getSignedTxs, getUserOpCallData, handleCopyToClipboard, notify, storeTxHash } from '../utils';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { UserOperation } from '../types';
+import { FaCopy } from "react-icons/fa";
 
 const Body = styled.div`
   padding: 2rem 0;
@@ -34,6 +35,11 @@ const FlexCol = styled.div`
   display: flex;
   flex-direction: column;
   align-items: left;
+`;
+
+const FlexRow = styled.div`
+  display: flex;
+  flex-direction: row;
 `;
 
 const AccountContainer = styled.div`
@@ -84,6 +90,17 @@ const TextBold = styled.p`
   margin-bottom: .5rem;
 `; 
 
+const AccountCopy = styled.div`
+  margin-left: 4rem;
+  margin-top: auto;
+  margin-bottom: 0;
+  margin-right: 5rem;
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary.main};
+    cursor: pointer;
+  }
+`;
+
 enum Stage {
     EnterAmount = 'Enter Amount',
     Review = 'Review',
@@ -107,14 +124,21 @@ export const EthereumTransactionModalComponent = ({
   const [amount, setAmount] = useState<string>('');
   const [failMessage, setFailMessage] = useState<string>('User denied the transaction signature.');
   const [successMessage, setSuccessMessage] = useState<string>('');
-  const { sendRequest, approveRequest, rejectRequest, getSmartAccount, getAccountActivity, updateAccountBalance, getKeyringSnapAccounts } = useAcount();
+  const {
+    sendRequestSync,
+    approveRequest,
+    rejectRequest,
+    getSmartAccount,
+    getAccountActivity,
+    getKeyringSnapAccounts,
+  } = useAcount();
 
   const handleDepositSubmit = async () => {
     const depositInWei = convertToWei(amount);
   
     // check the owner account has enough balance
-    if (BigNumber.from(depositInWei).gte(state.selectedAccountBalance)) {
-        throw new Error('Owner account has, insufficient funds.')
+    if (BigNumber.from(depositInWei).gte(state.scAccount.owner.balance)) {
+      throw new Error('Owner account has, insufficient funds.')
     }
     
     const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
@@ -130,21 +154,24 @@ export const EthereumTransactionModalComponent = ({
     );
 
     // set transation data (eth transaction type 2)
-    const transactionData = await entryPointContract.populateTransaction.depositTo(state.scAccount.address, {
-    type: 2,
-    nonce: await provider.getTransactionCount(state.selectedSnapKeyringAccount.address, 'latest'),
-    gasLimit: estimateGasAmount.toNumber(),
-    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? BigNumber.from(0),
-    maxFeePerGas: feeData.maxFeePerGas ?? BigNumber.from(0),
-    value: depositInWei.toString(),
-    })
+    const transactionData = await entryPointContract.populateTransaction.depositTo(state.scAccount.address,
+      {
+        // Type 2 Transactions (EIP-1559)
+        from: state.selectedSnapKeyringAccount.address,
+        nonce: await provider.getTransactionCount(state.selectedSnapKeyringAccount.address, 'latest'),
+        gasLimit: estimateGasAmount.toNumber(),
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? BigNumber.from(0),
+        maxFeePerGas: feeData.maxFeePerGas ?? BigNumber.from(0),
+        value: depositInWei.toString(),
+      }
+    )
     transactionData.chainId = parseChainId(state.chainId)
 
     // send request to keyring for approval
-    await sendRequest(
-    state.selectedSnapKeyringAccount.id,
-    'eth_signTransaction',
-    [state.selectedSnapKeyringAccount.address, transactionData] // [from, transactionData]
+    const result = await sendRequestSync(
+      state.selectedSnapKeyringAccount.id,
+      'eth_signTransaction',
+      [state.selectedSnapKeyringAccount.address, 'eoa', transactionData] // [from, type, transactionData]
     );
   }
 
@@ -161,10 +188,10 @@ export const EthereumTransactionModalComponent = ({
 
     // get call data
     const callData = await getUserOpCallData(
-        state.selectedSnapKeyringAccount.id,
-        entryPointContract.address,
-        BigNumber.from(0),
-        entryPointContract.interface.encodeFunctionData('withdrawTo', [state.selectedSnapKeyringAccount.address, withdrawAmountInWei.toString()]) // users intent(contract they want to interact with)
+      state.selectedSnapKeyringAccount.id,
+      entryPointContract.address,
+      BigNumber.from(0),
+      entryPointContract.interface.encodeFunctionData('withdrawTo', [state.selectedSnapKeyringAccount.address, withdrawAmountInWei.toString()]) // users intent(contract they want to interact with)
     )
 
     // set transation data (user operation)   
@@ -195,44 +222,44 @@ export const EthereumTransactionModalComponent = ({
     userOpToSign.callGasLimit = estimatGasResult.callGasLimit.toHexString()
 
     if (initGas.eq(0)) {
-        userOpToSign.verificationGasLimit = BigNumber.from(100000).toHexString()
-        userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
+      userOpToSign.verificationGasLimit = BigNumber.from(100000).toHexString()
+      userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
 
-        // add gas buffer
-        const preVerificationGasWithBuffer = calcPreVerificationGas(userOpToSign)
-        userOpToSign.preVerificationGas = BigNumber.from(preVerificationGasWithBuffer).toHexString()
+      // add gas buffer
+      const preVerificationGasWithBuffer = calcPreVerificationGas(userOpToSign)
+      userOpToSign.preVerificationGas = BigNumber.from(preVerificationGasWithBuffer).toHexString()
     } else {
-        userOpToSign.verificationGasLimit = estimatGasResult.verificationGas.add(initGas).toHexString()
-        userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
+      userOpToSign.verificationGasLimit = estimatGasResult.verificationGas.add(initGas).toHexString()
+      userOpToSign.preVerificationGas = estimatGasResult.preVerificationGas.add(initGas).toHexString()
     }
 
     // send request to keyring for approval
-    await sendRequest(
-        state.selectedSnapKeyringAccount.id,
-        'eth_sendTransaction',
-        [state.selectedSnapKeyringAccount.address, userOpToSign] // [from, transactionData]
+    await sendRequestSync(
+      state.selectedSnapKeyringAccount.id,
+      'eth_sendTransaction',
+      [state.selectedSnapKeyringAccount.address, 'eip4337', userOpToSign] // [from, type, transactionData]
     );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     try {
-        e.preventDefault();
+      e.preventDefault();
 
-        setStatus(Stage.Loading);
-    
-        if (transactionType === TransactionType.Deposit) {
-            await handleDepositSubmit()
-        } else if (transactionType === TransactionType.Withdraw) {
-            await handleWithdrawSubmit()
-        } else {
-            throw new Error('Invalid transaction type');
-        }
-    
-        setStatus(Stage.Review);
+      setStatus(Stage.Loading);
+
+      if (transactionType === TransactionType.Deposit) {
+        await handleDepositSubmit();
+      } else if (transactionType === TransactionType.Withdraw) {
+        await handleWithdrawSubmit();
+      } else {
+        throw new Error('Invalid transaction type');
+      }
+
+      setStatus(Stage.Review);
     } catch (e) {
-        setAmount('');
-        setFailMessage(e.message)
-        setStatus(Stage.Failed);
+      setAmount('');
+      setFailMessage(e.message);
+      setStatus(Stage.Failed);
     }
   };
 
@@ -275,7 +302,6 @@ export const EthereumTransactionModalComponent = ({
 
       await getAccountActivity(state.selectedSnapKeyringAccount.id);
       await getSmartAccount(state.selectedSnapKeyringAccount.id);
-      await updateAccountBalance(state.selectedSnapKeyringAccount.address);
     } catch (e) {
         setFailMessage(e.message)
         setStatus(Stage.Failed);
@@ -298,96 +324,125 @@ export const EthereumTransactionModalComponent = ({
 
   const renderStage = () => {
     switch (status) {
-        case Stage.EnterAmount:
-            return (
-                <FlexCol>
-                    {transactionType === TransactionType.Deposit ? 
-                        (
-                            <FlexCol>
-                                <AccountContainer>
-                                    <BlockieAccountModal/>
-                                    <FlexCol>
-                                        <TextBold>(owner EOA)</TextBold>
-                                        <Text>{trimAccount(state.selectedSnapKeyringAccount.address)}</Text>
-                                    </FlexCol>
-                                </AccountContainer>
-                                <Text>Available to deposit {convertToEth(state.selectedAccountBalance)} ETH</Text>
-                            </FlexCol>
-                        ) 
-                        : 
-                        (
-                            <FlexCol>
-                                <AccountContainer>
-                                    <BlockieAccountModal/>
-                                    <FlexCol>
-                                        <TextBold>(smart account)</TextBold>
-                                        <Text>{trimAccount(state.scAccount.address)}</Text>
-                                    </FlexCol>
-                                </AccountContainer>
-                                <Text>Available to withdraw {convertToEth(state.scAccount.deposit)} ETH</Text>
-                            </FlexCol>
-                        )
-                    }
-                    <CommonInputForm
-                        key={"send-amount"}
-                        onSubmitClick={handleSubmit}
-                        buttonText="Review"
-                        inputs={
-                            [
-                                {
-                                    id: "1",
-                                    onInputChange: handleAmountChange,
-                                    inputValue: amount,
-                                    inputPlaceholder:"ETH Amount",
-                                    type: 'number'
-                                },
-                            ]
+      case Stage.EnterAmount:
+        return (
+          <FlexCol>
+            {transactionType === TransactionType.Deposit ? (
+              <FlexCol>
+                <AccountContainer>
+                  <BlockieAccountModal />
+                  <FlexCol>
+                    <TextBold>(owner)</TextBold>
+                    <FlexRow>
+                      <Text>
+                        {trimAccount(state.selectedSnapKeyringAccount.options.owner as string)}
+                      </Text>
+                      <AccountCopy
+                        onClick={(e) =>
+                          handleCopyToClipboard(
+                            e,
+                            state.selectedSnapKeyringAccount.options.owner as string,
+                          )
                         }
-                    />
-
-                </FlexCol>
-            );
-        case Stage.Review:
-            return (
-                <AccountRequestDisplay approveRequestClick={handleApproveClick} rejectRequestClick={handleRejectClick} />
-            )
-        case Stage.Loading:
-            return (
-                <SpinnerContainer>
-                    <ClipLoader color="#8093ff" size={50} />
-                </SpinnerContainer>
-            );
-        case Stage.Failed:
-            return (
-                <Container>
-                    <IconContainer>
-                        <FaRegTimesCircle size={80} color='#d73a49' />
-                    </IconContainer>
-                    <Status>Transaction Failed</Status>
-                    <Text>{failMessage}</Text>
-                </Container>
-            )
-        case Stage.Sent:
-            return (
-                <Container>
-                    <IconContainer>
-                        <FaCheckCircle size={80} color='#32a852' />
-                    </IconContainer>
-                    <Status>{transactionType === TransactionType.Deposit ? 'Deposit' : 'Withdraw'} successfully sent</Status>
-                    <Text>{successMessage}</Text>
-                </Container>
-            )
+                      >
+                        <FaCopy />
+                      </AccountCopy>
+                    </FlexRow>
+                    <Text>Balance:{' '}{convertToEth(state.scAccount.owner.balance)} ETH
+                </Text>
+                  </FlexCol>
+                </AccountContainer>
+             
+              </FlexCol>
+            ) : (
+              <FlexCol>
+                <AccountContainer>
+                  <BlockieAccountModal />
+                  <FlexCol>
+                    <TextBold>(smart account)</TextBold>
+                    <FlexRow>
+                      <Text>{trimAccount(state.scAccount.address)}</Text>
+                      <AccountCopy
+                        onClick={(e) =>
+                          handleCopyToClipboard(e, state.scAccount.address)
+                        }
+                      >
+                        <FaCopy />
+                      </AccountCopy>
+                    </FlexRow>
+                    <Text>Total deposit: {convertToEth(state.scAccount.deposit)}{' '}ETH</Text>
+                  </FlexCol>
+                </AccountContainer>
+              </FlexCol>
+            )}
+            <CommonInputForm
+              key={'send-amount'}
+              onSubmitClick={handleSubmit}
+              buttonText="Review"
+              inputs={[
+                {
+                  id: '1',
+                  onInputChange: handleAmountChange,
+                  inputValue: amount,
+                  inputPlaceholder: 'ETH Amount',
+                  type: 'number',
+                },
+              ]}
+            />
+          </FlexCol>
+        );
+      case Stage.Review:
+        return (
+          <>
+          <p>Review..</p>
+          </>
+          // <AccountRequestDisplay
+          //   approveRequestClick={handleApproveClick}
+          //   rejectRequestClick={handleRejectClick}
+          // />
+        );
+      case Stage.Loading:
+        return (
+          <SpinnerContainer>
+            <ClipLoader color="#8093ff" size={50} />
+          </SpinnerContainer>
+        );
+      case Stage.Failed:
+        return (
+          <Container>
+            <IconContainer>
+              <FaRegTimesCircle size={80} color="#d73a49" />
+            </IconContainer>
+            <Status>Transaction Failed</Status>
+            <Text>{failMessage}</Text>
+          </Container>
+        );
+      case Stage.Sent:
+        return (
+          <Container>
+            <IconContainer>
+              <FaCheckCircle size={80} color="#32a852" />
+            </IconContainer>
+            <Status>
+              {transactionType === TransactionType.Deposit
+                ? 'Deposit'
+                : 'Withdraw'}{' '}
+              successfully sent
+            </Status>
+            <Text>{successMessage}</Text>
+          </Container>
+        );
     }
   };
 
   return (
     <Body>
-        <Container>
-            {status !== Stage.Loading && (
-                <TextTitle>{status}: {transactionType}</TextTitle>
-            )}
-            {renderStage()}
-        </Container>
+      <Container>
+        {status !== Stage.Loading && (
+          <TextTitle>{status}: {transactionType}</TextTitle>
+        )}
+        {renderStage()}
+      </Container>
     </Body>
   );
 };

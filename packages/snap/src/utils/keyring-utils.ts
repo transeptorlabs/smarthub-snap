@@ -1,25 +1,6 @@
 import { JsonTx } from '@ethereumjs/tx';
 import type { Json } from '@metamask/utils';
-
-import {
-  Wallet,
-  InternalMethod,
-  RequestMethods,
-  SnapKeyringMethod,
-} from '../keyring';
-
-/**
- * Logs a request with the specified request method and payload.
- *
- * @param requestMethod - The request method.
- * @param payload - The payload of the request.
- */
-export function logRequest(
-  requestMethod: SnapKeyringMethod | RequestMethods | InternalMethod,
-  payload: any,
-): void {
-  console.log(`[Snap] ${requestMethod} Payload: ${JSON.stringify(payload)}`);
-}
+import { Wallet } from '../keyring';
 
 /**
  * Serializes a transaction by removing undefined properties and converting them to null.
@@ -52,7 +33,7 @@ export function serializeTransaction(tx: JsonTx, type: number): Json {
  * @returns Returns true if no duplicate names are found, otherwise false.
  */
 export function isUniqueAccountName(name: string, wallets: Wallet[]): boolean {
-  return !wallets.find((wallet) => wallet.account.name === name);
+  return !wallets.find((wallet) => wallet.account.options.name === name);
 }
 
 /**

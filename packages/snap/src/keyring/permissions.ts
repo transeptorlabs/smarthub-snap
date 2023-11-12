@@ -1,27 +1,10 @@
-export enum SnapKeyringMethod {
-  ListAccounts = 'keyring_listAccounts',
-  CreateAccount = 'keyring_createAccount',
-  GetAccount = 'keyring_getAccount',
-  UpdateAccount = 'keyring_updateAccount',
-  DeleteAccount = 'keyring_deleteAccount',
-  ExportAccount = 'keyring_exportAccount',
-}
-
-export enum RequestMethods {
-  GetRequest = 'keyring_getRequest',
-  SubmitRequest = 'keyring_submitRequest',
-  ListRequests = 'keyring_listRequests',
-  DeleteRequest = 'keyring_deleteRequest',
-  ApproveRequest = 'keyring_approveRequest',
-  RejectRequest = 'keyring_rejectRequest',
-}
+import { KeyringRpcMethod } from '@metamask/keyring-api';
 
 export enum InternalMethod {
   // Smart account management
   GetNextRequestId = 'get_next_request_id',
   SmartAccount = 'sc_account',
   GetUserOpsHashes = 'get_user_ops_hashes',
-  GetSignedTxs = 'get_signed_txs',
   GetTxHashes = 'get_tx_hashes',
   StoreTxHash = 'store_tx_hash',
   GetUserOpCallData = 'get_user_op_call_data',
@@ -51,54 +34,44 @@ export enum InternalMethod {
   ClearActivityData = 'clear_activity_data',
 }
 
-// Not used yet
-export enum SigningMethods {
-  SignTransaction = 'sign_transaction',
-  SignTypedData = 'eth_signTypedData',
-  SignPersonalMessage = 'personal_sign',
-  EthSign = 'eth_sign',
-}
-
 export const PERMISSIONS = new Map<string, string[]>([
   [
     'metamask',
     [
-      // Snap keyring methods
-      SnapKeyringMethod.ListAccounts,
-      SnapKeyringMethod.CreateAccount,
-      SnapKeyringMethod.DeleteAccount,
-      SnapKeyringMethod.UpdateAccount,
-
-      // Snap request methods
-      RequestMethods.ListRequests,
-      RequestMethods.SubmitRequest,
-      RequestMethods.ApproveRequest,
-      RequestMethods.RejectRequest,
+      // Keyring methods
+      KeyringRpcMethod.ListAccounts,
+      KeyringRpcMethod.CreateAccount,
+      KeyringRpcMethod.DeleteAccount,
+      KeyringRpcMethod.UpdateAccount,
+      KeyringRpcMethod.ListRequests,
+      KeyringRpcMethod.SubmitRequest,
+      KeyringRpcMethod.ApproveRequest,
+      KeyringRpcMethod.RejectRequest,
     ],
   ],
   [
     'http://localhost:8000',
     [
-      // Snap keyring methods
-      SnapKeyringMethod.ListAccounts,
-      SnapKeyringMethod.CreateAccount,
-      SnapKeyringMethod.GetAccount,
-      SnapKeyringMethod.UpdateAccount,
-      SnapKeyringMethod.DeleteAccount,
-      SnapKeyringMethod.ExportAccount,
+      // keyring methods
+      KeyringRpcMethod.ListAccounts,
+      KeyringRpcMethod.CreateAccount,
+      KeyringRpcMethod.GetAccount,
+      KeyringRpcMethod.UpdateAccount,
+      KeyringRpcMethod.DeleteAccount,
+      KeyringRpcMethod.ExportAccount,
+      KeyringRpcMethod.ListRequests,
+      KeyringRpcMethod.SubmitRequest,
+      KeyringRpcMethod.ApproveRequest,
+      KeyringRpcMethod.RejectRequest,
 
-      // Snap request methods
-      RequestMethods.ListRequests,
-      RequestMethods.SubmitRequest,
-      RequestMethods.ApproveRequest,
-      RequestMethods.DeleteRequest,
-      RequestMethods.RejectRequest,
+      // ******************************
+      // Custom methods
+      // ******************************
 
       // Smart account management methods
       InternalMethod.GetNextRequestId,
       InternalMethod.SmartAccount,
       InternalMethod.GetUserOpsHashes,
-      InternalMethod.GetSignedTxs,
       InternalMethod.GetTxHashes,
       InternalMethod.StoreTxHash,
       InternalMethod.GetUserOpCallData,
@@ -129,28 +102,28 @@ export const PERMISSIONS = new Map<string, string[]>([
     ],
   ],
   [
-    'https://snap.transeptorlabs.io',
+    'https://transeptorlabs.github.io',
     [
-      // Snap keyring methods
-      SnapKeyringMethod.ListAccounts,
-      SnapKeyringMethod.CreateAccount,
-      SnapKeyringMethod.GetAccount,
-      SnapKeyringMethod.UpdateAccount,
-      SnapKeyringMethod.DeleteAccount,
-      SnapKeyringMethod.ExportAccount,
+      // keyring methods
+      KeyringRpcMethod.ListAccounts,
+      KeyringRpcMethod.CreateAccount,
+      KeyringRpcMethod.GetAccount,
+      KeyringRpcMethod.UpdateAccount,
+      KeyringRpcMethod.DeleteAccount,
+      KeyringRpcMethod.ExportAccount,
+      KeyringRpcMethod.ListRequests,
+      KeyringRpcMethod.SubmitRequest,
+      KeyringRpcMethod.ApproveRequest,
+      KeyringRpcMethod.RejectRequest,
 
-      // Snap request methods
-      RequestMethods.SubmitRequest,
-      RequestMethods.ListRequests,
-      RequestMethods.ApproveRequest,
-      RequestMethods.DeleteRequest,
-      RequestMethods.RejectRequest,
+      // ******************************
+      // Custom methods
+      // ******************************
 
       // Smart account management methods
       InternalMethod.GetNextRequestId,
       InternalMethod.SmartAccount,
       InternalMethod.GetUserOpsHashes,
-      InternalMethod.GetSignedTxs,
       InternalMethod.GetTxHashes,
       InternalMethod.StoreTxHash,
       InternalMethod.GetUserOpCallData,

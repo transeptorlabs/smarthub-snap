@@ -42,5 +42,7 @@ module.exports = {
     '**/build',
     '**/public',
     '**/.cache',
+    'packages/transeptor/**',
+    '**/packages/transeptor/**/',
   ],
 };

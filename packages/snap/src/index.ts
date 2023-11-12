@@ -1,8 +1,10 @@
-import { OnRpcRequestHandler } from '@metamask/snaps-types';
+import type {
+  OnRpcRequestHandler,
+  OnKeyringRequestHandler,
+} from '@metamask/snaps-types';
 import {
   KeyringAccount,
   MethodNotSupportedError,
-  buildHandlersChain,
   handleKeyringRequest,
 } from '@metamask/keyring-api';
 import { BigNumber } from 'ethers';
@@ -49,28 +51,15 @@ import {
 let keyring: SimpleKeyring;
 
 /**
- * Handle execution permissions.
+ * Verify if the caller can call the requested method.
  *
- * @param args - Request arguments.
- * @param args.origin - Caller origin.
- * @param args.request - Request to execute.
- * @returns Nothing, throws `MethodNotSupportedError` if the caller IS allowed
- * to call the method, throws an `Error` otherwise.
+ * @param origin - Caller origin.
+ * @param method - Method being called.
+ * @returns True if the caller is allowed to call the method, false otherwise.
  */
-const permissionsHandler: OnRpcRequestHandler = async ({
-  origin,
-  request,
-}): Promise<never> => {
-  const hasPermission = Boolean(
-    PERMISSIONS.get(origin)?.includes(request.method),
-  );
-  console.log('SNAPS/', 'hasPermission check', hasPermission);
-
-  if (!hasPermission) {
-    throw new Error(`origin ${origin} cannot call method ${request.method}`);
-  }
-  throw new MethodNotSupportedError(request.method);
-};
+function hasPermission(origin: string, method: string): boolean {
+  return PERMISSIONS.get(origin)?.includes(method) ?? false;
+}
 
 const intitKeyRing = async () => {
   const keyringState: KeyringState = await getKeyRing();
@@ -78,26 +67,30 @@ const intitKeyRing = async () => {
 };
 
 /**
- * Handle keyring requests.
+ * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
  *
  * @param args - Request arguments.
  * @param args.request - Request to execute.
+ * @param args.origin - Caller origin.
  * @returns The execution result.
  */
-const keyringHandler: OnRpcRequestHandler = async ({ request }) => {
-  await intitKeyRing();
-  return await handleKeyringRequest(keyring, request);
-};
+export const onRpcRequest: OnRpcRequestHandler = async ({
+  origin,
+  request,
+}) => {
+  console.log(
+    `SNAPS/RPC request (origin="${origin}"):`,
+    JSON.stringify(request, undefined, 2),
+  );
 
-/**
- * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
- *
- * @param args - The request handler args as object.
- * invoked the snap.
- * @param args.request - A validated JSON-RPC request object.
- * @throws If the request method is not valid for this snap.
- */
-const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
+  // Check if origin is allowed to call method.
+  if (!hasPermission(origin, request.method)) {
+    throw new Error(
+      `Origin '${origin}' is not allowed to call '${request.method}'`,
+    );
+  }
+
+  // Handle custom methods.
   const [bundlerUrls, chainId] = await Promise.all([
     getBundlerUrls(),
     ethereum.request({ method: 'eth_chainId' }),
@@ -138,30 +131,40 @@ const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
         request.params as any[]
       )[0] as SmartAccountParams;
 
-      const ownerAccount: KeyringAccount | undefined = await keyring.getAccount(
-        params.keyringAccountId,
-      );
-      if (!ownerAccount) {
+      const keyringAccount: KeyringAccount | undefined =
+        await keyring.getAccount(params.keyringAccountId);
+      if (!keyringAccount) {
         throw new Error('Account not found');
       }
 
-      const scAddress = await getSmartAccountAddress(ownerAccount.address);
-      const [balance, nonce, deposit] = await Promise.all([
-        await getBalance(scAddress),
-        await getNonce(scAddress),
-        await getDeposit(scAddress),
-      ]);
+      const owner = keyringAccount.options.owner as string | undefined;
+      if (!owner) {
+        throw new Error('Owner not found');
+      }
+
+      const scAddress = await getSmartAccountAddress(owner);
+      const [smartAcountBalance, ownerBalance, nonce, deposit] =
+        await Promise.all([
+          await getBalance(scAddress),
+          await getBalance(owner),
+          await getNonce(scAddress),
+          await getDeposit(scAddress),
+        ]);
 
       result = JSON.stringify({
-        initCode: await getAccountInitCode(ownerAccount.address),
+        initCode: await getAccountInitCode(owner),
         address: scAddress,
-        balance,
+        balance: smartAcountBalance, // in wei
         nonce,
         index: BigNumber.from(0),
         entryPoint: DEFAULT_ENTRY_POINT,
         factoryAddress: DEFAULT_ACCOUNT_FACTORY,
         deposit,
-        ownerAddress: ownerAccount.address,
+        ownerAddress: owner,
+        owner: {
+          address: owner,
+          balance: ownerBalance, // in wei
+        },
       });
 
       return result;
@@ -238,15 +241,9 @@ const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
       result = await storeTxHash(
         params.keyringAccountId,
         params.txHash,
-        params.keyringRequestId,
         params.chainId,
       );
       return result;
-    }
-
-    case InternalMethod.GetSignedTxs: {
-      result = await getKeyRing();
-      return JSON.stringify(result.signedTx);
     }
 
     case InternalMethod.AddBundlerUrl: {
@@ -351,12 +348,35 @@ const erc4337Handler: OnRpcRequestHandler = async ({ request }) => {
       return await rpcClient.send(request.method, request.params as any[]);
     }
     default:
-      throw new Error('Method not found.');
+      throw new MethodNotSupportedError(request.method);
   }
 };
 
-export const onRpcRequest: OnRpcRequestHandler = buildHandlersChain(
-  permissionsHandler,
-  keyringHandler,
-  erc4337Handler,
-);
+/**
+ * Handle keyring requests.
+ *
+ * @param args - Request arguments.
+ * @param args.request - Request to execute.
+ * @param args.origin - Caller origin.
+ * @returns The execution result.
+ */
+export const onKeyringRequest: OnKeyringRequestHandler = async ({
+  origin,
+  request,
+}) => {
+  console.log(
+    `SNAPS/Keyring request (origin="${origin}"):`,
+    JSON.stringify(request, undefined, 2),
+  );
+
+  // Check if origin is allowed to call method.
+  if (!hasPermission(origin, request.method)) {
+    throw new Error(
+      `Origin '${origin}' is not allowed to call '${request.method}'`,
+    );
+  }
+
+  // Handle keyring methods.
+  await intitKeyRing();
+  return await handleKeyringRequest(keyring, request);
+};

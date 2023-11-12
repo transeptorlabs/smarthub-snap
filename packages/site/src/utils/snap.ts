@@ -124,9 +124,14 @@ export const getScAccount = async (
     deposit: BigNumber.from(parsedResult.deposit).toString(),
     connected: true,
     ownerAddress: parsedResult.ownerAddress,
+    owner: {
+      address: parsedResult.owner.address,
+      balance: BigNumber.from(parsedResult.owner.balance).toString(),
+    },
   } as SmartContractAccount;
 };
 
+// TODO: remove this method
 export const getSignedTxs = async (): Promise<SignedTxs> => {
   const result = (await getMMProvider().request({
     method: 'wallet_invokeSnap',
@@ -139,6 +144,7 @@ export const getSignedTxs = async (): Promise<SignedTxs> => {
   return parsedResult as SignedTxs;
 };
 
+// TODO: Update this method
 export const storeTxHash = async (
   keyringAccountId: string,
   txHash: string,
@@ -164,6 +170,7 @@ export const storeTxHash = async (
   })) as boolean;
 };
 
+// TODO: Update this method
 export const getTxHashes = async (
   keyringAccountId: string,
   chainId: string,

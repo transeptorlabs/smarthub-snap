@@ -17,32 +17,36 @@ import {
   recoverPersonalSignature,
   signTypedData,
 } from '@metamask/eth-sig-util';
-import {
+import type {
   Keyring,
   KeyringAccount,
   KeyringRequest,
   SubmitRequestResponse,
 } from '@metamask/keyring-api';
+import {
+  EthAccountType,
+  EthMethod,
+  emitSnapKeyringEvent,
+} from '@metamask/keyring-api';
+import { KeyringEvent } from '@metamask/keyring-api/dist/events';
 import type { Json, JsonRpcRequest } from '@metamask/utils';
 import { v4 as uuid } from 'uuid';
-
 import { Wallet as EthersWallet, ethers } from 'ethers';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { deepHexlify } from '@account-abstraction/utils';
-import { HttpRpcClient } from '../client';
-import { getBundlerUrls, storeKeyRing, storeUserOpHash } from '../state/state';
+import { storeKeyRing } from '../state/state';
 import {
   isEvmChain,
   serializeTransaction,
   isUniqueAccountName,
 } from '../utils';
-import { DEFAULT_ENTRY_POINT } from '../4337';
+import { DEFAULT_ENTRY_POINT, getSmartAccountAddress } from '../4337';
 import { UserOperation } from '../types';
+import packageInfo from '../../package.json';
 
 export type KeyringState = {
   wallets: Record<string, Wallet>;
   pendingRequests: Record<string, KeyringRequest>;
-  signedTx: Record<string, string>;
 };
 
 export type Wallet = {
@@ -55,207 +59,9 @@ export class SimpleKeyring implements Keyring {
 
   #pendingRequests: Record<string, KeyringRequest>;
 
-  #signedTx: Record<string, string>;
-
   constructor(state: KeyringState) {
     this.#wallets = state.wallets;
     this.#pendingRequests = state.pendingRequests;
-    this.#signedTx = state.signedTx;
-  }
-
-  async listAccounts(): Promise<KeyringAccount[]> {
-    return Object.values(this.#wallets).map((wallet) => wallet.account);
-  }
-
-  async getAccount(id: string): Promise<KeyringAccount | undefined> {
-    return this.#wallets[id].account;
-  }
-
-  async createAccount(
-    name: string,
-    options: Record<string, Json> | null = null,
-  ): Promise<KeyringAccount> {
-    const { privateKey, address } = await this.#generateKeyPair(name);
-
-    if (!isUniqueAccountName(name, Object.values(this.#wallets))) {
-      throw new Error(`Account name already in use: ${name}`);
-    }
-
-    const account: KeyringAccount = {
-      id: uuid(),
-      name,
-      options,
-      address,
-      supportedMethods: [
-        'eth_sendTransaction',
-        'eth_signTransaction',
-        'eth_sign',
-        'eth_signTypedData_v1',
-        'eth_signTypedData_v2',
-        'eth_signTypedData_v3',
-        'eth_signTypedData_v4',
-        'eth_signTypedData',
-        'personal_sign',
-      ],
-      type: 'eip155:erc4337',
-    };
-
-    this.#wallets[account.id] = { account, privateKey };
-    await this.#saveState();
-
-    await snap.request({
-      method: 'snap_manageAccounts',
-      params: {
-        method: 'createAccount',
-        params: { account },
-      },
-    });
-    return account;
-  }
-
-  async filterAccountChains(_id: string, chains: string[]): Promise<string[]> {
-    // The `id` argument is not used because all accounts created by this snap
-    // are expected to be compatible with any EVM chain.
-    return chains.filter((chain) => isEvmChain(chain));
-  }
-
-  async updateAccount(account: KeyringAccount): Promise<void> {
-    const currentAccount = this.#wallets[account.id].account;
-    const newAccount: KeyringAccount = {
-      ...currentAccount,
-      ...account,
-      // Restore read-only properties.
-      address: currentAccount.address,
-      supportedMethods: currentAccount.supportedMethods,
-      type: currentAccount.type,
-      options: currentAccount.options,
-    };
-
-    if (!isUniqueAccountName(account.name, Object.values(this.#wallets))) {
-      throw new Error(`Account name already in use: ${account.name}`);
-    }
-
-    this.#wallets[account.id].account = newAccount;
-    await this.#saveState();
-
-    await snap.request({
-      method: 'snap_manageAccounts',
-      params: {
-        method: 'updateAccount',
-        params: { account },
-      },
-    });
-  }
-
-  async deleteAccount(id: string): Promise<void> {
-    delete this.#wallets[id];
-    await this.#saveState();
-
-    await snap.request({
-      method: 'snap_manageAccounts',
-      params: {
-        method: 'deleteAccount',
-        params: { id },
-      },
-    });
-  }
-
-  async listRequests(): Promise<KeyringRequest[]> {
-    return Object.values(this.#pendingRequests);
-  }
-
-  async getRequest(id: string): Promise<KeyringRequest> {
-    return this.#pendingRequests[id];
-  }
-
-  /* 
-    This snap implements asynchronous implementation, the request is stored in queue of pending requests to be approved or rejected by the user.
-  */
-  async submitRequest(request: KeyringRequest): Promise<SubmitRequestResponse> {
-    console.log('SNAPS/', ' submitRequest requests', JSON.stringify(request));
-
-    if (request.request.id === '') {
-      throw new Error('Request id is required');
-    }
-
-    this.#pendingRequests[request.request.id] = request;
-    await this.#saveState();
-    return {
-      pending: true,
-    };
-  }
-
-  async approveRequest(_id: string): Promise<void> {
-    try {
-      const request: KeyringRequest = await this.getRequest(_id);
-      console.log(
-        'SNAPS/',
-        ' approveRequest requests',
-        JSON.stringify(request),
-      );
-      const { method, params } = request.request as JsonRpcRequest;
-      const signature = await this.#handleSigningRequest(
-        method,
-        params as Json,
-      );
-      await snap.request({
-        method: 'snap_manageAccounts',
-        params: {
-          method: 'submitResponse',
-          params: { id: _id, result: signature },
-        },
-      });
-
-      delete this.#pendingRequests[_id];
-      if (method === 'eth_signTransaction') {
-        this.#signedTx[_id] = signature as string;
-      }
-
-      await this.#saveState();
-    } catch (e) {
-      delete this.#pendingRequests[_id];
-      await this.#saveState();
-      throw e;
-    }
-  }
-
-  async rejectRequest(_id: string): Promise<void> {
-    const request: KeyringRequest = await this.getRequest(_id);
-    console.log('SNAPS/', ' rejectRequest requests', JSON.stringify(request));
-
-    await snap.request({
-      method: 'snap_manageAccounts',
-      params: {
-        method: 'submitResponse',
-        params: { id: _id, result: null },
-      },
-    });
-
-    delete this.#pendingRequests[_id];
-    await this.#saveState();
-  }
-
-  #getWalletByAddress(address: string): Wallet {
-    const walletMatch = Object.values(this.#wallets).find(
-      (wallet) =>
-        wallet.account.address.toLowerCase() === address.toLowerCase(),
-    );
-
-    if (walletMatch === undefined) {
-      throw new Error(`Cannot find wallet for address: ${address}`);
-    }
-    return walletMatch;
-  }
-
-  #getWalletById(accountId: string): Wallet {
-    const walletMatch = Object.values(this.#wallets).find(
-      (wallet) => wallet.account.id.toLowerCase() === accountId.toLowerCase(),
-    );
-
-    if (walletMatch === undefined) {
-      throw new Error(`Cannot find wallet for accountId: ${accountId}`);
-    }
-    return walletMatch;
   }
 
   /*
@@ -281,61 +87,280 @@ export class SimpleKeyring implements Keyring {
     return { privateKey: privateKeyBuffer.toString('hex'), address };
   }
 
+  #getWalletByAddress(address: string): Wallet {
+    const walletMatch = Object.values(this.#wallets).find(
+      (wallet) =>
+        wallet.account.address.toLowerCase() === address.toLowerCase(),
+    );
+
+    if (walletMatch === undefined) {
+      throw new Error(`Cannot find wallet for address: ${address}`);
+    }
+    return walletMatch;
+  }
+
+  #getWalletById(accountId: string): Wallet {
+    const walletMatch = Object.values(this.#wallets).find(
+      (wallet) => wallet.account.id.toLowerCase() === accountId.toLowerCase(),
+    );
+
+    if (walletMatch === undefined) {
+      throw new Error(`Cannot find wallet for accountId: ${accountId}`);
+    }
+    return walletMatch;
+  }
+
+  async listAccounts(): Promise<KeyringAccount[]> {
+    return Object.values(this.#wallets).map((wallet) => wallet.account);
+  }
+
+  async getAccount(id: string): Promise<KeyringAccount | undefined> {
+    return this.#wallets[id].account;
+  }
+
+  async createAccount(
+    options: Record<string, Json> = {},
+  ): Promise<KeyringAccount> {
+    console.log(
+      `SNAPS/Keyring handler (createAccount):`,
+      JSON.stringify(options, undefined, 2),
+    );
+
+    // extract name from options
+    const name = options?.name as string | undefined;
+    if (!name) {
+      throw new Error('Account name is required');
+    }
+
+    if (!isUniqueAccountName(name, Object.values(this.#wallets))) {
+      throw new Error(`Account name already in use: ${name}`);
+    }
+    const { privateKey, address } = await this.#generateKeyPair(name);
+    const account: KeyringAccount = {
+      id: uuid(),
+      options: {
+        name,
+        owner: address,
+      }, // only include name and owner in options
+      address: await getSmartAccountAddress(address),
+      methods: [
+        EthMethod.PersonalSign,
+        EthMethod.Sign,
+        EthMethod.SignTransaction,
+        EthMethod.SignTypedDataV1,
+        EthMethod.SignTypedDataV3,
+        EthMethod.SignTypedDataV4,
+      ],
+      type: EthAccountType.Eip4337,
+    };
+
+    this.#wallets[account.id] = { account, privateKey };
+    await this.#saveState();
+    await this.#emitEvent(KeyringEvent.AccountCreated, { account });
+    return account;
+  }
+
+  async filterAccountChains(_id: string, chains: string[]): Promise<string[]> {
+    // The `id` argument is not used because all accounts created by this snap
+    // are expected to be compatible with any EVM chain.
+    return chains.filter((chain) => isEvmChain(chain));
+  }
+
+  async updateAccount(account: KeyringAccount): Promise<void> {
+    const currentAccount = this.#wallets[account.id].account;
+    if (currentAccount === undefined) {
+      throw new Error(`Account '${account.id}' not found`);
+    }
+
+    const newAccount: KeyringAccount = {
+      ...currentAccount,
+      ...account,
+      // Restore read-only properties.
+      address: currentAccount.address,
+      methods: currentAccount.methods,
+      type: currentAccount.type,
+      options: currentAccount.options,
+    };
+
+    if (account.options.name !== currentAccount.options.name) {
+      throw new Error(`Account name can not change: ${account.options.name}`);
+    }
+
+    if (account.type !== currentAccount.type) {
+      throw new Error(`Account type can not change: ${account.type}`);
+    }
+
+    this.#wallets[account.id].account = newAccount;
+    await this.#saveState();
+    await this.#emitEvent(KeyringEvent.AccountUpdated, {
+      account: newAccount,
+    });
+  }
+
+  async deleteAccount(id: string): Promise<void> {
+    delete this.#wallets[id];
+    await this.#saveState();
+    await this.#emitEvent(KeyringEvent.AccountDeleted, { id });
+  }
+
+  async listRequests(): Promise<KeyringRequest[]> {
+    return Object.values(this.#pendingRequests);
+  }
+
+  async getRequest(id: string): Promise<KeyringRequest> {
+    return this.#pendingRequests[id];
+  }
+
+  async submitRequest(request: KeyringRequest): Promise<SubmitRequestResponse> {
+    console.log(
+      'SNAPS/submitRequest requests:',
+      JSON.stringify(request, undefined, 2),
+    );
+
+    if (request.scope !== 'async' && request.scope !== 'sync') {
+      throw new Error(
+        `Invalid request scope: ${request.scope}, must be 'async' or 'sync'`,
+      );
+    }
+    return request.scope === 'sync'
+      ? this.#syncSubmitRequest(request)
+      : this.#asyncSubmitRequest(request);
+  }
+
+  #getCurrentUrl(): string {
+    const dappUrlPrefix =
+      process.env.NODE_ENV === 'production'
+        ? process.env.DAPP_ORIGIN_PRODUCTION
+        : process.env.DAPP_ORIGIN_DEVELOPMENT;
+    const dappVersion: string = packageInfo.version;
+
+    // Ensuring that both dappUrlPrefix and dappVersion are truthy
+    if (dappUrlPrefix && dappVersion && process.env.NODE_ENV === 'production') {
+      return `${dappUrlPrefix}${dappVersion}/`;
+    }
+    // Default URL if dappUrlPrefix or dappVersion are falsy, or if URL construction fails
+    return dappUrlPrefix as string;
+  }
+
+  /* 
+    Asynchronous request are stored in queue of pending requests to be approved or rejected by the user.
+  */
+  async #asyncSubmitRequest(
+    request: KeyringRequest,
+  ): Promise<SubmitRequestResponse> {
+    this.#pendingRequests[request.id] = request;
+    await this.#saveState();
+    const dappUrl = this.#getCurrentUrl();
+    return {
+      pending: true,
+      redirect: {
+        url: dappUrl,
+        message: 'Redirecting to Snap Simple Keyring to sign transaction',
+      },
+    };
+  }
+
+  /* 
+    Synchronous request are not stored and the result is return to the user.
+  */
+  async #syncSubmitRequest(
+    request: KeyringRequest,
+  ): Promise<SubmitRequestResponse> {
+    const { method, params = [] } = request.request as JsonRpcRequest;
+    const result = await this.#handleSigningRequest(method, params);
+    return {
+      pending: false,
+      result,
+    };
+  }
+
+  async approveRequest(id: string): Promise<void> {
+    try {
+      const { request } = await this.getRequest(id);
+      if (request === undefined) {
+        throw new Error(`Request '${id}' not found`);
+      }
+
+      console.log(
+        'SNAPS/',
+        ' approveRequest requests',
+        JSON.stringify(request),
+      );
+
+      const result = await this.#handleSigningRequest(
+        request.method,
+        (request.params as Json) ?? [],
+      );
+
+      delete this.#pendingRequests[id];
+      await this.#saveState();
+      await this.#emitEvent(KeyringEvent.RequestApproved, { id, result });
+    } catch (e) {
+      delete this.#pendingRequests[id];
+      await this.#saveState();
+      throw e;
+    }
+  }
+
+  async rejectRequest(id: string): Promise<void> {
+    const request: KeyringRequest = await this.getRequest(id);
+    console.log(
+      'SNAPS/rejectRequest requests:',
+      JSON.stringify(request, undefined, 2),
+    );
+
+    if (request === undefined) {
+      throw new Error(`Request '${id}' not found`);
+    }
+
+    delete this.#pendingRequests[id];
+    await this.#saveState();
+    await this.#emitEvent(KeyringEvent.RequestRejected, { id });
+  }
+
   async #handleSigningRequest(method: string, params: Json): Promise<Json> {
     switch (method) {
-      case 'personal_sign': {
-        const [from, message] = params as string[];
+      case EthMethod.PersonalSign: {
+        const [from, message] = params as [string, string];
         return this.#signPersonalMessage(from, message);
       }
 
-      case 'eth_sendTransaction': {
-        const [from, userOperation] = params as [string, UserOperation];
-        const provider = new ethers.providers.Web3Provider(ethereum as any);
-        const entryPointContract = new ethers.Contract(
-          DEFAULT_ENTRY_POINT,
-          EntryPoint__factory.abi,
-          provider,
-        );
-
-        // sign the userOp
-        const { privateKey, account } = this.#getWalletByAddress(from);
-        const wallet = new EthersWallet(privateKey);
-        userOperation.signature = '0x';
-        const userOpHash = ethers.utils.arrayify(
-          await entryPointContract.getUserOpHash(userOperation),
-        );
-        const signature = await wallet.signMessage(userOpHash);
-        userOperation.signature = signature;
-
-        // send the userOp
-        const hexifiedUserOp: UserOperation = deepHexlify(userOperation);
-        await this.#handleSendUserOp(account.id, hexifiedUserOp);
-
-        return signature;
-      }
-
-      case 'eth_signTransaction': {
-        const [from, tx] = params as [string, JsonTx, Json];
-        const provider = new ethers.providers.Web3Provider(ethereum as any);
-        const { privateKey } = this.#getWalletByAddress(from);
-        const wallet = new EthersWallet(privateKey, provider);
-        return await wallet.signTransaction(tx as any);
-      }
-
-      case 'eth_signTypedData':
-      case 'eth_signTypedData_v1':
-      case 'eth_signTypedData_v2':
-      case 'eth_signTypedData_v3':
-      case 'eth_signTypedData_v4': {
-        const [from, data, opts] = params as [
+      case EthMethod.SignTransaction: {
+        const [from, type, tx] = params as [
           string,
-          Json,
-          { version: SignTypedDataVersion },
+          string,
+          JsonTx | UserOperation,
         ];
-        return this.#signTypedData(from, data, opts);
+        if (type === 'eoa') {
+          return await this.#signTransactionEthers(from, tx as JsonTx);
+        } else if (type === 'eip4337') {
+          return (await this.#signUserOp(from, tx as UserOperation)) as Json;
+        }
+        throw new Error(`Unknown account type: ${type}`);
       }
 
-      case 'eth_sign': {
+      case EthMethod.SignTypedDataV1: {
+        const [from, data] = params as [string, Json];
+        return this.#signTypedData(from, data, {
+          version: SignTypedDataVersion.V1,
+        });
+      }
+
+      case EthMethod.SignTypedDataV3: {
+        const [from, data] = params as [string, Json];
+        return this.#signTypedData(from, data, {
+          version: SignTypedDataVersion.V3,
+        });
+      }
+
+      case EthMethod.SignTypedDataV4: {
+        const [from, data] = params as [string, Json];
+        return this.#signTypedData(from, data, {
+          version: SignTypedDataVersion.V4,
+        });
+      }
+
+      case EthMethod.Sign: {
         const [from, data] = params as [string, string];
         return this.#signMessage(from, data);
       }
@@ -346,33 +371,33 @@ export class SimpleKeyring implements Keyring {
     }
   }
 
-  async #handleSendUserOp(
-    accountId: string,
-    signedUserOp: UserOperation,
-  ): Promise<void> {
-    console.log('SNAPS/', 'handle handleSendUserOp ', accountId, signedUserOp);
-
-    // connect to rpc
-    const [bundlerUrls, chainId] = await Promise.all([
-      getBundlerUrls(),
-      ethereum.request({ method: 'eth_chainId' }),
-    ]);
-    const rpcClient = new HttpRpcClient(bundlerUrls, chainId as string);
-    const rpcResult = await rpcClient.send('eth_sendUserOperation', [
-      signedUserOp,
+  async #signUserOp(
+    from: string,
+    userOp: UserOperation,
+  ): Promise<UserOperation> {
+    const provider = new ethers.providers.Web3Provider(ethereum as any);
+    const entryPointContract = new ethers.Contract(
       DEFAULT_ENTRY_POINT,
-    ]);
+      EntryPoint__factory.abi,
+      provider,
+    );
 
-    // store userOp hash pending
-    if (rpcResult.sucess === true) {
-      await storeUserOpHash(
-        accountId,
-        chainId as string,
-        rpcResult.data as string,
-      );
-    } else {
-      throw new Error(`Failed to send user op: ${rpcResult.data}`);
-    }
+    // sign the userOp
+    const { privateKey } = this.#getWalletByAddress(from);
+    const wallet = new EthersWallet(privateKey);
+    userOp.signature = '0x';
+    const userOpHash = ethers.utils.arrayify(
+      await entryPointContract.getUserOpHash(userOp),
+    );
+    const signature = await wallet.signMessage(userOpHash);
+    return deepHexlify({ ...userOp, signature });
+  }
+
+  async #signTransactionEthers(from: string, tx: JsonTx): Promise<string> {
+    const provider = new ethers.providers.Web3Provider(ethereum as any);
+    const { privateKey } = this.#getWalletByAddress(from);
+    const wallet = new EthersWallet(privateKey, provider);
+    return await wallet.signTransaction(tx as any);
   }
 
   #signTransaction(from: string, tx: JsonTx): Json {
@@ -457,7 +482,13 @@ export class SimpleKeyring implements Keyring {
     await storeKeyRing({
       wallets: this.#wallets,
       pendingRequests: this.#pendingRequests,
-      signedTx: this.#signedTx,
     } as KeyringState);
+  }
+
+  async #emitEvent(
+    event: KeyringEvent,
+    data: Record<string, Json>,
+  ): Promise<void> {
+    await emitSnapKeyringEvent(snap, event, data);
   }
 }

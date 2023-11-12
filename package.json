@@ -1,24 +1,25 @@
 {
-  "name": "erc-4337-relayer-monorepo",
+  "name": "root",
   "version": "1.0.0",
   "private": true,
-  "description": "A MetaMask snap the wraps ERC-4337 eth namespace methods.",
-  "homepage": "https://github.com/transeptorlabs/erc-4337-snap#readme",
+  "description": "",
+  "homepage": "https://github.com/transeptorlabs/smarthub-snap#readme",
   "bugs": {
-    "url": "https://github.com/transeptorlabs/erc-4337-snap/issues"
+    "url": "https://github.com/transeptorlabs/smarthub-snap/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/transeptorlabs/erc-4337-snap.git"
+    "url": "git+https://github.com/transeptorlabs/smarthub-snap.git"
   },
-  "license": "(MIT-0 OR Apache-2.0)",
+  "license": "MIT",
   "author": {
     "name": "Transeptor Labs",
     "email": "transeptorhq@gmail.com",
     "url": "https://transeptorlabs.io"
   },
   "workspaces": [
-    "packages/*"
+    "packages/snap",
+    "packages/site"
   ],
   "scripts": {
     "build": "yarn workspaces foreach --parallel --topological --verbose run build",
@@ -27,6 +28,8 @@
     "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write",
     "lint:misc": "prettier '**/*.json' '**/*.md' '!**/CHANGELOG.md' '**/*.yml' --ignore-path .gitignore",
     "start": "yarn workspaces foreach --parallel --interlaced --verbose run start",
+    "start-site": "yarn workspace @transeptor-labs/smarthub-site run start",
+    "start-snap": "yarn workspace @transeptor-labs/smarthub-snap run start",
     "test": "yarn workspaces foreach --parallel --topological --verbose run test"
   },
   "devDependencies": {

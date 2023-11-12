@@ -20,7 +20,6 @@ export type GetTxHashesParams = {
 export type StoreTxHashParams = {
   keyringAccountId: string;
   txHash: string;
-  keyringRequestId: string;
   chainId: string;
 };
 

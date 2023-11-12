@@ -4,6 +4,7 @@ import { AccountActivity, AccountActivityType, BundlerUrls, SmartContractAccount
 import { bundlerUrls, fetchUserOpHashes, getAccountBalance, getChainId, getKeyringSnapRpcClient, getMMProvider, getNextRequestId, getScAccount, getTxHashes, getUserOperationReceipt, parseChainId, sendSupportedEntryPoints } from "../utils";
 import { KeyringAccount } from "@metamask/keyring-api";
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
+import type { Json } from '@metamask/utils';
 
 export const useAcount = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
@@ -30,17 +31,10 @@ export const useAcount = () => {
     return selectedKeyringAccount;
   };
 
-  const updateAccountBalance = async (account: string): Promise<string> => {
-    const balance = await getAccountBalance(account)
-    dispatch({
-      type: MetamaskActions.SetSelectedAccountBalance,
-      payload: balance,
-    });
-    return balance;
-  };
-
   const createAccount = async (accountName: string) => {
-    const newAccount = await snapRpcClient.createAccount(accountName);
+    const newAccount = await snapRpcClient.createAccount({
+      name: accountName,
+    });
     await getKeyringSnapAccounts()
     return newAccount
   };
@@ -50,19 +44,60 @@ export const useAcount = () => {
     await getKeyringSnapAccounts()
   };
 
-  const sendRequest = async (keyringAccountId: string, method: string, params: any[] = []) => {
-    const id = await getNextRequestId()
-    await snapRpcClient.submitRequest({
+  const sendRequestAsync = async (
+    keyringAccountId: string,
+    method: string,
+    params: any[] = [],
+  ): Promise<{
+    pending: boolean;
+    redirect?: {
+      url: string;
+      message: string;
+    };
+  }> => {
+    const id = await getNextRequestId();
+    const result = await snapRpcClient.submitRequest({
+      id: id.toString(),
       account: keyringAccountId,
-      scope: `eip155:${parseChainId(state.chainId)}`,
+      scope: 'async',
       request: {
-        id: id.toString(),
-        jsonrpc: '2.0',
         method,
         params: params,
-      }
+      },
     });
-    await getKeyringSnapAccounts()
+    await getKeyringSnapAccounts();
+
+    return result as {
+      pending: boolean;
+      redirect?: {
+        url: string;
+        message: string;
+      };
+    };
+  };
+
+  const sendRequestSync = async (
+    keyringAccountId: string,
+    method: string,
+    params: any[] = [],
+  ): Promise<{
+    pending: false;
+    result: Json;
+  }> => {
+    const id = await getNextRequestId();
+    const result = await snapRpcClient.submitRequest({
+      id: id.toString(),
+      account: keyringAccountId,
+      scope: 'sync',
+      request: {
+        method,
+        params: params,
+      },
+    });
+    return result as {
+      pending: false;
+      result: Json;
+    };
   };
 
   const approveRequest = async (requestId: string) => {
@@ -78,7 +113,7 @@ export const useAcount = () => {
   const rejectAllPendingRequests = async () => {
     const pendingRequests = await snapRpcClient.listRequests();
     for (const rq of pendingRequests) {
-      await snapRpcClient.rejectRequest(rq.request.id);
+      await snapRpcClient.rejectRequest(rq.id);
     }
     await getKeyringSnapAccounts()
   }
@@ -186,10 +221,10 @@ export const useAcount = () => {
     getBundlerUrls,
     updateChainId,
     getWalletChainId,
-    sendRequest,
+    sendRequestAsync,
+    sendRequestSync,
     approveRequest,
     rejectRequest,
-    updateAccountBalance,
     rejectAllPendingRequests,
   }
 }

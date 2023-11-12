@@ -1,8 +1,8 @@
-# Contributing to ERC-4337 Relayer Snap
+# Contributing to SmartHub Snap
 
 ## Why Contribute
 
-ERC-4337 Relayer Snap is an open source project that welcomes contributions from anyone in the community. By contributing to this project, you can:
+SmartHub Snap is an open source project that welcomes contributions from anyone in the community. By contributing to this project, you can:
 
 - Help improve the quality of the software for everyone who uses it.
 - Learn new skills and gain experience working on a real-world project.
@@ -14,7 +14,7 @@ ERC-4337 Relayer Snap is an open source project that welcomes contributions from
 
 ## How to Contribute
 
-1. Clone the repo to your local machine. `git clone https://github.com/transeptorlabs/erc-4337-snap.git`
+1. Clone the repo to your local machine. `git clone https://github.com/transeptorlabs/smarthub-snap.git`
 2. Install dependencies with `npm install`.
 3. Create a new branch for your changes with `git checkout -b my-branch-name`.
 4. Make your changes and commit them with descriptive commit messages.
@@ -44,4 +44,4 @@ When you submit a pull request, please make sure to include a description of you
 
 ## Thank You
 
-Thank you for considering contributing to ERC-4337 Relayer Snap! Your contributions help make our project better, and we appreciate your time and effort.
+Thank you for considering contributing to SmartHub Snap! Your contributions help make our project better, and we appreciate your time and effort.

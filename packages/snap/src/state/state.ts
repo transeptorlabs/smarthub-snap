@@ -145,12 +145,9 @@ export const getTxHashes = async (
 export const storeTxHash = async (
   keyringAccountId: string,
   txHash: string,
-  keyringRequestId: string,
   chainId: string,
 ): Promise<boolean> => {
   const state = await getState(keyringAccountId);
-
-  delete state.keyringState.signedTx[keyringRequestId];
   state.smartAccountActivity[keyringAccountId].scAccount[chainId].txHashes.push(
     txHash,
   );

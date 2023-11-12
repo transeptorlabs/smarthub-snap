@@ -29,6 +29,8 @@ import {
   ModalType,
 } from '../components';
 import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
+import snapPackageInfo from '../../../snap/package.json';
+import packageInfo from '../../package.json';
 
 const Container = styled.div`
   display: flex;
@@ -141,7 +143,6 @@ const Index = () => {
     getBundlerUrls,
     updateChainId,
     setChainIdListener,
-    updateAccountBalance,
   } = useAcount();
 
   useEffect(() => {
@@ -163,7 +164,6 @@ const Index = () => {
         if (account.length > 0) {
           await selectKeyringSnapAccount(account[0]);
           await getSmartAccount(account[0].id);
-          await updateAccountBalance(account[0].address);
           await getAccountActivity(account[0].id);
         }
       }
@@ -202,7 +202,7 @@ const Index = () => {
       };
 
     } catch (e) {
-      console.error('[ERROR] refreaher:', e.message);
+      console.error('[ERROR] refresher:', e.message);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     } 
   }, [state.accountActivity]);
@@ -214,7 +214,6 @@ const Index = () => {
       interval = setInterval(async () => {
         if (state.scAccount.connected === true) {
           await getSmartAccount(state.selectedSnapKeyringAccount.id);
-          await updateAccountBalance(state.selectedSnapKeyringAccount.address);
         }
       }, 5000) // 5 seconds
   
@@ -223,7 +222,7 @@ const Index = () => {
       };
 
     } catch (e) {
-      console.error('[ERROR] refreaher:', e.message);
+      console.error('[ERROR] refresher:', e.message);
       dispatch({ type: MetamaskActions.SetError, payload: e });
     } 
   }, [state.selectedSnapKeyringAccount, state.scAccount]);
@@ -269,64 +268,88 @@ const Index = () => {
   };
 
   const handleCreateAccount = async (event: any) => {
-    event.preventDefault();
-    const newAccount = await createAccount(accountName)
-    await selectKeyringSnapAccount(newAccount);
-    await getSmartAccount(newAccount.id);
-    await updateAccountBalance(newAccount.address);
-    setAccountName('')
+    try {
+      event.preventDefault();
+      const newAccount = await createAccount(accountName)
+      await selectKeyringSnapAccount(newAccount);
+      await getSmartAccount(newAccount.id);
+      setAccountName('')
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   };
 
   const handleDeleteAccount = async (event: any) => {
-    event.preventDefault();
-    let keyringAccountIdFound = ''
-    state.snapKeyring.accounts.forEach(account => {
-      if (account.name === accountNameDelete)
-      keyringAccountIdFound =  account.id
-    })
-
-    if (keyringAccountIdFound === '') {
-      dispatch({ type: MetamaskActions.SetError, payload: new Error('Account name not found.') });
-    } else {
-      await deleteAccount(keyringAccountIdFound)
-
-      // update selected to first account when the deleted account it the current selected account
-      if(keyringAccountIdFound === state.selectedSnapKeyringAccount.id) {
-        const accounts = await getKeyringSnapAccounts()
-        if (accounts.length > 0) {
-          await selectKeyringSnapAccount(accounts[0]);
-          await getSmartAccount(accounts[0].id);
-          await getAccountActivity(accounts[0].id);
-        } else {
-          dispatch({ type: MetamaskActions.SetClearAccount, payload: true })
+    try {
+      event.preventDefault();
+      let keyringAccountIdFound = ''
+      state.snapKeyring.accounts.forEach(account => {
+        if (account.options.name as string === accountNameDelete)
+        keyringAccountIdFound =  account.id
+      })
+  
+      if (keyringAccountIdFound === '') {
+        dispatch({ type: MetamaskActions.SetError, payload: new Error('Account name not found.') });
+      } else {
+        await deleteAccount(keyringAccountIdFound)
+  
+        // update selected to first account when the deleted account it the current selected account
+        if(keyringAccountIdFound === state.selectedSnapKeyringAccount.id) {
+          const accounts = await getKeyringSnapAccounts()
+          console.log('accounts after delet:', accounts)
+          if (accounts.length > 0) {
+            await selectKeyringSnapAccount(accounts[0]);
+            await getSmartAccount(accounts[0].id);
+            await getAccountActivity(accounts[0].id);
+          } else {
+            dispatch({ type: MetamaskActions.SetClearAccount, payload: true })
+          }
         }
+        setAccountNameDelete('')
       }
-      setAccountNameDelete('')
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
 
   const handleDepositClick = async (e: any) => {
-    e.preventDefault();
-    setTransactionType(TransactionType.Deposit)
-    setModalOpenTransaction(true)
+    try {
+      e.preventDefault();
+      setTransactionType(TransactionType.Deposit)
+      setModalOpenTransaction(true)
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   }
 
   const handleWithdrawClick = async (e: any) => {
-    e.preventDefault();
-    setTransactionType(TransactionType.Withdraw)
-    setModalOpenTransaction(true)
+    try {
+      e.preventDefault();
+      setTransactionType(TransactionType.Withdraw)
+      setModalOpenTransaction(true)
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   }
 
   const handleClearActivity = async (e: any) => {
-    e.preventDefault();
-    await clearActivityData();
-    await handleFetchBundlerUrls();
+    try {
+      e.preventDefault();
+      await clearActivityData();
+      await handleFetchBundlerUrls();
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   }
 
   const handleBundlerUrlSubmit = async (e: any, chainId: string) => {
-    e.preventDefault();
-    await addBundlerUrl(chainId, formBundlerUrls[chainId]);
-    await handleFetchBundlerUrls();
+    try {
+      e.preventDefault();
+      await addBundlerUrl(chainId, formBundlerUrls[chainId]);
+      await handleFetchBundlerUrls();
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
   }
 
   // Form input handlers
@@ -372,7 +395,7 @@ const Index = () => {
         {!state.installedSnap && (
           <Card
             content={{
-              title: 'Connect ERC-4337 Relayer',
+              title: 'Connect SmartHub snap',
               description: 'Features include:',
               listItems: [
                 'Access and control smart accounts with MetaMask. Enjoy smart contract functionality with ease and convenience.',
@@ -401,8 +424,8 @@ const Index = () => {
             <Card
               content={{
                 title: 'Smart Account',
-                description: `${state.scAccount.address}`,
-                descriptionBold: `${state.selectedSnapKeyringAccount.name}`,
+                description: `${state.selectedSnapKeyringAccount.address}`,
+                descriptionBold: `${state.selectedSnapKeyringAccount.options.name}`,
                 stats: [
                   {
                     id: `1`,
@@ -417,8 +440,11 @@ const Index = () => {
                 ],
                 custom: 
                 <ButtonContainer>
-                  <SimpleButton text='Deposit' onClick={(e: any) => {handleDepositClick(e)}}></SimpleButton>
-                  <SimpleButton text='Withdraw' onClick={(e: any) => {handleWithdrawClick(e)}}></SimpleButton>
+                  {/* TODO: Comment for now until we can support these features */}
+                  {/* <SimpleButton text='Deposit' onClick={(e: any) => {handleDepositClick(e)}}></SimpleButton> */}
+                  {/* <SimpleButton text='Withdraw' onClick={(e: any) => {handleWithdrawClick(e)}}></SimpleButton> */}
+                  {/* <SimpleButton text='Send' onClick={(e: any) => {() =>{}}}></SimpleButton>
+                  <SimpleButton text='Bridge' onClick={(e: any) => {() =>{}}}></SimpleButton> */}
                 </ButtonContainer>
               }}
               disabled={!state.isFlask}
@@ -471,16 +497,43 @@ const Index = () => {
           )}
 
           <Title>FAQ</Title>
+
           <Card
             content={{
-              custom: <Faq queston={'What is ERC-4337 Relayer?  '} description={'bahhahah'} />
+              custom: <Faq queston={'What is ERC-4337?'} description={'ERC-4337 is a higher-layer infrastructure for Ethereum to allow account abstraction. This will allows user to use a smart contract account to handle all network interactions. ERC-4337 introduces a new transaction called a UserOperation. Users will send signed UserOperations to a network of nodes called a Bundlers. Bundlers, will send these transactions to Entrypoint smart contract to execute the UserOperations. ERC-4337 also introduces paymaster smart contracts to allow transaction sponsorship. With paymaster users have gasless transactions or pay gas fees with ERC-20 tokens.'} />
             }}
             fullWidth
           />
 
           <Card
             content={{
-              custom: <Faq queston={'How does is ERC-4337 Relayer work?'} description={'bahhahah'} />
+              custom: <Faq queston={'What is a smart account?'} description={'Smart Accounts are a new type of account introduced by the ERC-4337 standard. This will allows user to use a smart contract account to handle all network interactions. Smart Accounts offer several advantages over EOAs such as programmability, improved security, and improved user experience.'} />
+            }}
+            fullWidth
+          />
+
+          <Card
+            content={{
+              custom: <Faq queston={'How is does smart account ownership work?'} description={'Smart accounts are own by Ethereum EOAs. EOAs are used to sign all user Operations for a smart account.'} />
+            }}
+            fullWidth
+          />
+          <Card
+            content={{
+              custom: <Faq queston={'Why SmartHub snap needed?'} description={'Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.'} />
+            }}
+            fullWidth
+          />
+          <Card
+            content={{
+              custom: <Faq queston={'What is SmartHub snap?'} description={'SmartHub is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.'} />
+            }}
+            fullWidth
+          />
+
+          <Card
+            content={{
+              custom: <Faq queston={'How does is SmartHub snap work?'} description={'The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components.'} />
             }}
             fullWidth
           />
@@ -549,9 +602,12 @@ const Index = () => {
           {state.installedSnap && (
             <Card
               content={{
-                title: 'Bundler RPC Urls',
-                description: 'A list of bundler RPC Url to relay your user operations.',
-                custom: createBundlerUrlForm()
+                title: 'Snap Info',
+                listItems: [
+                  `Snap version(installed): ${state.installedSnap.version}`,
+                  `Snap version(expected): ${snapPackageInfo.version}`,
+                  `Dapp version: ${packageInfo.version}`
+                ],
               }}
               disabled={!state.isFlask}
               fullWidth
@@ -561,8 +617,9 @@ const Index = () => {
           {state.installedSnap && (
             <Card
               content={{
-                title: 'ERC-4337 Relayer is installed and ready to use',
-                description: `Installed with v${state.installedSnap.version}. Use MetaMask settings page, to see the more details on the installed snap.`,
+                title: 'Bundler RPC Urls',
+                description: 'A list of bundler RPC Url to relay your user operations.',
+                custom: createBundlerUrlForm()
               }}
               disabled={!state.isFlask}
               fullWidth
@@ -598,13 +655,18 @@ const Index = () => {
 
       <Notice>
         <p>
-          Please note that this snap is only available in MetaMask Flask,
+          Please note that this SmartHub snap is only available in MetaMask Flask,
           and is actively being developed by{' '}
           <a href="https://github.com/transeptorlabs" target="_blank">
-            Transeptor Labs
+            Transeptor Labs.
+          </a>
+          {' '}Learn more about ERC4337 at {' '}
+          <a href="https://www.erc4337.io/" target="_blank">
+          https://www.erc4337.io/
           </a>
         </p>
       </Notice>
+      
     </Container>
   );
 };

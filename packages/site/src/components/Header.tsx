@@ -50,9 +50,6 @@ const LogoContainer = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
-  ${({ theme }) => theme.mediaQueries.small} {
-    display: none;
-  }
 `
 
 export const Header = ({
@@ -99,7 +96,7 @@ export const Header = ({
       <FlexRowWrapper>
         <LogoContainer>
           <SnapLogo color={theme.colors.icon.default} size={36} />
-          <Title>ERC-4337 Relayer</Title>
+          <Title>SmartHub</Title>
         </LogoContainer>
       </FlexRowWrapper>
 

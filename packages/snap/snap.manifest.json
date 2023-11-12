@@ -1,18 +1,18 @@
 {
   "version": "0.1.0",
-  "description": "A MetaMask snap the wraps ERC-4337 eth namespace methods.",
-  "proposedName": "ERC-4337 Relayer",
+  "description": "A snap the helps you manage ERC-4337 smart account",
+  "proposedName": "SmartHub",
   "repository": {
     "type": "git",
-    "url": "https://github.com/transeptorlabs/erc-4337-snap.git"
+    "url": "https://github.com/transeptorlabs/smarthub-snap.git"
   },
   "source": {
-    "shasum": "z9cgBNy2LRAGnQaO8UadZvfloDeAQgvRTrrFkZ5T1KY=",
+    "shasum": "36z0Oh2kPV2lv1wmm7RlP0Pq4AUn087gqWQINeTx07M=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
         "iconPath": "images/icon.svg",
-        "packageName": "@transeptor/erc-4337-relayer",
+        "packageName": "@transeptor-labs/smarthub-snap",
         "registry": "https://registry.npmjs.org/"
       }
     }

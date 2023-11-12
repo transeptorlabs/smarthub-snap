@@ -153,7 +153,7 @@ export const AccountHeaderDisplay = () => {
           </IconContainer>
           <FlexColWrapperLeft>
           <PrimaryText>MetaMask @ {SupportedChainIdMap[state.chainId] ? SupportedChainIdMap[state.chainId].name : 'Not Supported'}</PrimaryText>
-            <SecondaryText>Connect ERC-4337 Relayer</SecondaryText>
+            <SecondaryText>Connect SmartHub snap</SecondaryText>
           </FlexColWrapperLeft>
         </FlexRowWrapper>
       );

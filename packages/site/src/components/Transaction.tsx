@@ -126,7 +126,6 @@ export const EthereumTransactionModalComponent = ({
   const [successMessage, setSuccessMessage] = useState<string>('');
   const {
     sendRequestSync,
-    sendRequestAsync,
     approveRequest,
     rejectRequest,
     getSmartAccount,
@@ -169,12 +168,11 @@ export const EthereumTransactionModalComponent = ({
     transactionData.chainId = parseChainId(state.chainId)
 
     // send request to keyring for approval
-    const result = await sendRequestAsync(
+    const result = await sendRequestSync(
       state.selectedSnapKeyringAccount.id,
       'eth_signTransaction',
       [state.selectedSnapKeyringAccount.address, 'eoa', transactionData] // [from, type, transactionData]
     );
-    console.log('transactionData(signed)', result)
   }
 
   const handleWithdrawSubmit = async () => {

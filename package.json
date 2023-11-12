@@ -1,17 +1,17 @@
 {
-  "name": "erc-4337-relayer-monorepo",
+  "name": "root",
   "version": "1.0.0",
   "private": true,
-  "description": "A MetaMask snap the wraps ERC-4337 eth namespace methods.",
-  "homepage": "https://github.com/transeptorlabs/erc-4337-snap#readme",
+  "description": "",
+  "homepage": "https://github.com/transeptorlabs/smarthub-snap#readme",
   "bugs": {
-    "url": "https://github.com/transeptorlabs/erc-4337-snap/issues"
+    "url": "https://github.com/transeptorlabs/smarthub-snap/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/transeptorlabs/erc-4337-snap.git"
+    "url": "git+https://github.com/transeptorlabs/smarthub-snap.git"
   },
-  "license": "(MIT-0 OR Apache-2.0)",
+  "license": "MIT",
   "author": {
     "name": "Transeptor Labs",
     "email": "transeptorhq@gmail.com",

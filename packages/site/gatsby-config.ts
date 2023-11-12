@@ -10,7 +10,7 @@ const config: GatsbyConfig = {
     {
       resolve: 'gatsby-plugin-manifest',
       options: {
-        name: 'ERC-4337 Relayer',
+        name: 'SmartHub',
         icon: 'src/assets/logo.svg',
         theme_color: '#8093ff',
         background_color: '#FFFFFF',

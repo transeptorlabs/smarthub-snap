@@ -395,7 +395,7 @@ const Index = () => {
         {!state.installedSnap && (
           <Card
             content={{
-              title: 'Connect ERC-4337 Relayer',
+              title: 'Connect SmartHub snap',
               description: 'Features include:',
               listItems: [
                 'Access and control smart accounts with MetaMask. Enjoy smart contract functionality with ease and convenience.',
@@ -440,8 +440,9 @@ const Index = () => {
                 ],
                 custom: 
                 <ButtonContainer>
-                  <SimpleButton text='Deposit' onClick={(e: any) => {handleDepositClick(e)}}></SimpleButton>
-                  <SimpleButton text='Withdraw' onClick={(e: any) => {handleWithdrawClick(e)}}></SimpleButton>
+                  {/* TODO: Comment for now until we can support these features */}
+                  {/* <SimpleButton text='Deposit' onClick={(e: any) => {handleDepositClick(e)}}></SimpleButton> */}
+                  {/* <SimpleButton text='Withdraw' onClick={(e: any) => {handleWithdrawClick(e)}}></SimpleButton> */}
                   {/* <SimpleButton text='Send' onClick={(e: any) => {() =>{}}}></SimpleButton>
                   <SimpleButton text='Bridge' onClick={(e: any) => {() =>{}}}></SimpleButton> */}
                 </ButtonContainer>
@@ -496,57 +497,43 @@ const Index = () => {
           )}
 
           <Title>FAQ</Title>
+
           <Card
             content={{
-              custom: <Faq queston={'Why ERC-4337 Relayer needed?'} description={'Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.'} />
-            }}
-            fullWidth
-          />
-          <Card
-            content={{
-              custom: <Faq queston={'What is ERC-4337 Relayer?'} description={'ERC-4337 Relayer is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.'} />
+              custom: <Faq queston={'What is ERC-4337?'} description={'ERC-4337 is a higher-layer infrastructure for Ethereum to allow account abstraction. This will allows user to use a smart contract account to handle all network interactions. ERC-4337 introduces a new transaction called a UserOperation. Users will send signed UserOperations to a network of nodes called a Bundlers. Bundlers, will send these transactions to Entrypoint smart contract to execute the UserOperations. ERC-4337 also introduces paymaster smart contracts to allow transaction sponsorship. With paymaster users have gasless transactions or pay gas fees with ERC-20 tokens.'} />
             }}
             fullWidth
           />
 
           <Card
             content={{
-              custom: <Faq queston={'How does is ERC-4337 Relayer work?'} description={'The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components.'} />
-            }}
-            fullWidth
-          />
-
-        <Card
-            content={{
-              custom: <Faq queston={'What is ERC-4337?'} description={'bahahaha'} />
+              custom: <Faq queston={'What is a smart account?'} description={'Smart Accounts are a new type of account introduced by the ERC-4337 standard. This will allows user to use a smart contract account to handle all network interactions. Smart Accounts offer several advantages over EOAs such as programmability, improved security, and improved user experience.'} />
             }}
             fullWidth
           />
 
           <Card
             content={{
-              custom: <Faq queston={'What is a smart account?'} description={'bahahaha'} />
+              custom: <Faq queston={'How is does smart account ownership work?'} description={'Smart accounts are own by Ethereum EOAs. EOAs are used to sign all user Operations for a smart account.'} />
+            }}
+            fullWidth
+          />
+          <Card
+            content={{
+              custom: <Faq queston={'Why SmartHub snap needed?'} description={'Account abstraction introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.'} />
+            }}
+            fullWidth
+          />
+          <Card
+            content={{
+              custom: <Faq queston={'What is SmartHub snap?'} description={'SmartHub is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.'} />
             }}
             fullWidth
           />
 
           <Card
             content={{
-              custom: <Faq queston={'What is a Deposit?'} description={'Your smart account will need a deposit with the entry point contract to pay for gas fees.'} />
-            }}
-            fullWidth
-          />
-
-          <Card
-            content={{
-              custom: <Faq queston={'What is a Withdraw?'} description={'bahahaha'} />
-            }}
-            fullWidth
-          />
-
-          <Card
-            content={{
-              custom: <Faq queston={'How is does smart account ownership work?'} description={'bahahaha'} />
+              custom: <Faq queston={'How does is SmartHub snap work?'} description={'The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components.'} />
             }}
             fullWidth
           />
@@ -668,13 +655,18 @@ const Index = () => {
 
       <Notice>
         <p>
-          Please note that this snap is only available in MetaMask Flask,
+          Please note that this SmartHub snap is only available in MetaMask Flask,
           and is actively being developed by{' '}
           <a href="https://github.com/transeptorlabs" target="_blank">
-            Transeptor Labs
+            Transeptor Labs.
+          </a>
+          {' '}Learn more about ERC4337 at {' '}
+          <a href="https://www.erc4337.io/" target="_blank">
+          https://www.erc4337.io/
           </a>
         </p>
       </Notice>
+      
     </Container>
   );
 };

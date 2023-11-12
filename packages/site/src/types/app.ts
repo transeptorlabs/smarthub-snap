@@ -15,6 +15,7 @@ export const SupportedChainIdMap: {
 } = {
   '0x539': { name: 'Private', icon: PrivateLogo, id: '0x539' },
   '0x5': { name: 'Goerli', icon: PrivateLogo, id: '0x5' },
+  '0xaa36a7': { name: 'Sepolia', icon: PrivateLogo, id: '0xaa36a7' },
   // '0x1': { name: 'Ethereum', icon: EthereumLogo, id: '0x1' },
   // '0x89': { name: 'Polygon', icon: PolygonLogo, id: '0x89' },
   // '0x13881': { name: 'Polygon Mumbai', icon: PolygonLogo, id: '0x13881' },

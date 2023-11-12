@@ -5725,55 +5725,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@transeptor/erc-4337-relayer@workspace:packages/snap":
+"@transeptor-labs/smarthub-site@workspace:packages/site":
   version: 0.0.0-use.local
-  resolution: "@transeptor/erc-4337-relayer@workspace:packages/snap"
-  dependencies:
-    "@account-abstraction/contracts": 0.6.0
-    "@account-abstraction/utils": ^0.6.0
-    "@ethereumjs/common": ^3.1.2
-    "@ethereumjs/tx": ^4.1.2
-    "@ethereumjs/util": ^8.0.5
-    "@lavamoat/allow-scripts": ^2.0.3
-    "@metamask/auto-changelog": ^2.6.0
-    "@metamask/eslint-config": ^10.0.0
-    "@metamask/eslint-config-jest": ^10.0.0
-    "@metamask/eslint-config-nodejs": ^10.0.0
-    "@metamask/eslint-config-typescript": ^10.0.0
-    "@metamask/eth-sig-util": ^5.0.2
-    "@metamask/keyring-api": ^1.0.0
-    "@metamask/snaps-cli": ^3.0.0
-    "@metamask/snaps-types": ^3.0.0
-    "@metamask/snaps-ui": ^0.32.2
-    "@metamask/utils": ^3.3.0
-    "@types/jest": ^29.5.2
-    "@typescript-eslint/eslint-plugin": ^5.33.0
-    "@typescript-eslint/parser": ^5.33.0
-    buffer: ^6.0.3
-    eslint: ^8.21.0
-    eslint-config-prettier: ^8.1.0
-    eslint-plugin-import: ^2.26.0
-    eslint-plugin-jest: ^26.8.2
-    eslint-plugin-jsdoc: ^39.2.9
-    eslint-plugin-node: ^11.1.0
-    eslint-plugin-prettier: ^4.2.1
-    ethers: ^5.7.0
-    jest: ^29.5.0
-    jest-environment-jsdom: ^29.6.2
-    jest-jasmine2: ^29.6.2
-    prettier: ^2.2.1
-    prettier-plugin-packagejson: ^2.2.11
-    rimraf: ^3.0.2
-    through2: ^4.0.2
-    ts-jest: ^29.1.0
-    typescript: ^4.7.4
-    uuid: ^9.0.0
-  languageName: unknown
-  linkType: soft
-
-"@transeptor/site@workspace:packages/site":
-  version: 0.0.0-use.local
-  resolution: "@transeptor/site@workspace:packages/site"
+  resolution: "@transeptor-labs/smarthub-site@workspace:packages/site"
   dependencies:
     "@account-abstraction/contracts": ^0.6.0
     "@metamask/eslint-config": ^10.0.0
@@ -5814,6 +5768,52 @@ __metadata:
     rimraf: ^3.0.2
     styled-components: 5.3.3
     typescript: ^4.7.4
+  languageName: unknown
+  linkType: soft
+
+"@transeptor-labs/smarthub-snap@workspace:packages/snap":
+  version: 0.0.0-use.local
+  resolution: "@transeptor-labs/smarthub-snap@workspace:packages/snap"
+  dependencies:
+    "@account-abstraction/contracts": 0.6.0
+    "@account-abstraction/utils": ^0.6.0
+    "@ethereumjs/common": ^3.1.2
+    "@ethereumjs/tx": ^4.1.2
+    "@ethereumjs/util": ^8.0.5
+    "@lavamoat/allow-scripts": ^2.0.3
+    "@metamask/auto-changelog": ^2.6.0
+    "@metamask/eslint-config": ^10.0.0
+    "@metamask/eslint-config-jest": ^10.0.0
+    "@metamask/eslint-config-nodejs": ^10.0.0
+    "@metamask/eslint-config-typescript": ^10.0.0
+    "@metamask/eth-sig-util": ^5.0.2
+    "@metamask/keyring-api": ^1.0.0
+    "@metamask/snaps-cli": ^3.0.0
+    "@metamask/snaps-types": ^3.0.0
+    "@metamask/snaps-ui": ^0.32.2
+    "@metamask/utils": ^3.3.0
+    "@types/jest": ^29.5.2
+    "@typescript-eslint/eslint-plugin": ^5.33.0
+    "@typescript-eslint/parser": ^5.33.0
+    buffer: ^6.0.3
+    eslint: ^8.21.0
+    eslint-config-prettier: ^8.1.0
+    eslint-plugin-import: ^2.26.0
+    eslint-plugin-jest: ^26.8.2
+    eslint-plugin-jsdoc: ^39.2.9
+    eslint-plugin-node: ^11.1.0
+    eslint-plugin-prettier: ^4.2.1
+    ethers: ^5.7.0
+    jest: ^29.5.0
+    jest-environment-jsdom: ^29.6.2
+    jest-jasmine2: ^29.6.2
+    prettier: ^2.2.1
+    prettier-plugin-packagejson: ^2.2.11
+    rimraf: ^3.0.2
+    through2: ^4.0.2
+    ts-jest: ^29.1.0
+    typescript: ^4.7.4
+    uuid: ^9.0.0
   languageName: unknown
   linkType: soft
 
@@ -10350,29 +10350,6 @@ __metadata:
   checksum: ba9fa998bc8148b935dcf85585eacf049eeaf18d2ab6196710d4d1f59e7dfd0e87b18508dc67144ff8ba12f835a4a4989aeea64c98b13cca77b74b9d4b33bce5
   languageName: node
   linkType: hard
-
-"erc-4337-relayer-monorepo@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "erc-4337-relayer-monorepo@workspace:."
-  dependencies:
-    "@metamask/eslint-config": ^10.0.0
-    "@metamask/eslint-config-jest": ^10.0.0
-    "@metamask/eslint-config-nodejs": ^10.0.0
-    "@metamask/eslint-config-typescript": ^10.0.0
-    "@typescript-eslint/eslint-plugin": ^5.33.0
-    "@typescript-eslint/parser": ^5.33.0
-    eslint: ^8.21.0
-    eslint-config-prettier: ^8.1.0
-    eslint-plugin-import: ^2.26.0
-    eslint-plugin-jest: ^26.8.2
-    eslint-plugin-jsdoc: ^39.2.9
-    eslint-plugin-node: ^11.1.0
-    eslint-plugin-prettier: ^4.2.1
-    prettier: ^2.2.1
-    prettier-plugin-packagejson: ^2.2.18
-    typescript: ^4.7.4
-  languageName: unknown
-  linkType: soft
 
 "err-code@npm:^2.0.2":
   version: 2.0.3
@@ -18433,6 +18410,29 @@ __metadata:
   checksum: 3db4dfe5c793f40ac7e0be689a1f75d05e6f2ca0c66189aeb62adab8c436b857ab4420a419251ee60370d41d957a55698fc5e23ab1e1b41715f33217bc4bb558
   languageName: node
   linkType: hard
+
+"root@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "root@workspace:."
+  dependencies:
+    "@metamask/eslint-config": ^10.0.0
+    "@metamask/eslint-config-jest": ^10.0.0
+    "@metamask/eslint-config-nodejs": ^10.0.0
+    "@metamask/eslint-config-typescript": ^10.0.0
+    "@typescript-eslint/eslint-plugin": ^5.33.0
+    "@typescript-eslint/parser": ^5.33.0
+    eslint: ^8.21.0
+    eslint-config-prettier: ^8.1.0
+    eslint-plugin-import: ^2.26.0
+    eslint-plugin-jest: ^26.8.2
+    eslint-plugin-jsdoc: ^39.2.9
+    eslint-plugin-node: ^11.1.0
+    eslint-plugin-prettier: ^4.2.1
+    prettier: ^2.2.1
+    prettier-plugin-packagejson: ^2.2.18
+    typescript: ^4.7.4
+  languageName: unknown
+  linkType: soft
 
 "run-applescript@npm:^5.0.0":
   version: 5.0.0

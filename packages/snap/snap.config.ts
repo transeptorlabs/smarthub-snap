@@ -10,7 +10,7 @@ const config: SnapConfig = {
     crypto: true,
   },
   environment: {
-    DAPP_ORIGIN_PRODUCTION: 'https://transeptorlabs.github.io/erc-4337-relayer/',
+    DAPP_ORIGIN_PRODUCTION: 'https://transeptorlabs.github.io/smarthub',
     DAPP_ORIGIN_DEVELOPMENT: 'http://localhost:8000/',
   },
   stats: {

@@ -40,7 +40,6 @@ export const PERMISSIONS = new Map<string, string[]>([
     [
       // Keyring methods
       KeyringRpcMethod.ListAccounts,
-      KeyringRpcMethod.CreateAccount,
       KeyringRpcMethod.DeleteAccount,
       KeyringRpcMethod.UpdateAccount,
       KeyringRpcMethod.ListRequests,
@@ -60,7 +59,6 @@ export const PERMISSIONS = new Map<string, string[]>([
       KeyringRpcMethod.DeleteAccount,
       KeyringRpcMethod.ExportAccount,
       KeyringRpcMethod.ListRequests,
-      KeyringRpcMethod.SubmitRequest,
       KeyringRpcMethod.ApproveRequest,
       KeyringRpcMethod.RejectRequest,
 
@@ -112,7 +110,6 @@ export const PERMISSIONS = new Map<string, string[]>([
       KeyringRpcMethod.DeleteAccount,
       KeyringRpcMethod.ExportAccount,
       KeyringRpcMethod.ListRequests,
-      KeyringRpcMethod.SubmitRequest,
       KeyringRpcMethod.ApproveRequest,
       KeyringRpcMethod.RejectRequest,
 

@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
 import { AccountActivity, AccountActivityType, BundlerUrls, SmartContractAccount } from "../types";
-import { bundlerUrls, fetchUserOpHashes, getAccountBalance, getChainId, getKeyringSnapRpcClient, getMMProvider, getNextRequestId, getScAccount, getTxHashes, getUserOperationReceipt, parseChainId, sendSupportedEntryPoints } from "../utils";
+import { bundlerUrls, fetchUserOpHashes, getChainId, getKeyringSnapRpcClient, getMMProvider, getNextRequestId, getScAccount, getTxHashes, getUserOperationReceipt, parseChainId, sendSupportedEntryPoints } from "../utils";
 import { KeyringAccount } from "@metamask/keyring-api";
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 import type { Json } from '@metamask/utils';

@@ -1,6 +1,4 @@
 import { ethers } from 'ethers';
-import { EntryPoint__factory } from '@account-abstraction/contracts';
-import { DEFAULT_ENTRY_POINT } from '../4337/4337-contants';
 
 type BundlerRPCError = {
   jsonrpc: string;
@@ -30,15 +28,6 @@ export class HttpRpcClient {
       name: 'Connected Transeptor Bundler Node',
       chainId: parseInt(chainId as string, 16),
     });
-  }
-
-  public getEntryPointContract(): ethers.Contract {
-    const provider = new ethers.providers.Web3Provider(ethereum as any);
-    return new ethers.Contract(
-      DEFAULT_ENTRY_POINT,
-      EntryPoint__factory.abi,
-      provider,
-    );
   }
 
   public getBundlerUrl(): string {

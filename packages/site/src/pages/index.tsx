@@ -296,7 +296,6 @@ const Index = () => {
         // update selected to first account when the deleted account it the current selected account
         if(keyringAccountIdFound === state.selectedSnapKeyringAccount.id) {
           const accounts = await getKeyringSnapAccounts()
-          console.log('accounts after delet:', accounts)
           if (accounts.length > 0) {
             await selectKeyringSnapAccount(accounts[0]);
             await getSmartAccount(accounts[0].id);

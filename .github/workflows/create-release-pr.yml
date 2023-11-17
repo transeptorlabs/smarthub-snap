@@ -45,4 +45,4 @@ jobs:
 
       - name: Open Pull Request
         run: |
-          gh pr create --base ${{ github.event.inputs.base-branch }} --head ${{ steps.create-release-pr.outputs.branch_name }} --title "Release v${{ github.event.inputs.release-version }}" --body "Automated release PR for version v${{ github.event.inputs.release-version }}"
+          gh pr create --base ${{ github.event.inputs.base-branch }} --head "release/v${{ github.event.inputs.release-version }}" --title "Release v${{ github.event.inputs.release-version }}" --body "Automated release PR for version v${{ github.event.inputs.release-version }}"

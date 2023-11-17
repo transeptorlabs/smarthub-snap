@@ -37,7 +37,10 @@ jobs:
             git push origin $branch_name
   
             echo "::set-output name=branch_name::$branch_name"
-  
+            
+      - name: Check out the new branch
+        run: git checkout ${{ steps.create-release-pr.outputs.branch_name }}
+
       - name: Open Pull Request
         uses: peter-evans/create-pull-request@v3
         with:

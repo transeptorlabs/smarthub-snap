@@ -45,6 +45,7 @@ jobs:
         uses: peter-evans/create-pull-request@v3
         with:
             token: ${{ secrets.GITHUB_TOKEN }}
+            base: ${{ github.event.inputs.base-branch }}
             branch: ${{ steps.create-release-pr.outputs.branch_name }}
             title: "Release v${{ github.event.inputs.release-version }}"
             body: "Automated release PR for version v${{ github.event.inputs.release-version }}"

@@ -18,34 +18,28 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v3
-        with:
-          # This is to guarantee that the most recent tag is fetched.
-          # This can be configured to a more reasonable value by consumers.
-          fetch-depth: 0
-          # We check out the specified branch, which will be used as the base
-          # branch for all git operations and the release PR.
-          ref: ${{ github.event.inputs.base-branch }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 14
+
       - name: Create release branch
         run: |
-            branch_name="release/v${{ github.event.inputs.release-version }}"
-            git checkout -b $branch_name
-            git push origin $branch_name
-  
-            echo "::set-output name=branch_name::$branch_name"
-            
-      - name: Check out the new branch
-        run: git checkout ${{ steps.create-release-pr.outputs.branch_name }}
+          branch_name="release/v${{ github.event.inputs.release-version }}"
+          git checkout -b $branch_name
+          git commit --allow-empty -m "Release v${{ github.event.inputs.release-version }}"
+          git push origin $branch_name
+
+          echo "::set-output name=branch_name::$branch_name"
 
       - name: Open Pull Request
         uses: peter-evans/create-pull-request@v3
         with:
-            token: ${{ secrets.GITHUB_TOKEN }}
-            base: ${{ github.event.inputs.base-branch }}
-            branch: ${{ steps.create-release-pr.outputs.branch_name }}
-            title: "Release v${{ github.event.inputs.release-version }}"
-            body: "Automated release PR for version v${{ github.event.inputs.release-version }}"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: ${{ github.event.inputs.base-branch }}
+          branch: ${{ steps.create-release-pr.outputs.branch_name }}
+          title: "Release v${{ github.event.inputs.release-version }}"
+          body: "Automated release PR for version v${{ github.event.inputs.release-version }}"

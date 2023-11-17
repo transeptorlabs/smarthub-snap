@@ -32,8 +32,17 @@ jobs:
           node-version-file: '.nvmrc'
       - name: Create release branch
         run: |
-          branch_name="release/v${{ github.event.inputs.release-version }}"
-          git checkout -b $branch_name
-          git push origin $branch_name
-
-          echo "::set-output name=branch_name::$branch_name"
+            branch_name="release/v${{ github.event.inputs.release-version }}"
+            git checkout -b $branch_name
+            git push origin $branch_name
+  
+            echo "::set-output name=branch_name::$branch_name"
+  
+      - name: Open Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            base: ${{ github.event.inputs.base-branch }}
+            branch: ${{ steps.create-release-pr.outputs.branch_name }}
+            title: "Release v${{ github.event.inputs.release-version }}"
+            body: "Automated release PR for version v${{ github.event.inputs.release-version }}"

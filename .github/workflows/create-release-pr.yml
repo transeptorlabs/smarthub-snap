@@ -41,7 +41,7 @@ jobs:
           echo "::set-output name=branch_name::$branch_name"
 
       - name: Authenticate with GitHub CLI
-        run: gh auth login --with-token < ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth login --with-token < ${{ secrets.GH_TOKEN }}
 
       - name: Open Pull Request
         run: |

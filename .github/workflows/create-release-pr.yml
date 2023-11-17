@@ -7,12 +7,9 @@ on:
         description: 'The base branch for git operations and the pull request.'
         default: 'main'
         required: true
-      release-type:
-        description: 'A SemVer version diff, i.e. major, minor, or patch. Mutually exclusive with "release-version".'
-        required: false
       release-version:
-        description: 'A specific version to bump to. Mutually exclusive with "release-type".'
-        required: false
+        description: 'A specific version to bump to, i.e. 0.1.1'
+        required: true
 
 jobs:
   create-release-pr:
@@ -33,9 +30,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: '.nvmrc'
-      - uses: MetaMask/action-create-release-pr@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          release-type: ${{ github.event.inputs.release-type }}
-          release-version: ${{ github.event.inputs.release-version }}
+      - name: Create release branch
+        run: |
+          branch_name="release/v${{ github.event.inputs.release-version }}"
+          git checkout -b $branch_name
+          git push origin $branch_name
+
+          echo "::set-output name=branch_name::$branch_name"

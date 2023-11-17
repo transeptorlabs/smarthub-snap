@@ -2,7 +2,7 @@
 
 ![Node Version](https://img.shields.io/badge/node-16.x-green)
 [![codecov](https://img.shields.io/codecov/c/github/transeptorlabs/smarthub-snap.svg?style=flat-square)](https://app.codecov.io/gh/transeptorlabs/smarthub-snap)
-![Github workflow build status(main)](https://img.shields.io/github/actions/workflow/status/transeptorlabs/erc-4337-relayer/build-test-lint.yml?branch=main)
+![Github workflow build status(main)](https://img.shields.io/github/actions/workflow/status/transeptorlabs/smarthub-snap/build-test-lint.yml?branch=main)
 
 ## Overview
 

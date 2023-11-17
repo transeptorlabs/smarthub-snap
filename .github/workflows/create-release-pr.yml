@@ -35,11 +35,9 @@ jobs:
 
           echo "::set-output name=branch_name::$branch_name"
 
+      - name: Authenticate with GitHub CLI
+        run: gh auth login --with-token < ${{ secrets.GITHUB_TOKEN }}
+
       - name: Open Pull Request
-        uses: peter-evans/create-pull-request@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: ${{ github.event.inputs.base-branch }}
-          branch: ${{ steps.create-release-pr.outputs.branch_name }}
-          title: "Release v${{ github.event.inputs.release-version }}"
-          body: "Automated release PR for version v${{ github.event.inputs.release-version }}"
+        run: |
+          gh pr create --base ${{ github.event.inputs.base-branch }} --head ${{ steps.create-release-pr.outputs.branch_name }} --title "Release v${{ github.event.inputs.release-version }}" --body "Automated release PR for version v${{ github.event.inputs.release-version }}"

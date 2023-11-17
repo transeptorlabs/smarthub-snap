@@ -11,6 +11,9 @@ on:
         description: 'A specific version to bump to, i.e. 0.1.1'
         required: true
 
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # setting GH_TOKEN for the entire workflow
+
 jobs:
   create-release-pr:
     runs-on: ubuntu-latest
@@ -39,9 +42,6 @@ jobs:
           git push origin $branch_name
 
           echo "::set-output name=branch_name::$branch_name"
-
-      - name: Authenticate with GitHub CLI
-        run: gh auth login --with-token < ${{ secrets.GH_TOKEN }}
 
       - name: Open Pull Request
         run: |

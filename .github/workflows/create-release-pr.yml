@@ -26,6 +26,11 @@ jobs:
         with:
           node-version: 14
 
+      - name: Configure Git identity
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+
       - name: Create release branch
         run: |
           branch_name="release/v${{ github.event.inputs.release-version }}"

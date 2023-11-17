@@ -26,10 +26,10 @@ jobs:
           # We check out the specified branch, which will be used as the base
           # branch for all git operations and the release PR.
           ref: ${{ github.event.inputs.base-branch }}
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version-file: '.nvmrc'
+          node-version: 14
       - name: Create release branch
         run: |
             branch_name="release/v${{ github.event.inputs.release-version }}"
@@ -42,7 +42,6 @@ jobs:
         uses: peter-evans/create-pull-request@v3
         with:
             token: ${{ secrets.GITHUB_TOKEN }}
-            base: ${{ github.event.inputs.base-branch }}
             branch: ${{ steps.create-release-pr.outputs.branch_name }}
             title: "Release v${{ github.event.inputs.release-version }}"
             body: "Automated release PR for version v${{ github.event.inputs.release-version }}"

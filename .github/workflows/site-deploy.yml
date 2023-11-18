@@ -18,13 +18,15 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: '.nvmrc'
+      - name: Set snap origin
+        run: |
+          echo GATSBY_SNAP_ORIGIN=npm:@transeptor-labs/${{ github.event.repository.name }} >> .env.production
       - name: Install Dependencies and Build
         run: |
           yarn install
           yarn build
         env:
           GATSBY_PATH_PREFIX: ${{ github.event.repository.name }}
-          SNAP_ORIGIN: npm:@transeptor-labs/${{ github.event.repository.name }}
       - name: Cache build artifacts
         uses: actions/cache@v3
         id: cache-build

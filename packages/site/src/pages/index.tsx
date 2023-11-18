@@ -397,7 +397,7 @@ const Index = () => {
           <Card
             content={{
               title: 'Connect SmartHub snap',
-              description: 'Features include:',
+              description: 'Features:',
               listItems: [
                 'Access and control smart accounts with MetaMask. Enjoy smart contract functionality with ease and convenience.',
                 'Manage ERC-4337 accounts(create, sign, send, transfer funds)',

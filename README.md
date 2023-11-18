@@ -38,8 +38,9 @@ To interact with the Snaps, you must install [MetaMask Flask](https://metamask.i
 The snap requires a connection to ERC4337 Bundler. We will use Transeptor Bundler running alongside a geth client to set up the local ERC-4337 environment. Follow the steps below to set up the local environment:
 
 1. Create a `.env` file and copy values in `.env.sample` to a the `.env` file.
-2. `git submodule update --init`
-3. Run `make bundler` to start the bundler.
+2. Add `GATSBY_SNAP_ORIGIN=local:http://localhost:8080` to the `./packages/site/.env.development` file.
+3. `git submodule update --init`
+4. Run `make bundler` to start the bundler.
 
 The Bundler will start running on [http://localhost:3000/rpc](http://localhost:3000/rpc). You will
 need to have [Metamask Flask](https://metamask.io/flask/) installed and listening to

@@ -1,3 +1,0 @@
-[submodule "packages/transeptor"]
-	path = packages/transeptor
-	url = https://github.com/transeptorlabs/transeptor-bundler.git

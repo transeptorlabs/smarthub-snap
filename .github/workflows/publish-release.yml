@@ -19,37 +19,28 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: '.nvmrc'
-      - uses: MetaMask/action-publish-release@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install
+      - name: Install Dependencies and Build
         run: |
           yarn install
           yarn build
-      - uses: actions/cache@v3
-        id: restore-build
+      - name: Cache build artifacts
+        uses: actions/cache@v3
+        id: cache-build
         with:
           path: |
             ./packages/*/dist
             ./node_modules/.yarn-state.yml
-          key: ${{ github.sha }}
-
-  publish-npm-dry-run:
-    runs-on: ubuntu-latest
-    needs: publish-release
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.sha }}
-      - uses: actions/cache@v3
-        id: restore-build
-        with:
-          path: |
-            ./packages/*/dist
-            ./node_modules/.yarn-state.yml
-          key: ${{ github.sha }}
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - name: Dry Run Publish
-        # omit npm-token token to perform dry run publish
-        uses: MetaMask/action-npm-publish@v4
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          npm publish --access public --dry-run
         env:
-          SKIP_PREPACK: true
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Confirm Dry Run
+        run: echo "Dry run completed successfully. Ready for actual publishing."
+      - name: Publish to npm
+        run: |
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

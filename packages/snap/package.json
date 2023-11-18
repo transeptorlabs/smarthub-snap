@@ -1,6 +1,6 @@
 {
   "name": "@transeptor-labs/smarthub-snap",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "A MetaMask snap the helps you manage ERC-4337 smart account",
   "keywords": [
     "metamask",
@@ -27,7 +27,10 @@
   "files": [
     "dist/",
     "images/",
-    "snap.manifest.json"
+    "snap.manifest.json",
+    "CHANGELOG.md",
+    "package.json",
+    "README.md"
   ],
   "scripts": {
     "build": "mm-snap build",

@@ -28,19 +28,20 @@ jobs:
         id: cache-build
         with:
           path: |
-            ./packages/*/dist
+            ./packages/snap/dist
             ./node_modules/.yarn-state.yml
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
       - name: Dry Run Publish
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-          npm publish --access public --dry-run
+          npm publish ./packages/snap --access public --dry-run
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Confirm Dry Run
         run: echo "Dry run completed successfully. Ready for actual publishing."
       - name: Publish to npm
         run: |
-          npm publish --access public
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          npm publish ./packages/snap --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

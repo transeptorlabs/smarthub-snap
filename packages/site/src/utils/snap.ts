@@ -324,7 +324,7 @@ export const sendSupportedEntryPoints = async (): Promise<string[]> => {
   //     request: { method: 'eth_supportedEntryPoints', params: [] },
   //   },
   // })) as string[];
-  return ["0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"]
+  return ['0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789'];
 };
 
 export const estimateUserOperationGas = async (

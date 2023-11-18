@@ -1,16 +1,14 @@
 {
   "compilerOptions": {
+    "declaration": true,
     "esModuleInterop": true,
-    "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2020", "DOM"],
     "module": "CommonJS",
     "moduleResolution": "node",
-    "noEmit": true,
-    "noErrorTruncation": true,
-    "noUncheckedIndexedAccess": true,
+    "useUnknownInCatchVariables": false,
+    "sourceMap": true,
     "strict": true,
-    "target": "es2020"
+    "target": "ES2017"
   },
   "exclude": ["**/__snapshots__/**", "**/test/**", "**/*.test.ts"]
 }

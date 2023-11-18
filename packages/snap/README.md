@@ -259,7 +259,7 @@ await window.ethereum.request({
 
 ## Keyring methods
 
-Used MetaMask keyring to create and manage accounts that are natively supported within the extension, appearing in MetaMask's UI, and can be used with dapps. Dapps can invoke these methods using the `KeyringSnapRpcClient` instance.
+We use MetaMask keyring to create and manage accounts that are natively supported within the extension, appearing in MetaMask's UI, and can be used with dapps. Dapps can invoke these methods using the `KeyringSnapRpcClient` instance.
 
 ### Create Account
 

@@ -164,7 +164,7 @@ const Index = () => {
         if (account.length > 0) {
           await selectKeyringSnapAccount(account[0]);
           await getSmartAccount(account[0].id);
-          await getAccountActivity(account[0].id);
+          // await getAccountActivity(account[0].id);
         }
       }
     }
@@ -172,40 +172,41 @@ const Index = () => {
     initAccounts().catch((error) => dispatch({ type: MetamaskActions.SetError, payload: error }));
   }, [state.installedSnap]);
 
+  // TODO: Add account activity
   // realtime refresh - refreshes account activity every 10 seconds
-  useEffect(() => {
-    let interval: any
-    try {  
-      interval = setInterval(async () => {
-        if (state.accountActivity.length > 0) {
-          const accountActivity = state.accountActivity
-          for (const activity of accountActivity) {
-            if (activity.userOpHash !== '' && activity.userOperationReceipt === null) {
-              const userOpReceipt = await getUserOperationReceipt(activity.userOpHash)
+  // useEffect(() => {
+  //   let interval: any
+  //   try {  
+  //     interval = setInterval(async () => {
+  //       if (state.accountActivity.length > 0) {
+  //         const accountActivity = state.accountActivity
+  //         for (const activity of accountActivity) {
+  //           if (activity.userOpHash !== '' && activity.userOperationReceipt === null) {
+  //             const userOpReceipt = await getUserOperationReceipt(activity.userOpHash)
 
-              if (userOpReceipt !== null) {
-                notify('Transaction confirmed (userOpHash)', 'View activity for details.', activity.userOpHash)
-              }
-              activity.userOperationReceipt = userOpReceipt
-            }
-          }
+  //             if (userOpReceipt !== null) {
+  //               notify('Transaction confirmed (userOpHash)', 'View activity for details.', activity.userOpHash)
+  //             }
+  //             activity.userOperationReceipt = userOpReceipt
+  //           }
+  //         }
           
-          dispatch({
-            type: MetamaskActions.SetAccountActivity,
-            payload: accountActivity,
-          });
-        }
-      }, 10000) // 10 seconds
+  //         dispatch({
+  //           type: MetamaskActions.SetAccountActivity,
+  //           payload: accountActivity,
+  //         });
+  //       }
+  //     }, 10000) // 10 seconds
   
-      return () => {
-        clearInterval(interval);
-      };
+  //     return () => {
+  //       clearInterval(interval);
+  //     };
 
-    } catch (e) {
-      console.error('[ERROR] refresher:', e.message);
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    } 
-  }, [state.accountActivity]);
+  //   } catch (e) {
+  //     console.error('[ERROR] refresher:', e.message);
+  //     dispatch({ type: MetamaskActions.SetError, payload: e });
+  //   } 
+  // }, [state.accountActivity]);
 
   // realtime refresh - refreshes account balances every 5 seconds
   useEffect(() => {
@@ -299,7 +300,8 @@ const Index = () => {
           if (accounts.length > 0) {
             await selectKeyringSnapAccount(accounts[0]);
             await getSmartAccount(accounts[0].id);
-            await getAccountActivity(accounts[0].id);
+            // TODO: Add account activity
+            // await getAccountActivity(accounts[0].id);
           } else {
             dispatch({ type: MetamaskActions.SetClearAccount, payload: true })
           }
@@ -459,7 +461,8 @@ const Index = () => {
             <EthereumTransactionModalComponent  transactionType={transactionType}/>
           </Modal>
           
-          {state.scAccount.connected && state.installedSnap && (
+          {/* TODO: Add account activity */}
+          {/* {state.scAccount.connected && state.installedSnap && (
             <Card
               content={{
                 title: 'Activity',
@@ -468,7 +471,7 @@ const Index = () => {
               disabled={!state.isFlask}
               fullWidth
             />
-          )}
+          )} */}
 
           {state.installedSnap && state.snapKeyring.accounts.length === 0 && (
             <Card

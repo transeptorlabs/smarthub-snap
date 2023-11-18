@@ -1,3 +1,4 @@
+import snapPackageInfo from '../../../snap/package.json';
 import { BigNumber } from 'ethers';
 import { defaultSnapOrigin } from '../config';
 import {
@@ -32,7 +33,9 @@ export const getSnaps = async (): Promise<GetSnapsResponse> => {
  */
 export const connectSnap = async (
   snapId: string = defaultSnapOrigin,
-  params: Record<'version' | string, unknown> = {},
+  params: Record<'version' | string, unknown> = {
+    version: snapPackageInfo.version,
+  },
 ) => {
   await getMMProvider().request({
     method: 'wallet_requestSnaps',
@@ -312,13 +315,15 @@ export const estimatCreationGas = async (
 
 // ERC-4337 wrappers ******************************************************
 export const sendSupportedEntryPoints = async (): Promise<string[]> => {
-  return (await getMMProvider().request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: { method: 'eth_supportedEntryPoints', params: [] },
-    },
-  })) as string[];
+  // TODO: Add account activity
+  // return (await getMMProvider().request({
+  //   method: 'wallet_invokeSnap',
+  //   params: {
+  //     snapId: defaultSnapOrigin,
+  //     request: { method: 'eth_supportedEntryPoints', params: [] },
+  //   },
+  // })) as string[];
+  return ["0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"]
 };
 
 export const estimateUserOperationGas = async (

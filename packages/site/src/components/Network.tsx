@@ -54,7 +54,8 @@ export const NetworkModalDropdown = ({
       // refresh selected smart account
       if(state.scAccount.connected && state.selectedSnapKeyringAccount.id !== '') {
         await getSmartAccount(state.selectedSnapKeyringAccount.id)
-        await getAccountActivity(state.selectedSnapKeyringAccount.id)
+        // TODO: Add account activity
+        // await getAccountActivity(state.selectedSnapKeyringAccount.id)
       }
     }
   };

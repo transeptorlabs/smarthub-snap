@@ -23,7 +23,7 @@ jobs:
           yarn install
           yarn build
         env:
-          GATSBY_PATH_PREFIX: ${{ github.event.repository.name }}/latest/
+          GATSBY_PATH_PREFIX: ${{ github.event.repository.name }}
       - name: Set snap origin
         run: |
           echo GATSBY_SNAP_ORIGIN=npm:@transeptor-labs/${{ github.event.repository.name }} >> .env.production
@@ -50,9 +50,8 @@ jobs:
           npm publish ./packages/snap --access public --dry-run
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Deploy to `latest` directory of `gh-pages` branch
+      - name: Deploy to `gh-pages` branch
         uses: peaceiris/actions-gh-pages@de7ea6f8efb354206b205ef54722213d99067935
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./packages/site/public
-          destination_dir: latest

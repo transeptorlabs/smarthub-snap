@@ -1,4 +1,3 @@
-import snapPackageInfo from '../../../snap/package.json';
 import { BigNumber } from 'ethers';
 import { defaultSnapOrigin } from '../config';
 import {
@@ -11,6 +10,7 @@ import {
   UserOperationReceipt,
   SignedTxs,
 } from '../types';
+import snapPackageInfo from '../../../snap/package.json';
 import { getMMProvider } from './metamask';
 
 // Snap management *****************************************************************

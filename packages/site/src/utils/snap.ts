@@ -37,7 +37,6 @@ export const connectSnap = async (
     version: snapPackageInfo.version,
   },
 ) => {
-  console.log('snap info:', snapId, params);
   await getMMProvider().request({
     method: 'wallet_requestSnaps',
     params: {

@@ -410,8 +410,8 @@ const Index = () => {
               description: 'Features:',
               listItems: [
                 'Access and control smart accounts with MetaMask. Enjoy smart contract functionality with ease and convenience.',
-                'Manage ERC-4337 accounts(create, sign, send, transfer funds)',
-                'Manage stake and deposit with supported entrypoint contracts',
+                'Manage ERC-4337 accounts(create, delete, send funds)',
+                'Manage stake, withdraws and deposits with supported entrypoint contracts',
               ],
               button: <ConnectSnapButton onClick={handleReConnectSnapClick}/>
             }}

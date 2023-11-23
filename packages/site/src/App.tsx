@@ -1,6 +1,6 @@
 import { FunctionComponent, ReactNode, useContext } from 'react';
 import styled from 'styled-components';
-import { Footer, Header } from './components';
+import { Footer, Header, AlertBanner, AlertType } from './components';
 
 import { GlobalStyle } from './config/theme';
 import { ToggleThemeContext } from './Root';
@@ -11,6 +11,12 @@ const Wrapper = styled.div`
   width: 100%;
   min-height: 100vh;
   max-width: 100vw;
+`;
+
+const BannerWrapper = styled.div`
+  padding-top: 25px;
+  padding-left: 5%;
+  padding-right: 5%;
 `;
 
 export type AppProps = {
@@ -29,6 +35,14 @@ export const App: FunctionComponent<AppProps> = ({ children }) => {
       <GlobalStyle />
       <Wrapper>
         <Header handleToggleClick={toggleTheme} />
+        <BannerWrapper>
+          <AlertBanner
+            title={
+              `This software is in the early stages of development and may contain bugs, vulnerabilities and has not undergone a security audit. DO NOT use it to store real assets.`
+            }
+            alertType={AlertType.Failure}
+          />
+        </BannerWrapper>
         {children}
         <Footer />
       </Wrapper>

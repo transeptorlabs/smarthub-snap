@@ -15,3 +15,4 @@ export * from './Network';
 export * from './Faq';
 export * from './Transaction';
 export * from './ConnectToggle';
+export * from './AlertBanner';

@@ -1,6 +1,6 @@
 import { MetaMaskContext, MetamaskActions, useAcount } from '../hooks';
 import styled from 'styled-components';
-import { connectSnap, convertToEth, filterPendingRequests, getMMProvider, getSignedTxs, getSnap, handleCopyToClipboard, storeTxHash, trimAccount } from '../utils';
+import { connectSnap, convertToEth, filterPendingRequests, getMMProvider, getSnap, handleCopyToClipboard, storeTxHash, trimAccount } from '../utils';
 import { FaCloudDownloadAlt, FaRegLightbulb } from 'react-icons/fa';
 import { InstallFlaskButton, ConnectSnapButton, SimpleButton } from './Buttons';
 import { AccountActivity, AccountActivityType, SupportedChainIdMap, UserOperation } from '../types';

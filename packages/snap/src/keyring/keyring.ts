@@ -140,9 +140,9 @@ export class SimpleKeyring implements Keyring {
       id: uuid(),
       options: {
         name,
-        owner: address,
-      }, // only include name and owner in options
-      address: await getSmartAccountAddress(address),
+        smartAccountAddress: await getSmartAccountAddress(address),
+      },
+      address: address,
       methods: [
         EthMethod.PersonalSign,
         EthMethod.Sign,
@@ -216,13 +216,8 @@ export class SimpleKeyring implements Keyring {
       'SNAPS/submitRequest requests:',
       JSON.stringify(request, undefined, 2),
     );
-
-    if (request.scope !== 'async' && request.scope !== 'sync') {
-      throw new Error(
-        `Invalid request scope: ${request.scope}, must be 'async' or 'sync'`,
-      );
-    }
-    return request.scope === 'sync'
+    const scope = 'sync';
+    return scope === 'sync'
       ? this.#syncSubmitRequest(request)
       : this.#asyncSubmitRequest(request);
   }
@@ -267,7 +262,7 @@ export class SimpleKeyring implements Keyring {
     request: KeyringRequest,
   ): Promise<SubmitRequestResponse> {
     const { method, params = [] } = request.request as JsonRpcRequest;
-    const result = await this.#handleSigningRequest(method, params);
+    const result = await this.#handleSigningRequest(method, params, request.account);
     return {
       pending: false,
       result,
@@ -276,7 +271,7 @@ export class SimpleKeyring implements Keyring {
 
   async approveRequest(id: string): Promise<void> {
     try {
-      const { request } = await this.getRequest(id);
+      const { request, account } = await this.getRequest(id);
       if (request === undefined) {
         throw new Error(`Request '${id}' not found`);
       }
@@ -290,6 +285,7 @@ export class SimpleKeyring implements Keyring {
       const result = await this.#handleSigningRequest(
         request.method,
         (request.params as Json) ?? [],
+        account,
       );
 
       delete this.#pendingRequests[id];
@@ -318,7 +314,7 @@ export class SimpleKeyring implements Keyring {
     await this.#emitEvent(KeyringEvent.RequestRejected, { id });
   }
 
-  async #handleSigningRequest(method: string, params: Json): Promise<Json> {
+  async #handleSigningRequest(method: string, params: Json, accountId: string): Promise<Json> {
     switch (method) {
       case EthMethod.PersonalSign: {
         const [from, message] = params as [string, string];
@@ -326,17 +322,15 @@ export class SimpleKeyring implements Keyring {
       }
 
       case EthMethod.SignTransaction: {
-        const [from, type, tx] = params as [
-          string,
-          string,
-          JsonTx | UserOperation,
-        ];
-        if (type === 'eoa') {
-          return await this.#signTransactionEthers(from, tx as JsonTx);
-        } else if (type === 'eip4337') {
-          return (await this.#signUserOp(from, tx as UserOperation)) as Json;
+        const [tx] = params as [any];
+
+        // check to see if tx initCode is present
+        if (tx.initCode) {
+          const userOp = tx as UserOperation;
+          return await this.#signUserOp(accountId, userOp) as Json;
+        } else {
+          return this.#signTransaction(accountId, tx as JsonTx);
         }
-        throw new Error(`Unknown account type: ${type}`);
       }
 
       case EthMethod.SignTypedDataV1: {
@@ -372,7 +366,7 @@ export class SimpleKeyring implements Keyring {
   }
 
   async #signUserOp(
-    from: string,
+    accountId: string,
     userOp: UserOperation,
   ): Promise<UserOperation> {
     const provider = new ethers.providers.Web3Provider(ethereum as any);
@@ -383,7 +377,7 @@ export class SimpleKeyring implements Keyring {
     );
 
     // sign the userOp
-    const { privateKey } = this.#getWalletByAddress(from);
+    const { privateKey } = this.#getWalletById(accountId);
     const wallet = new EthersWallet(privateKey);
     userOp.signature = '0x';
     const userOpHash = ethers.utils.arrayify(
@@ -393,14 +387,7 @@ export class SimpleKeyring implements Keyring {
     return deepHexlify({ ...userOp, signature });
   }
 
-  async #signTransactionEthers(from: string, tx: JsonTx): Promise<string> {
-    const provider = new ethers.providers.Web3Provider(ethereum as any);
-    const { privateKey } = this.#getWalletByAddress(from);
-    const wallet = new EthersWallet(privateKey, provider);
-    return await wallet.signTransaction(tx as any);
-  }
-
-  #signTransaction(from: string, tx: JsonTx): Json {
+  #signTransaction(accountId: string, tx: JsonTx): Json {
     if (!tx.chainId) {
       throw new Error('Missing chainId');
     }
@@ -410,7 +397,7 @@ export class SimpleKeyring implements Keyring {
       tx.chainId = `0x${parseInt(tx.chainId, 10).toString(16)}`;
     }
 
-    const wallet = this.#getWalletByAddress(from);
+    const wallet = this.#getWalletById(accountId);
     const privateKey = Buffer.from(wallet.privateKey, 'hex');
     const common = Common.custom(
       { chainId: Number(tx.chainId) },

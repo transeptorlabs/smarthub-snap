@@ -1,5 +1,6 @@
 import { BigNumber } from 'ethers';
 import { UserOperation } from './erc-4337.types';
+import { JsonTx } from '@ethereumjs/tx';
 
 export type NotifyParams = {
   heading: string;
@@ -54,3 +55,9 @@ export type EstimateCreationGasParams = {
 export type EstimateUserOperationGas = {
   userOp: UserOperation;
 };
+
+export type  SignEntryPointDepositTxParams = {
+  keyringAccountId: string;
+  type: 'eoa' | 'eip4337'
+  tx: JsonTx
+}

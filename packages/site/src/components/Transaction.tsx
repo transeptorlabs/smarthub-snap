@@ -5,10 +5,10 @@ import { CommonInputForm } from './Form';
 import { FaRegTimesCircle, FaCheckCircle } from 'react-icons/fa';
 import { MetaMaskContext, useAcount } from '../hooks';
 import { AccountRequestDisplay } from './Account';
-import { convertToEth, convertToWei, estimateGas, parseChainId, trimAccount } from '../utils/eth';
+import { convertToEth, convertToWei, estimateGas, trimAccount } from '../utils/eth';
 import { BlockieAccountModal } from './Blockie-Icon';
 import { BigNumber, ethers } from 'ethers';
-import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getSignedTxs, getUserOpCallData, handleCopyToClipboard, notify, storeTxHash } from '../utils';
+import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getUserOpCallData, handleCopyToClipboard, notify, storeTxHash } from '../utils';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { UserOperation } from '../types';
 import { FaCopy } from "react-icons/fa";
@@ -102,16 +102,16 @@ const AccountCopy = styled.div`
 `;
 
 enum Stage {
-    EnterAmount = 'Enter Amount',
-    Review = 'Review',
-    Loading = 'Loading',
-    Sent = 'Sent',
-    Failed = 'Failed',
+  EnterAmount = 'Enter Amount',
+  Review = 'Review',
+  Loading = 'Loading',
+  Success = 'Success',
+  Failed = 'Failed',
 }
 
 export enum TransactionType {
-    Deposit = 'Deposit',
-    Withdraw = 'Withdraw',
+  Deposit = 'Deposit',
+  Withdraw = 'Withdraw',
 }
 
 export const EthereumTransactionModalComponent = ({
@@ -121,13 +121,13 @@ export const EthereumTransactionModalComponent = ({
   }) => {
   const [state] = useContext(MetaMaskContext);
   const [status, setStatus] = useState<Stage>(Stage.EnterAmount);
-  const [amount, setAmount] = useState<string>('');
   const [failMessage, setFailMessage] = useState<string>('User denied the transaction signature.');
   const [successMessage, setSuccessMessage] = useState<string>('');
+
+  const [amount, setAmount] = useState<string>('');
+
   const {
     sendRequestSync,
-    approveRequest,
-    rejectRequest,
     getSmartAccount,
     getAccountActivity,
     getKeyringSnapAccounts,
@@ -148,31 +148,40 @@ export const EthereumTransactionModalComponent = ({
     const feeData = await provider.getFeeData()
     const encodedFunctionData = entryPointContract.interface.encodeFunctionData('depositTo', [state.scAccount.address]);
     const estimateGasAmount = await estimateGas(
-    state.selectedSnapKeyringAccount.address,
-    state.scAccount.entryPoint,
-    encodedFunctionData,
+      state.selectedSnapKeyringAccount.address,
+      state.scAccount.entryPoint,
+      encodedFunctionData,
     );
 
-    // set transation data (eth transaction type 2)
-    const transactionData = await entryPointContract.populateTransaction.depositTo(state.scAccount.address,
-      {
-        // Type 2 Transactions (EIP-1559)
-        from: state.selectedSnapKeyringAccount.address,
-        nonce: await provider.getTransactionCount(state.selectedSnapKeyringAccount.address, 'latest'),
-        gasLimit: estimateGasAmount.toNumber(),
-        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? BigNumber.from(0),
-        maxFeePerGas: feeData.maxFeePerGas ?? BigNumber.from(0),
-        value: depositInWei.toString(),
-      }
-    )
-    transactionData.chainId = parseChainId(state.chainId)
+    // TODO: changeto account before sending transaction
 
-    // send request to keyring for approval
-    const result = await sendRequestSync(
+    // send transaction
+    const res = await getMMProvider().request({
+      method: 'eth_sendTransaction',
+      params: [
+        {
+          from: state.selectedSnapKeyringAccount.address,
+          to: entryPointContract.address,
+          value: depositInWei.toHexString(),
+          gasLimit: estimateGasAmount.toHexString(),
+          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toHexString() ?? BigNumber.from(0).toHexString(),
+          maxFeePerGas: feeData.maxFeePerGas?.toHexString() ?? BigNumber.from(0).toHexString(),
+          data: encodedFunctionData,
+        }
+      ],
+    }) as string
+
+    // show success message
+    await getSmartAccount(state.selectedSnapKeyringAccount.id);
+    await storeTxHash(
       state.selectedSnapKeyringAccount.id,
-      'eth_signTransaction',
-      [state.selectedSnapKeyringAccount.address, 'eoa', transactionData] // [from, type, transactionData]
+      res,
+      state.chainId,
     );
+    setAmount('');
+    setSuccessMessage(`${amount} ETH successfully depoisted to entry point contract.`);
+    setStatus(Stage.Success);
+    notify('Deposit Transaction sent (txHash)', 'View activity for details.', res)
   }
 
   const handleWithdrawSubmit = async () => {
@@ -255,10 +264,10 @@ export const EthereumTransactionModalComponent = ({
         throw new Error('Invalid transaction type');
       }
 
-      setStatus(Stage.Review);
     } catch (e) {
+      console.error(e.message)
       setAmount('');
-      setFailMessage(e.message);
+      setFailMessage('Transaction failed to send.');
       setStatus(Stage.Failed);
     }
   };
@@ -272,51 +281,32 @@ export const EthereumTransactionModalComponent = ({
     }
   }
 
-  const handleApproveClick = async (event: any, requestId: string) => {
+  const handleConfirmUserOpClick = async (event: any) => {
     try {
       event.preventDefault();
       setStatus(Stage.Loading);
+     //  TODO: Send userOp
 
-      // sign request
-      await approveRequest(requestId);
-
-      // send tx
-      const signedTxs = await getSignedTxs()
-
-      if (signedTxs[requestId]) {
-        const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
-        const res = await provider.sendTransaction(signedTxs[requestId])
-        await res.wait();
-
-        await storeTxHash(
-          state.selectedSnapKeyringAccount.id,
-          res.hash,
-          requestId,
-          state.chainId,
-        );
-        notify('Transaction confirmed (txHash)', 'View activity for details.', res.hash)
-      }
-
-      setStatus(Stage.Sent);
-      setSuccessMessage(`${amount} ETH successfully sent.`);
-
-      await getAccountActivity(state.selectedSnapKeyringAccount.id);
+      setStatus(Stage.Success);
+      setSuccessMessage(`${amount} ETH successfully depoisted to entry point contract.`);
+      // TODO: Add activity
+      // await getAccountActivity(state.selectedSnapKeyringAccount.id);
       await getSmartAccount(state.selectedSnapKeyringAccount.id);
     } catch (e) {
-        setFailMessage(e.message)
-        setStatus(Stage.Failed);
-        await getKeyringSnapAccounts();
+      setFailMessage(e.message)
+      setAmount('');
+      setStatus(Stage.Failed);
     }
   };
 
-  const handleRejectClick = async (event: any, requestId: string) => {
+  const handleRejectUserOpClick = async (event: any) => {
     try {
       event.preventDefault();
       setStatus(Stage.Loading);
-      await rejectRequest(requestId);
-      setAmount('');
+      setAmount('')
       setStatus(Stage.EnterAmount);
     } catch (e) {
+      setAmount('')
       setFailMessage(e.message)
       setStatus(Stage.Failed);
     }
@@ -335,13 +325,13 @@ export const EthereumTransactionModalComponent = ({
                     <TextBold>(owner)</TextBold>
                     <FlexRow>
                       <Text>
-                        {trimAccount(state.selectedSnapKeyringAccount.options.owner as string)}
+                        {trimAccount(state.selectedSnapKeyringAccount.address)}
                       </Text>
                       <AccountCopy
                         onClick={(e) =>
                           handleCopyToClipboard(
                             e,
-                            state.selectedSnapKeyringAccount.options.owner as string,
+                            state.selectedSnapKeyringAccount.address,
                           )
                         }
                       >
@@ -391,16 +381,6 @@ export const EthereumTransactionModalComponent = ({
             />
           </FlexCol>
         );
-      case Stage.Review:
-        return (
-          <>
-          <p>Review..</p>
-          </>
-          // <AccountRequestDisplay
-          //   approveRequestClick={handleApproveClick}
-          //   rejectRequestClick={handleRejectClick}
-          // />
-        );
       case Stage.Loading:
         return (
           <SpinnerContainer>
@@ -417,7 +397,7 @@ export const EthereumTransactionModalComponent = ({
             <Text>{failMessage}</Text>
           </Container>
         );
-      case Stage.Sent:
+      case Stage.Success:
         return (
           <Container>
             <IconContainer>

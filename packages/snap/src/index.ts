@@ -3,6 +3,7 @@ import type {
   OnKeyringRequestHandler,
 } from '@metamask/snaps-types';
 import {
+  EthMethod,
   KeyringAccount,
   MethodNotSupportedError,
   handleKeyringRequest,
@@ -21,6 +22,7 @@ import {
   getNextRequestId,
 } from './state';
 import {
+  SignEntryPointDepositTxParams,
   EstimateCreationGasParams,
   EstimateUserOperationGas,
   GetTxHashesParams,
@@ -47,6 +49,7 @@ import {
   getSmartAccountAddress,
   getUserOpCallData,
 } from './4337';
+import type { Json } from '@metamask/utils';
 
 let keyring: SimpleKeyring;
 
@@ -137,22 +140,17 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         throw new Error('Account not found');
       }
 
-      const owner = keyringAccount.options.owner as string | undefined;
-      if (!owner) {
-        throw new Error('Owner not found');
-      }
-
-      const scAddress = await getSmartAccountAddress(owner);
+      const scAddress = await getSmartAccountAddress(keyringAccount.address);
       const [smartAcountBalance, ownerBalance, nonce, deposit] =
         await Promise.all([
           await getBalance(scAddress),
-          await getBalance(owner),
+          await getBalance(keyringAccount.address),
           await getNonce(scAddress),
           await getDeposit(scAddress),
         ]);
 
       result = JSON.stringify({
-        initCode: await getAccountInitCode(owner),
+        initCode: await getAccountInitCode(keyringAccount.address),
         address: scAddress,
         balance: smartAcountBalance, // in wei
         nonce,
@@ -160,9 +158,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         entryPoint: DEFAULT_ENTRY_POINT,
         factoryAddress: DEFAULT_ACCOUNT_FACTORY,
         deposit,
-        ownerAddress: owner,
         owner: {
-          address: owner,
+          address: keyringAccount.address,
           balance: ownerBalance, // in wei
         },
       });
@@ -265,6 +262,36 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         throw new Error('Failed to clear activity data');
       }
       return result;
+    }
+
+    case InternalMethod.SignEntryPointDepositTx: {
+      const params: SignEntryPointDepositTxParams = (
+        request.params as any[]
+      )[0] as SignEntryPointDepositTxParams;
+
+      await intitKeyRing();
+      const depositRequest = {
+        id: (await getNextRequestId()).toString(),
+        scope:  '',
+        account: params.keyringAccountId,
+        request: {
+          method: EthMethod.SignTransaction,
+          params: [params.type, params.tx] as Json[]
+        }
+      }
+
+      const depositResult = await keyring.submitRequest(depositRequest);
+      result = JSON.stringify({
+        request: depositRequest,
+        result: (
+          depositResult as {
+            pending: false;
+            result: Json;
+          }
+        ).result,
+      });
+
+      return result
     }
 
     case InternalMethod.ChainId: {

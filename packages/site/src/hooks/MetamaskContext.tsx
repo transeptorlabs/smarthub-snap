@@ -16,21 +16,23 @@ export type MetamaskState = {
   isFlask: boolean;
   installedSnap?: Snap;
   error?: Error;
-  isChainIdListener: boolean;
+  isWalletListener: boolean;
   chainId: string;
   activeTab: AppTab;
   snapKeyring: KeyringState;
   selectedSnapKeyringAccount: KeyringAccount;
+  isSelectedSnapKeyringAccountConnected: boolean;
   scAccount: SmartContractAccount;
   accountActivity: AccountActivity[];
   bundlerUrls?: BundlerUrls;
+  connectedAccounts: string[];
 };
 
 const initialState: MetamaskState = {
   isFlask: false,
   error: undefined,
   installedSnap: undefined,
-  isChainIdListener: false,
+  isWalletListener: false,
   chainId: '',
   activeTab: AppTab.SmartAccount,
   snapKeyring: {
@@ -42,11 +44,12 @@ const initialState: MetamaskState = {
     address: '',
     options: {
       name: '',
-      owner: '',
+      smartAccountAddress: '',
     },
     methods: [],
     type: EthAccountType.Eip4337,
   },
+  isSelectedSnapKeyringAccountConnected: false,
   scAccount: {
     initCode: '',
     connected: false,
@@ -64,6 +67,7 @@ const initialState: MetamaskState = {
   },
   accountActivity: [],
   bundlerUrls: undefined,
+  connectedAccounts: [],
 };
 
 type MetamaskDispatch = { type: MetamaskActions; payload: any };
@@ -91,6 +95,8 @@ export enum MetamaskActions {
   SetClearAccount = 'SetClearAccount',
   SetBundlerUrls = 'SetBundlerUrls',
   SetSupportedEntryPoints = 'SetSupportedEntryPoints',
+  SetConnectedAccounts = 'SetConnectedAccounts',
+  SetIsSelectedSnapKeyringAccount = 'SetIsSelectedSnapKeyringAccount',
 }
 
 const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
@@ -140,7 +146,7 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
     case MetamaskActions.SetWalletListener:
       return {
         ...state,
-        isChainIdListener: action.payload,
+        isWalletListener: action.payload,
       };
 
     case MetamaskActions.SetActiveTab:
@@ -175,7 +181,7 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
           address: '',
           options: {
             name: '',
-            owner: '',
+            smartAccountAddress: '',
           },
           methods: [],
           type: EthAccountType.Eip4337,
@@ -190,10 +196,26 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
           entryPoint: '',
           deposit: '',
           factoryAddress: '',
-          ownerAddress: '',
+          owner: {
+            address: '',
+            balance: '', // in wei
+          }
         },
         accountActivity: [],
       };
+
+      case MetamaskActions.SetConnectedAccounts:
+        return {
+          ...state,
+          connectedAccounts: action.payload,
+        };
+
+      case MetamaskActions.SetIsSelectedSnapKeyringAccount:
+        return {
+          ...state,
+          isSelectedSnapKeyringAccountConnected: action.payload,
+        };
+
     default:
       return state;
   }

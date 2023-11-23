@@ -1,6 +1,66 @@
 import { BigNumber, ethers } from 'ethers';
 import { getMMProvider } from './metamask';
 
+export const connectedAccounts = async() => {
+  await getMMProvider().request({
+    method: "wallet_requestPermissions",
+    params: [
+      {
+        "eth_accounts": {}
+      }
+    ]
+  });
+
+  const accounts = await getMMProvider().request({ method: 'eth_requestAccounts' })
+    .catch((err) => {
+      if (err.code === 4001) {
+        // EIP-1193 userRejectedRequest error
+        // If this happens, the user rejected the connection request.
+        console.log('Please connect to MetaMask.');
+      } else {
+        console.error(err);
+      }
+    }) as string[];
+
+
+  return accounts;
+}
+
+export const listConnectedAccounts = async() => {
+  return await getMMProvider().request({ method: 'eth_requestAccounts' })
+    .catch((err) => {
+      if (err.code === 4001) {
+        // EIP-1193 userRejectedRequest error
+        // If this happens, the user rejected the connection request.
+        console.log('Please connect to MetaMask.');
+      } else {
+        console.error(err);
+      }
+    }) as string[];
+}
+
+export const isAccountConnected = async(address: string): Promise<boolean> => {
+  const accounts = await getMMProvider().request({ method: 'eth_requestAccounts' })
+  .catch((err) => {
+    if (err.code === 4001) {
+      // EIP-1193 userRejectedRequest error
+      // If this happens, the user rejected the connection request.
+      console.log('Please connect to MetaMask.');
+    } else {
+      console.error(err);
+    }
+  }) as string[];
+
+  let found = false;
+  for (let i = 0; i < accounts.length; i++) {
+    if (accounts[i].toLowerCase() === address.toLowerCase()) {
+      found = true;
+      break;
+    }
+  }
+  return found;
+}
+
 export const getAccountBalance = async (account: string): Promise<string> => {
   const ethersProvider = new ethers.providers.Web3Provider(
     getMMProvider() as any,

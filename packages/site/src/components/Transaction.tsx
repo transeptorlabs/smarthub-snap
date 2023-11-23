@@ -153,7 +153,10 @@ export const EthereumTransactionModalComponent = ({
       encodedFunctionData,
     );
 
-    // TODO: changeto account before sending transaction
+    // check the selected account is connected
+    if (!state.isSelectedSnapKeyringAccountConnected) {
+      throw new Error('The selected account is not connected. Please connect the account using Settings page.')
+    }
 
     // send transaction
     const res = await getMMProvider().request({
@@ -181,7 +184,7 @@ export const EthereumTransactionModalComponent = ({
     setAmount('');
     setSuccessMessage(`${amount} ETH successfully depoisted to entry point contract.`);
     setStatus(Stage.Success);
-    notify('Deposit Transaction sent (txHash)', 'View activity for details.', res)
+    // notify('Deposit Transaction sent (txHash)', 'View activity for details.', res)
   }
 
   const handleWithdrawSubmit = async () => {
@@ -267,7 +270,7 @@ export const EthereumTransactionModalComponent = ({
     } catch (e) {
       console.error(e.message)
       setAmount('');
-      setFailMessage('Transaction failed to send.');
+      setFailMessage(e.message);
       setStatus(Stage.Failed);
     }
   };

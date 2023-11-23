@@ -197,6 +197,7 @@ export const useAcount = () => {
 
   const getConnectedAccounts = async () => {
     const accounts = await listConnectedAccounts();
+    console.log('accounts', accounts)
     dispatch({
       type: MetamaskActions.SetConnectedAccounts,
       payload: accounts,

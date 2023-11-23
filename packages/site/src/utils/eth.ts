@@ -33,8 +33,10 @@ export const listConnectedAccounts = async() => {
         // EIP-1193 userRejectedRequest error
         // If this happens, the user rejected the connection request.
         console.log('Please connect to MetaMask.');
+        return [];
       } else {
         console.error(err);
+        return [];
       }
     }) as string[];
 }

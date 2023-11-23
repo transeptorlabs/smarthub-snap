@@ -137,22 +137,17 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         throw new Error('Account not found');
       }
 
-      const owner = keyringAccount.options.owner as string | undefined;
-      if (!owner) {
-        throw new Error('Owner not found');
-      }
-
-      const scAddress = await getSmartAccountAddress(owner);
+      const scAddress = await getSmartAccountAddress(keyringAccount.address);
       const [smartAcountBalance, ownerBalance, nonce, deposit] =
         await Promise.all([
           await getBalance(scAddress),
-          await getBalance(owner),
+          await getBalance(keyringAccount.address),
           await getNonce(scAddress),
           await getDeposit(scAddress),
         ]);
 
       result = JSON.stringify({
-        initCode: await getAccountInitCode(owner),
+        initCode: await getAccountInitCode(keyringAccount.address),
         address: scAddress,
         balance: smartAcountBalance, // in wei
         nonce,
@@ -160,9 +155,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         entryPoint: DEFAULT_ENTRY_POINT,
         factoryAddress: DEFAULT_ACCOUNT_FACTORY,
         deposit,
-        ownerAddress: owner,
         owner: {
-          address: owner,
+          address: keyringAccount.address,
           balance: ownerBalance, // in wei
         },
       });

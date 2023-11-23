@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
 import { AccountActivity, AccountActivityType, BundlerUrls, SmartContractAccount } from "../types";
-import { bundlerUrls, fetchUserOpHashes, getChainId, getKeyringSnapRpcClient, getMMProvider, getNextRequestId, getScAccount, getTxHashes, getUserOperationReceipt, parseChainId, sendSupportedEntryPoints } from "../utils";
+import { bundlerUrls, fetchUserOpHashes, connectedAccounts, getChainId, getKeyringSnapRpcClient, getMMProvider, getNextRequestId, getScAccount, getTxHashes, getUserOperationReceipt, parseChainId, sendSupportedEntryPoints, listConnectedAccounts } from "../utils";
 import { KeyringAccount } from "@metamask/keyring-api";
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 import type { Json } from '@metamask/utils';
@@ -187,18 +187,41 @@ export const useAcount = () => {
     });
   };
 
+  const updateConnectedAccounts = async () => {
+    const accounts = await connectedAccounts();
+    dispatch({
+      type: MetamaskActions.SetConnectedAccounts,
+      payload: accounts,
+    });
+  };
+
+  const getConnectedAccounts = async () => {
+    const accounts = await listConnectedAccounts();
+    dispatch({
+      type: MetamaskActions.SetConnectedAccounts,
+      payload: accounts,
+    });
+  };
+
   const getWalletChainId = async (): Promise<string> => {
     return await getChainId()
   };
 
-  const setChainIdListener = async () => {
-    if (!state.isChainIdListener) {   
+  const setWalletListener = async () => {
+    if (!state.isWalletListener) {   
       const provider = getMMProvider()
       if (provider) {
         provider.on('chainChanged', async (chainId) => {
           dispatch({
             type: MetamaskActions.SetChainId,
             payload: chainId,
+          });
+        });
+
+        provider.on('accountsChanged', async (accounts) => {
+         dispatch({
+            type: MetamaskActions.SetConnectedAccounts,
+            payload: accounts,
           });
         });
 
@@ -216,7 +239,7 @@ export const useAcount = () => {
     getSmartAccount,
     createAccount,
     deleteAccount,
-    setChainIdListener,
+    setWalletListener,
     getAccountActivity,
     getBundlerUrls,
     updateChainId,
@@ -226,5 +249,7 @@ export const useAcount = () => {
     approveRequest,
     rejectRequest,
     rejectAllPendingRequests,
+    updateConnectedAccounts,
+    getConnectedAccounts,
   }
 }

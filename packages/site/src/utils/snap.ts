@@ -8,7 +8,6 @@ import {
   BundlerUrls,
   UserOperation,
   UserOperationReceipt,
-  SignedTxs,
 } from '../types';
 import snapPackageInfo from '../../../snap/package.json';
 import { getMMProvider } from './metamask';
@@ -126,7 +125,6 @@ export const getScAccount = async (
     index: BigNumber.from(parsedResult.index),
     deposit: BigNumber.from(parsedResult.deposit).toString(),
     connected: true,
-    ownerAddress: parsedResult.ownerAddress,
     owner: {
       address: parsedResult.owner.address,
       balance: BigNumber.from(parsedResult.owner.balance).toString(),
@@ -134,24 +132,9 @@ export const getScAccount = async (
   } as SmartContractAccount;
 };
 
-// TODO: remove this method
-export const getSignedTxs = async (): Promise<SignedTxs> => {
-  const result = (await getMMProvider().request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: { method: 'get_signed_txs', params: [] },
-    },
-  })) as string;
-  const parsedResult = JSON.parse(result as string);
-  return parsedResult as SignedTxs;
-};
-
-// TODO: Update this method
 export const storeTxHash = async (
   keyringAccountId: string,
   txHash: string,
-  keyringRequestId: string,
   chainId: string,
 ): Promise<boolean> => {
   return (await getMMProvider().request({
@@ -164,7 +147,6 @@ export const storeTxHash = async (
           {
             keyringAccountId,
             txHash,
-            keyringRequestId,
             chainId,
           },
         ],
@@ -173,7 +155,6 @@ export const storeTxHash = async (
   })) as boolean;
 };
 
-// TODO: Update this method
 export const getTxHashes = async (
   keyringAccountId: string,
   chainId: string,

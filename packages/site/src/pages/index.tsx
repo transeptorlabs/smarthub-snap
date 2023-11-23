@@ -9,8 +9,6 @@ import {
   clearActivityData,
   parseChainId,
   addBundlerUrl,
-  getUserOperationReceipt,
-  notify,
 } from '../utils';
 import {
   ConnectSnapButton,
@@ -21,12 +19,12 @@ import {
   SimpleButton,
   TabMenu,
   BundlerInputForm,
-  AccountActivityDisplay,
   Faq,
   Modal,
   EthereumTransactionModalComponent,
   TransactionType,
   ModalType,
+  ConnectToggle,
 } from '../components';
 import { AppTab, BundlerUrls, SupportedChainIdMap } from '../types';
 import snapPackageInfo from '../../../snap/package.json';
@@ -142,14 +140,16 @@ const Index = () => {
     getAccountActivity,
     getBundlerUrls,
     updateChainId,
-    setChainIdListener,
+    setWalletListener,
+    updateConnectedAccounts,
+    getConnectedAccounts,
   } = useAcount();
 
   useEffect(() => {
     async function initNetwork() {
       if (state.isFlask) {
         await updateChainId()
-        await setChainIdListener()
+        await setWalletListener()
       }
     }
 
@@ -161,6 +161,7 @@ const Index = () => {
       if (state.installedSnap) {
         const account = await getKeyringSnapAccounts()
         await handleFetchBundlerUrls()
+        await getConnectedAccounts()
         if (account.length > 0) {
           await selectKeyringSnapAccount(account[0]);
           await getSmartAccount(account[0].id);
@@ -333,6 +334,15 @@ const Index = () => {
     }
   }
 
+  const handleConnectAccountClick = async (e: any) => {
+    try {
+      e.preventDefault();
+      await updateConnectedAccounts()
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  }
+  
   const handleClearActivity = async (e: any) => {
     try {
       e.preventDefault();
@@ -400,8 +410,8 @@ const Index = () => {
               description: 'Features:',
               listItems: [
                 'Access and control smart accounts with MetaMask. Enjoy smart contract functionality with ease and convenience.',
-                'Manage ERC-4337 accounts(create, sign, send, transfer funds)',
-                'Manage stake and deposit with supported entrypoint contracts',
+                'Manage ERC-4337 accounts(create, delete, send funds)',
+                'Manage stake, withdraws and deposits with supported entrypoint contracts',
               ],
               button: <ConnectSnapButton onClick={handleReConnectSnapClick}/>
             }}
@@ -425,7 +435,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Smart Account',
-                description: `${state.selectedSnapKeyringAccount.address}`,
+                description: `${state.selectedSnapKeyringAccount.options.smartAccountAddress}`,
                 descriptionBold: `${state.selectedSnapKeyringAccount.options.name}`,
                 stats: [
                   {
@@ -442,10 +452,8 @@ const Index = () => {
                 custom: 
                 <ButtonContainer>
                   {/* TODO: Comment for now until we can support these features */}
-                  {/* <SimpleButton text='Deposit' onClick={(e: any) => {handleDepositClick(e)}}></SimpleButton> */}
+                  <SimpleButton text='Deposit' onClick={(e: any) => {handleDepositClick(e)}}></SimpleButton>
                   {/* <SimpleButton text='Withdraw' onClick={(e: any) => {handleWithdrawClick(e)}}></SimpleButton> */}
-                  {/* <SimpleButton text='Send' onClick={(e: any) => {() =>{}}}></SimpleButton>
-                  <SimpleButton text='Bridge' onClick={(e: any) => {() =>{}}}></SimpleButton> */}
                 </ButtonContainer>
               }}
               disabled={!state.isFlask}
@@ -462,7 +470,7 @@ const Index = () => {
           </Modal>
           
           {/* TODO: Add account activity */}
-          {/* {state.scAccount.connected && state.installedSnap && (
+          {/* {state.selectedSnapKeyringAccount.id !== ''&& state.installedSnap && (
             <Card
               content={{
                 title: 'Activity',
@@ -477,6 +485,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Create a Smart Account',
+                description: 'Create a smart account to get started.',
                 custom: 
                   <CommonInputForm
                     key={"create"}
@@ -545,10 +554,34 @@ const Index = () => {
       {/* Mangement tab */}
       {state.activeTab === AppTab.Management && (
         <CardContainer>
+            {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'Mange Smart Account owner',
+                description: `${state.selectedSnapKeyringAccount.address}`,
+                custom: 
+                <ButtonContainer>
+                  <div>
+                    <p>Connected</p>
+                    <ConnectToggle />
+                  </div>
+                  {/* TODO: Add change owner feature */}
+                  <SimpleButton disabled={true} text='Change' onClick={(e: any) => {(e: any)=> {}}}></SimpleButton>
+                </ButtonContainer>
+              }}
+              disabled={!state.isFlask}
+              copyDescription
+              isAccount
+              isSmartAccount
+              fullWidth
+            />
+          )}
+
           {state.installedSnap && (
             <Card
               content={{
                 title: 'Create a Smart Account',
+                description: 'Create a smart account.',
                 custom:
                   <CommonInputForm
                     key={"create"}
@@ -574,6 +607,7 @@ const Index = () => {
             <Card
               content={{
                 title: 'Delete Smart Account',
+                description: 'Delete a smart account.',
                 custom: 
                   <CommonInputForm
                     key={"delete"}
@@ -600,6 +634,18 @@ const Index = () => {
       {/* Setting tab */}
       {state.activeTab === AppTab.Settings && (
         <CardContainer>
+
+          {state.installedSnap && state.snapKeyring.accounts.length > 0 && (
+            <Card
+              content={{
+                title: 'Connected Accounts',
+                description: 'Manage accounts connected to dapp.',
+                custom: <SimpleButton text='Connect accounts' onClick={(e: any) => {handleConnectAccountClick(e)}}></SimpleButton>
+              }}
+              disabled={!state.isFlask}
+              fullWidth
+            />
+          )}
 
           {state.installedSnap && (
             <Card

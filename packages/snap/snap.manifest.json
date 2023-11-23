@@ -7,7 +7,7 @@
     "url": "https://github.com/transeptorlabs/smarthub-snap.git"
   },
   "source": {
-    "shasum": "nyJtFe+mvI8kTXx54YL4bLaqDw4fedV5poe1Ha+ElzY=",
+    "shasum": "oSIOU2iB1E3c0N5xdHcp7HiZcJa2rXomrXqm2ugpyD8=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",

@@ -142,7 +142,7 @@ export class SimpleKeyring implements Keyring {
         name,
         smartAccountAddress: await getSmartAccountAddress(address),
       },
-      address: address,
+      address,
       methods: [
         EthMethod.PersonalSign,
         EthMethod.Sign,
@@ -262,7 +262,11 @@ export class SimpleKeyring implements Keyring {
     request: KeyringRequest,
   ): Promise<SubmitRequestResponse> {
     const { method, params = [] } = request.request as JsonRpcRequest;
-    const result = await this.#handleSigningRequest(method, params, request.account);
+    const result = await this.#handleSigningRequest(
+      method,
+      params,
+      request.account,
+    );
     return {
       pending: false,
       result,
@@ -314,7 +318,11 @@ export class SimpleKeyring implements Keyring {
     await this.#emitEvent(KeyringEvent.RequestRejected, { id });
   }
 
-  async #handleSigningRequest(method: string, params: Json, accountId: string): Promise<Json> {
+  async #handleSigningRequest(
+    method: string,
+    params: Json,
+    accountId: string,
+  ): Promise<Json> {
     switch (method) {
       case EthMethod.PersonalSign: {
         const [from, message] = params as [string, string];
@@ -327,10 +335,9 @@ export class SimpleKeyring implements Keyring {
         // check to see if tx initCode is present
         if (tx.initCode) {
           const userOp = tx as UserOperation;
-          return await this.#signUserOp(accountId, userOp) as Json;
-        } else {
-          return this.#signTransaction(accountId, tx as JsonTx);
+          return (await this.#signUserOp(accountId, userOp)) as Json;
         }
+        return this.#signTransaction(accountId, tx as JsonTx);
       }
 
       case EthMethod.SignTypedDataV1: {

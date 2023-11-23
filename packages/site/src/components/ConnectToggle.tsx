@@ -105,9 +105,11 @@ export const ConnectToggle = () => {
       for (const account of state.connectedAccounts) {
         if (account.toLowerCase() === state.selectedSnapKeyringAccount.address.toLowerCase()) {
           setChecked(true);
+          dispatch({ type: MetamaskActions.SetIsSelectedSnapKeyringAccount, payload: true });
           break;
         }
         setChecked(false);
+        dispatch({ type: MetamaskActions.SetIsSelectedSnapKeyringAccount, payload: false });
       }
 
     } catch (e) {

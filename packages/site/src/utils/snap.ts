@@ -11,9 +11,6 @@ import {
 } from '../types';
 import snapPackageInfo from '../../../snap/package.json';
 import { getMMProvider } from './metamask';
-import { JsonTx } from '@ethereumjs/tx';
-import { KeyringRequest } from '@metamask/keyring-api';
-import type { Json } from '@metamask/utils';
 
 // Snap management *****************************************************************
 /**

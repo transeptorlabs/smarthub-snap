@@ -154,6 +154,7 @@ export const EthereumTransactionModalComponent = ({
     );
 
     // check the selected account is connected
+    console.log(state)
     if (!state.isSelectedSnapKeyringAccountConnected) {
       throw new Error('The selected account is not connected. Please connect the account using Settings page.')
     }

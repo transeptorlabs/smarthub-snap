@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2023-11-23
+
+### Changed
+
+- Update keyring to default to using synchronous request
+
+## [0.1.1] - 2023-11-19
+
+### Changed
+
+- Uodate README.md
+
 ## [0.1.0] - 2023-11-17
 
 ### Added

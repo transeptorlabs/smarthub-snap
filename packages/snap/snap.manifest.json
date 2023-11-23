@@ -1,5 +1,5 @@
 {
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A snap the helps you manage ERC-4337 smart account",
   "proposedName": "SmartHub",
   "repository": {
@@ -7,7 +7,7 @@
     "url": "https://github.com/transeptorlabs/smarthub-snap.git"
   },
   "source": {
-    "shasum": "oSIOU2iB1E3c0N5xdHcp7HiZcJa2rXomrXqm2ugpyD8=",
+    "shasum": "fQekBFOVMiXqEJySBtZJK+zENgBotxiz8e32dA0+W2Q=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",

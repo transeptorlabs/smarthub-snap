@@ -16,19 +16,15 @@ import {
   storeBundlerUrl,
   getKeyRing,
   getUserOpHashes,
-  getTxHashes,
-  storeTxHash,
   getNextRequestId,
 } from './state';
 import {
   EstimateCreationGasParams,
   EstimateUserOperationGas,
-  GetTxHashesParams,
   GetUserOpParams,
   NotifyParams,
   SmartAccountActivityParams,
   SmartAccountParams,
-  StoreTxHashParams,
   UserOpCallDataParams,
 } from './types';
 import {
@@ -221,25 +217,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       console.log('SNAPS/', 'initCode ', initCode);
       result = await estimateCreationGas(initCode);
       return JSON.stringify(result);
-    }
-
-    case InternalMethod.GetTxHashes: {
-      const params: GetTxHashesParams = (
-        request.params as any[]
-      )[0] as GetTxHashesParams;
-      return await getTxHashes(params.keyringAccountId, params.chainId);
-    }
-
-    case InternalMethod.StoreTxHash: {
-      const params: StoreTxHashParams = (
-        request.params as any[]
-      )[0] as StoreTxHashParams;
-      result = await storeTxHash(
-        params.keyringAccountId,
-        params.txHash,
-        params.chainId,
-      );
-      return result;
     }
 
     case InternalMethod.AddBundlerUrl: {

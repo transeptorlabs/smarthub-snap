@@ -578,6 +578,32 @@ const Index = () => {
             />
           )}
 
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'EntryPoint Contract',
+                description: `${state.scAccount.entryPoint}`,
+              }}
+              disabled={!state.isFlask}
+              copyDescription
+              isAccount
+              fullWidth
+            />
+          )}
+
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'Account Factory Contract',
+                description: `${state.scAccount.factoryAddress}`,
+              }}
+              disabled={!state.isFlask}
+              copyDescription
+              isAccount
+              fullWidth
+            />
+          )}
+
           {state.installedSnap && (
             <Card
               content={{

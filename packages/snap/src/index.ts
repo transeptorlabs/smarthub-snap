@@ -46,6 +46,7 @@ import {
   getNonce,
   getSmartAccountAddress,
   getUserOpCallData,
+  isAccountDeployed,
 } from './4337';
 
 let keyring: SimpleKeyring;
@@ -148,6 +149,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
       result = JSON.stringify({
         initCode: await getAccountInitCode(keyringAccount.address),
+        isAccountDeployed: await isAccountDeployed(keyringAccount.address),
         address: scAddress,
         balance: smartAcountBalance, // in wei
         nonce,

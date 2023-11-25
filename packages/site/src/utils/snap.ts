@@ -125,6 +125,7 @@ export const getScAccount = async (
     index: BigNumber.from(parsedResult.index),
     deposit: BigNumber.from(parsedResult.deposit).toString(),
     connected: true,
+    isAccountDeployed: parsedResult.isAccountDeployed,
     owner: {
       address: parsedResult.owner.address,
       balance: BigNumber.from(parsedResult.owner.balance).toString(),

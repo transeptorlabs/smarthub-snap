@@ -76,6 +76,7 @@ type SmartContractAccount = {
   factoryAddress: string;
   deposit: string;
   connected: boolean;
+  isAccountDeployed: boolean;
 };
 
 const result: SmartContractAccount = await window.ethereum.request({

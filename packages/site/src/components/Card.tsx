@@ -1,9 +1,11 @@
-import { ReactNode } from 'react';
+import { ReactNode, useContext } from 'react';
 import styled from 'styled-components';
-import { FaCopy, FaInfoCircle } from "react-icons/fa";
+import { FaCopy, FaInfoCircle, FaExternalLinkAlt } from "react-icons/fa";
 import { trimAccount } from '../utils/eth';
 import { BlockieEoa } from './Blockie-Icon';
 import { handleCopyToClipboard } from '../utils';
+import { SupportedChainIdMap } from '../types';
+import { MetaMaskContext } from '../hooks';
 
 type CardProps = {
   content: {
@@ -104,6 +106,19 @@ const DescriptionCopy = styled.div`
   }
 `;
 
+const BlockExplorerLink = styled.a`
+  margin-left: 2rem;
+  margin-top: auto;
+  margin-bottom: 0;
+  margin-right: 1rem;
+  color: black;
+
+  &:hover {
+    color: ${(props) => props.theme.colors.text.default};
+    cursor: pointer;
+  }
+`;
+
 const ToolTip = styled.div`
   margin-left: 1rem;
 `;
@@ -133,6 +148,7 @@ const FlexContainer = styled.div`
 
 
 export const Card = ({ content, disabled = false, fullWidth, copyDescription, isAccount, isSmartAccount, showTooltip}: CardProps) => {
+  const [state] = useContext(MetaMaskContext);
   const { title, description, descriptionBold, button, listItems, stats, custom} = content;
 
   return (
@@ -185,6 +201,12 @@ export const Card = ({ content, disabled = false, fullWidth, copyDescription, is
             <DescriptionCopy onClick={e => handleCopyToClipboard(e, description)}>
               <FaCopy />
             </DescriptionCopy>
+          )}
+
+          {isAccount && (
+            <BlockExplorerLink href={`${SupportedChainIdMap[state.chainId].blockExplorer}/address/${description}`} target="_blank" rel="noopener noreferrer">
+              <FaExternalLinkAlt />
+            </BlockExplorerLink>
           )}
         </FlexRow>
       )}

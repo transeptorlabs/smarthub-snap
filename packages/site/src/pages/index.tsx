@@ -434,7 +434,7 @@ const Index = () => {
           {state.scAccount.connected && state.installedSnap && (
             <Card
               content={{
-                title: 'Smart Account',
+                title: `Smart Account (${state.scAccount.isAccountDeployed ? 'Deployed' : 'Not Deployed'})`,
                 description: `${state.selectedSnapKeyringAccount.options.smartAccountAddress}`,
                 descriptionBold: `${state.selectedSnapKeyringAccount.options.name}`,
                 stats: [
@@ -574,6 +574,7 @@ const Index = () => {
               isAccount
               isSmartAccount
               fullWidth
+              showTooltip
             />
           )}
 

@@ -11,11 +11,11 @@ export enum AppTab {
 }
 
 export const SupportedChainIdMap: {
-  [chainId: string]: { name: string; icon: any; id: string };
+  [chainId: string]: { name: string; icon: any; id: string, blockExplorer: string };
 } = {
-  '0x539': { name: 'Private', icon: PrivateLogo, id: '0x539' },
-  '0x5': { name: 'Goerli', icon: PrivateLogo, id: '0x5' },
-  '0xaa36a7': { name: 'Sepolia', icon: PrivateLogo, id: '0xaa36a7' },
+  '0x539': { name: 'Private', icon: PrivateLogo, id: '0x539', blockExplorer: '' },
+  '0x5': { name: 'Goerli', icon: PrivateLogo, id: '0x5', blockExplorer: 'https://goerli.etherscan.io' },
+  '0xaa36a7': { name: 'Sepolia', icon: PrivateLogo, id: '0xaa36a7', blockExplorer: 'https://sepolia.etherscan.io' },
   // '0x1': { name: 'Ethereum', icon: EthereumLogo, id: '0x1' },
   // '0x89': { name: 'Polygon', icon: PolygonLogo, id: '0x89' },
   // '0x13881': { name: 'Polygon Mumbai', icon: PolygonLogo, id: '0x13881' },

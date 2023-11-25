@@ -64,7 +64,7 @@ export const isAccountDeployed = async (owner: string): Promise<boolean> => {
   const smartAccountAddressCode = await provider.getCode(smartAccountAddress);
 
   return smartAccountAddressCode.length > 2;
-}
+};
 
 // GENERATE THE CALLDATA
 export const getUserOpCallData = async (

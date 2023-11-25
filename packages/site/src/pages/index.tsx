@@ -137,7 +137,6 @@ const Index = () => {
     deleteAccount, 
     selectKeyringSnapAccount,
     getSmartAccount,
-    getAccountActivity,
     getBundlerUrls,
     updateChainId,
     setWalletListener,

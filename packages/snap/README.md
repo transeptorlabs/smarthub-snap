@@ -92,29 +92,6 @@ const result: SmartContractAccount = await window.ethereum.request({
 console.log(result);
 ```
 
-#### get_user_ops_hashes
-
-Returns a list of confirmed operations hashes for the given keyring Account Id.
-
-```TS
-const result: string[] = await window.ethereum.request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: 'npm:@transeptor-labs/smarthub-snap',
-      request: {
-        method: 'get_user_ops_hashes',
-        params: [
-          {
-            keyringAccountId: 'keyringAccountId',
-          },
-        ],
-      },
-    },
-});
-
-console.log(result);
-```
-
 #### clear_activity_data
 
 Clears all the smart account activity data from the snap storage.

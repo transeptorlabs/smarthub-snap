@@ -58,6 +58,14 @@ export const getAccountInitCode = async (owner: string): Promise<string> => {
   return DEFAULT_INIT_CODE(owner);
 };
 
+export const isAccountDeployed = async (owner: string): Promise<boolean> => {
+  const provider = new ethers.providers.Web3Provider(ethereum as any);
+  const smartAccountAddress = await getSmartAccountAddress(owner);
+  const smartAccountAddressCode = await provider.getCode(smartAccountAddress);
+
+  return smartAccountAddressCode.length > 2;
+};
+
 // GENERATE THE CALLDATA
 export const getUserOpCallData = async (
   senderAddress: string,

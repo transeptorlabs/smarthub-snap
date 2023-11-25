@@ -60,6 +60,7 @@ const initialState: MetamaskState = {
     entryPoint: '',
     deposit: '',
     factoryAddress: '',
+    isAccountDeployed: false,
     owner: {
       address: '',
       balance: '', // in wei
@@ -189,6 +190,7 @@ const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
         scAccount: {
           initCode: '',
           connected: false,
+          isAccountDeployed: false,
           address: '',
           balance: '', // in wei
           nonce: BigNumber.from(0),

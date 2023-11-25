@@ -434,7 +434,7 @@ const Index = () => {
           {state.scAccount.connected && state.installedSnap && (
             <Card
               content={{
-                title: 'Smart Account',
+                title: `Smart Account (${state.scAccount.isAccountDeployed ? 'Deployed' : 'Not Deployed'})`,
                 description: `${state.selectedSnapKeyringAccount.options.smartAccountAddress}`,
                 descriptionBold: `${state.selectedSnapKeyringAccount.options.name}`,
                 stats: [
@@ -573,6 +573,33 @@ const Index = () => {
               copyDescription
               isAccount
               isSmartAccount
+              fullWidth
+              showTooltip
+            />
+          )}
+
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'EntryPoint Contract',
+                description: `${state.scAccount.entryPoint}`,
+              }}
+              disabled={!state.isFlask}
+              copyDescription
+              isAccount
+              fullWidth
+            />
+          )}
+
+          {state.scAccount.connected && state.installedSnap && (
+            <Card
+              content={{
+                title: 'Account Factory Contract',
+                description: `${state.scAccount.factoryAddress}`,
+              }}
+              disabled={!state.isFlask}
+              copyDescription
+              isAccount
               fullWidth
             />
           )}

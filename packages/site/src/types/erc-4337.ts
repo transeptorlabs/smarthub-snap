@@ -27,6 +27,7 @@ export type SmartContractAccount = {
   factoryAddress: string;
   deposit: string;
   connected: boolean;
+  isAccountDeployed: boolean;
 };
 
 export enum AccountActivityType {

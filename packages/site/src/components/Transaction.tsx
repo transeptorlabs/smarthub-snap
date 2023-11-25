@@ -8,7 +8,7 @@ import { AccountRequestDisplay } from './Account';
 import { convertToEth, convertToWei, estimateGas, trimAccount } from '../utils/eth';
 import { BlockieAccountModal } from './Blockie-Icon';
 import { BigNumber, ethers } from 'ethers';
-import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getUserOpCallData, handleCopyToClipboard, notify, storeTxHash } from '../utils';
+import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getUserOpCallData, handleCopyToClipboard, notify } from '../utils';
 import { EntryPoint__factory } from '@account-abstraction/contracts';
 import { UserOperation } from '../types';
 import { FaCopy } from "react-icons/fa";
@@ -107,6 +107,7 @@ enum Stage {
   Loading = 'Loading',
   Success = 'Success',
   Failed = 'Failed',
+  UserConfirmation = 'User Confirmation',
 }
 
 export enum TransactionType {
@@ -129,8 +130,6 @@ export const EthereumTransactionModalComponent = ({
   const {
     sendRequestSync,
     getSmartAccount,
-    getAccountActivity,
-    getKeyringSnapAccounts,
   } = useAcount();
 
   const handleDepositSubmit = async () => {
@@ -154,13 +153,12 @@ export const EthereumTransactionModalComponent = ({
     );
 
     // check the selected account is connected
-    console.log(state)
     if (!state.isSelectedSnapKeyringAccountConnected) {
       throw new Error('The selected account is not connected. Please connect the account using Settings page.')
     }
 
     // send transaction
-    const res = await getMMProvider().request({
+    const txHash = await getMMProvider().request({
       method: 'eth_sendTransaction',
       params: [
         {
@@ -176,16 +174,11 @@ export const EthereumTransactionModalComponent = ({
     }) as string
 
     // show success message
-    await getSmartAccount(state.selectedSnapKeyringAccount.id);
-    await storeTxHash(
-      state.selectedSnapKeyringAccount.id,
-      res,
-      state.chainId,
-    );
     setAmount('');
     setSuccessMessage(`${amount} ETH successfully depoisted to entry point contract.`);
     setStatus(Stage.Success);
-    // notify('Deposit Transaction sent (txHash)', 'View activity for details.', res)
+    notify('Transaction sent (txHash)', 'Check wallet activity for details.', txHash)
+    await getSmartAccount(state.selectedSnapKeyringAccount.id);
   }
 
   const handleWithdrawSubmit = async () => {
@@ -258,11 +251,11 @@ export const EthereumTransactionModalComponent = ({
     try {
       e.preventDefault();
 
-      setStatus(Stage.Loading);
-
       if (transactionType === TransactionType.Deposit) {
+        setStatus(Stage.UserConfirmation);
         await handleDepositSubmit();
       } else if (transactionType === TransactionType.Withdraw) {
+        setStatus(Stage.Loading);
         await handleWithdrawSubmit();
       } else {
         throw new Error('Invalid transaction type');
@@ -391,6 +384,12 @@ export const EthereumTransactionModalComponent = ({
             <ClipLoader color="#8093ff" size={50} />
           </SpinnerContainer>
         );
+      case Stage.UserConfirmation:
+          return (
+            <SpinnerContainer>
+              <ClipLoader color="#8093ff" size={50} />
+            </SpinnerContainer>
+          );
       case Stage.Failed:
         return (
           <Container>

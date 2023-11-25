@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { MetamaskActions, MetaMaskContext } from '.';
-import { AccountActivity, AccountActivityType, BundlerUrls, SmartContractAccount } from "../types";
-import { bundlerUrls, fetchUserOpHashes, connectedAccounts, getChainId, getKeyringSnapRpcClient, getMMProvider, getNextRequestId, getScAccount, getTxHashes, getUserOperationReceipt, parseChainId, sendSupportedEntryPoints, listConnectedAccounts } from "../utils";
+import { AccountActivity, BundlerUrls, SmartContractAccount } from "../types";
+import { bundlerUrls, fetchUserOpHashes, connectedAccounts, getChainId, getKeyringSnapRpcClient, getMMProvider, getNextRequestId, getScAccount, getUserOperationReceipt, sendSupportedEntryPoints, listConnectedAccounts } from "../utils";
 import { KeyringAccount } from "@metamask/keyring-api";
 import { KeyringSnapRpcClient } from '@metamask/keyring-api';
 import type { Json } from '@metamask/utils';
@@ -44,38 +44,6 @@ export const useAcount = () => {
     await getKeyringSnapAccounts()
   };
 
-  const sendRequestAsync = async (
-    keyringAccountId: string,
-    method: string,
-    params: any[] = [],
-  ): Promise<{
-    pending: boolean;
-    redirect?: {
-      url: string;
-      message: string;
-    };
-  }> => {
-    const id = await getNextRequestId();
-    const result = await snapRpcClient.submitRequest({
-      id: id.toString(),
-      account: keyringAccountId,
-      scope: 'async',
-      request: {
-        method,
-        params: params,
-      },
-    });
-    await getKeyringSnapAccounts();
-
-    return result as {
-      pending: boolean;
-      redirect?: {
-        url: string;
-        message: string;
-      };
-    };
-  };
-
   const sendRequestSync = async (
     keyringAccountId: string,
     method: string,
@@ -88,7 +56,7 @@ export const useAcount = () => {
     const result = await snapRpcClient.submitRequest({
       id: id.toString(),
       account: keyringAccountId,
-      scope: 'sync',
+      scope: '',
       request: {
         method,
         params: params,
@@ -144,24 +112,12 @@ export const useAcount = () => {
     for (const userOpHash of userOpHashes) {
       accountActivity.push(
         {
-          type: AccountActivityType.SmartContract,
           userOpHash,
           userOperationReceipt: await getUserOperationReceipt(userOpHash),
         }
       )
     }
 
-    const txHashes = await getTxHashes(keyringAccountId, state.chainId);
-    for (const txHash of txHashes) {
-      accountActivity.push(
-        {
-          type: AccountActivityType.EOA,
-          txHash,
-          userOpHash: '',
-          userOperationReceipt: null,
-        }
-      )
-    }
     dispatch({
       type: MetamaskActions.SetAccountActivity,
       payload: accountActivity,
@@ -244,7 +200,6 @@ export const useAcount = () => {
     getBundlerUrls,
     updateChainId,
     getWalletChainId,
-    sendRequestAsync,
     sendRequestSync,
     approveRequest,
     rejectRequest,

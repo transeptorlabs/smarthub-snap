@@ -7,11 +7,9 @@ import {
   getKeyRing,
   getNextRequestId,
   getState,
-  getTxHashes,
   getUserOpHashes,
   storeBundlerUrl,
   storeKeyRing,
-  storeTxHash,
   storeUserOpHash,
 } from '../src/state';
 import { restoreGlobal, setupSnapMock } from './testUtils';
@@ -68,11 +66,9 @@ describe('state module - State', () => {
             scAccount: {
               '0x1': {
                 userOpHashes: ['hash1', 'hash2'],
-                txHashes: [],
               },
               '0x5': {
                 userOpHashes: ['hash3', 'hash4'],
-                txHashes: [],
               },
             },
           },
@@ -102,11 +98,9 @@ describe('state module - State', () => {
             scAccount: {
               '0x1': {
                 userOpHashes: ['hash1', 'hash2'],
-                txHashes: [],
               },
               '0x5': {
                 userOpHashes: ['hash3', 'hash4'],
-                txHashes: [],
               },
             },
           },
@@ -169,73 +163,6 @@ describe('state module - State', () => {
     });
   });
 
-  describe('getTxHashes', () => {
-    it('should return an array of an users confirmed txHashes for a specific chainId', async () => {
-      const keyringAccountId = uuid();
-      const mockState = {
-        keyringState: {
-          wallets: {},
-          pendingRequests: {},
-          signedTx: {},
-        },
-        requestIdCounter: 0,
-        bundlerUrls: DEFAULT_BUNDLER_URLS,
-        smartAccountActivity: {
-          [keyringAccountId]: {
-            scAccount: {
-              '0x1': {
-                userOpHashes: [],
-                txHashes: ['hash1', 'hash2'],
-              },
-            },
-          },
-        },
-      };
-
-      (global as any).snap.request.mockReturnValue(Promise.resolve(mockState));
-
-      const result = await getTxHashes(keyringAccountId, '0x1');
-      expect(result).toStrictEqual(['hash1', 'hash2']);
-    });
-  });
-
-  describe('storeTxHash', () => {
-    it('should store a user confirmed txHash', async () => {
-      const keyringAccountId = uuid();
-      const mockState = {
-        keyringState: {
-          wallets: {},
-          pendingRequests: {},
-        },
-        requestIdCounter: 0,
-        bundlerUrls: DEFAULT_BUNDLER_URLS,
-        smartAccountActivity: {
-          [keyringAccountId]: {
-            scAccount: {
-              '0x1': {
-                userOpHashes: [],
-                txHashes: ['hash1', 'hash2'],
-              },
-              '0x5': {
-                userOpHashes: [],
-                txHashes: ['hash3', 'hash4'],
-              },
-            },
-          },
-        },
-      };
-
-      (global as any).snap.request.mockReturnValue(Promise.resolve(mockState));
-
-      const stateBefore = await getTxHashes(keyringAccountId, '0x1');
-      expect(stateBefore).toStrictEqual(['hash1', 'hash2']);
-
-      await storeTxHash(keyringAccountId, 'hash5', '0x1');
-      const result = await getTxHashes(keyringAccountId, '0x1');
-      expect(result).toStrictEqual(['hash1', 'hash2', 'hash5']);
-    });
-  });
-
   describe('clearActivityData', () => {
     it('should clear all smart account Activity data', async () => {
       const keyringAccountId = uuid();
@@ -252,11 +179,9 @@ describe('state module - State', () => {
             scAccount: {
               '0x1': {
                 userOpHashes: ['hash1', 'hash2'],
-                txHashes: [],
               },
               '0x5': {
                 userOpHashes: ['hash3', 'hash4'],
-                txHashes: [],
               },
             },
           },

@@ -30,16 +30,9 @@ export type SmartContractAccount = {
   isAccountDeployed: boolean;
 };
 
-export enum AccountActivityType {
-  SmartContract = 'SmartContract',
-  EOA = 'EOA',
-}
-
 export type AccountActivity = {
-  type: AccountActivityType;
   userOpHash: string;
   userOperationReceipt: UserOperationReceipt | null;
-  txHash?: string;
 };
 
 export type UserOperationReceipt = {

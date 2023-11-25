@@ -13,17 +13,6 @@ export type SmartAccountParams = {
   chainId: string;
 };
 
-export type GetTxHashesParams = {
-  keyringAccountId: string;
-  chainId: string;
-};
-
-export type StoreTxHashParams = {
-  keyringAccountId: string;
-  txHash: string;
-  chainId: string;
-};
-
 export type UserOpCallDataParams = {
   keyringAccountId: string;
   to: string;

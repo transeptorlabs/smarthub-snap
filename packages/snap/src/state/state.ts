@@ -13,7 +13,6 @@ export const getState = async (
       scAccount: {
         [chainId: string]: {
           userOpHashes: string[];
-          txHashes: string[];
         };
       };
     };
@@ -31,7 +30,6 @@ export const getState = async (
         scAccount: {
           [chainId: string]: {
             userOpHashes: string[];
-            txHashes: string[];
           };
         };
       };
@@ -53,23 +51,21 @@ export const getState = async (
         scAccount: {
           '0x539': {
             userOpHashes: [],
-            txHashes: [],
           },
           '0x1': {
             userOpHashes: [],
-            txHashes: [],
           },
           '0x5': {
             userOpHashes: [],
-            txHashes: [],
+          },
+          '0xaa36a7': {
+            userOpHashes: [],
           },
           '0x89': {
             userOpHashes: [],
-            txHashes: [],
           },
           '0x13881': {
             userOpHashes: [],
-            txHashes: [],
           },
         },
       };
@@ -125,32 +121,6 @@ export const storeBundlerUrl = async (
 ): Promise<boolean> => {
   const state = await getState();
   state.bundlerUrls[chainId] = url;
-
-  await snap.request({
-    method: 'snap_manageState',
-    params: { operation: 'update', newState: state },
-  });
-  return true;
-};
-
-export const getTxHashes = async (
-  keyringAccountId: string,
-  chainId: string,
-): Promise<string[]> => {
-  const state = await getState(keyringAccountId);
-  return state.smartAccountActivity[keyringAccountId].scAccount[chainId]
-    .txHashes;
-};
-
-export const storeTxHash = async (
-  keyringAccountId: string,
-  txHash: string,
-  chainId: string,
-): Promise<boolean> => {
-  const state = await getState(keyringAccountId);
-  state.smartAccountActivity[keyringAccountId].scAccount[chainId].txHashes.push(
-    txHash,
-  );
 
   await snap.request({
     method: 'snap_manageState',

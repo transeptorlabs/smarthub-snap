@@ -111,7 +111,7 @@ const BlockExplorerLink = styled.a`
   margin-top: auto;
   margin-bottom: 0;
   margin-right: 1rem;
-  color: black;
+  color: ${(props) => props.theme.colors.primary.default};  
 
   &:hover {
     color: ${(props) => props.theme.colors.text.default};

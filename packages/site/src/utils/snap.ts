@@ -133,50 +133,6 @@ export const getScAccount = async (
   } as SmartContractAccount;
 };
 
-export const storeTxHash = async (
-  keyringAccountId: string,
-  txHash: string,
-  chainId: string,
-): Promise<boolean> => {
-  return (await getMMProvider().request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: {
-        method: 'store_tx_hash',
-        params: [
-          {
-            keyringAccountId,
-            txHash,
-            chainId,
-          },
-        ],
-      },
-    },
-  })) as boolean;
-};
-
-export const getTxHashes = async (
-  keyringAccountId: string,
-  chainId: string,
-): Promise<string[]> => {
-  return (await getMMProvider().request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: {
-        method: 'get_tx_hashes',
-        params: [
-          {
-            keyringAccountId,
-            chainId,
-          },
-        ],
-      },
-    },
-  })) as string[];
-};
-
 export const fetchUserOpHashes = async (
   keyringAccountId: string,
 ): Promise<string[]> => {

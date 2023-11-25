@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2023-11-25
+
+### Added
+
+-  Add block explorer links for all ethereum addresses
+-  Add entrypoint and account factory addresses to the management tab
+
 ## [0.1.2] - 2023-11-23
 
 ### Added

@@ -9,9 +9,10 @@ import { convertToEth, convertToWei, estimateGas, trimAccount } from '../utils/e
 import { BlockieAccountModal } from './Blockie-Icon';
 import { BigNumber, ethers } from 'ethers';
 import { calcPreVerificationGas, estimatCreationGas, estimateUserOperationGas, getDummySignature, getMMProvider, getUserOpCallData, handleCopyToClipboard, notify } from '../utils';
-import { EntryPoint__factory } from '@account-abstraction/contracts';
+import { EntryPoint__factory, SimpleAccountFactory__factory } from '@account-abstraction/contracts';
 import { UserOperation } from '../types';
 import { FaCopy } from "react-icons/fa";
+import { SimpleButton } from './Buttons';
 
 const Body = styled.div`
   padding: 2rem 0;
@@ -101,7 +102,8 @@ const AccountCopy = styled.div`
   }
 `;
 
-enum Stage {
+export enum Stage {
+  Deploy = 'Deploy',
   EnterAmount = 'Enter Amount',
   Review = 'Review',
   Loading = 'Loading',
@@ -113,6 +115,7 @@ enum Stage {
 export enum TransactionType {
   Deposit = 'Deposit',
   Withdraw = 'Withdraw',
+  Deploy = 'Deploy',
 }
 
 export const EthereumTransactionModalComponent = ({
@@ -121,7 +124,7 @@ export const EthereumTransactionModalComponent = ({
     transactionType: TransactionType;
   }) => {
   const [state] = useContext(MetaMaskContext);
-  const [status, setStatus] = useState<Stage>(Stage.EnterAmount);
+  const [status, setStatus] = useState<Stage>(transactionType === TransactionType.Deploy ? Stage.Deploy : Stage.EnterAmount);
   const [failMessage, setFailMessage] = useState<string>('User denied the transaction signature.');
   const [successMessage, setSuccessMessage] = useState<string>('');
 
@@ -139,6 +142,11 @@ export const EthereumTransactionModalComponent = ({
     if (BigNumber.from(depositInWei).gte(state.scAccount.owner.balance)) {
       throw new Error('Owner account has, insufficient funds.')
     }
+
+    // check the selected account is connected
+    if (!state.isSelectedSnapKeyringAccountConnected) {
+      throw new Error('The selected account is not connected. Please connect the account using Settings page.')
+    }
     
     const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
     const entryPointContract = new ethers.Contract(state.scAccount.entryPoint, EntryPoint__factory.abi)
@@ -151,11 +159,6 @@ export const EthereumTransactionModalComponent = ({
       state.scAccount.entryPoint,
       encodedFunctionData,
     );
-
-    // check the selected account is connected
-    if (!state.isSelectedSnapKeyringAccountConnected) {
-      throw new Error('The selected account is not connected. Please connect the account using Settings page.')
-    }
 
     // send transaction
     const txHash = await getMMProvider().request({
@@ -175,7 +178,7 @@ export const EthereumTransactionModalComponent = ({
 
     // show success message
     setAmount('');
-    setSuccessMessage(`${amount} ETH successfully depoisted to entry point contract.`);
+    setSuccessMessage(`${amount} ETH successfully deposited to entry point contract.`);
     setStatus(Stage.Success);
     notify('Transaction sent (txHash)', 'Check wallet activity for details.', txHash)
     await getSmartAccount(state.selectedSnapKeyringAccount.id);
@@ -247,6 +250,67 @@ export const EthereumTransactionModalComponent = ({
     );
   }
 
+  const handleDeploySubmit = async (e: any) => {
+    try {
+      // check the smart account is not deployed
+      setStatus(Stage.Loading);
+      const scAccount = await getSmartAccount(state.selectedSnapKeyringAccount.id);
+      if (scAccount.isAccountDeployed) {
+        throw new Error('Account already deployed.')
+      }
+
+      // check the selected account is connected
+      if (state.connectedAccounts.length === 0) {
+        throw new Error('The selected account is not connected. Please connect the account using Settings page.')
+      }
+
+      for (const account of state.connectedAccounts) {
+        if (account.toLowerCase() === state.selectedSnapKeyringAccount.address.toLowerCase()) {
+          break;
+        }
+        throw new Error('The selected account is not connected. Please connect the account using Settings page.')
+      }
+
+      const provider = new ethers.providers.Web3Provider(getMMProvider() as any);
+      const simpleAccountFactoryContract = new ethers.Contract(state.scAccount.factoryAddress, SimpleAccountFactory__factory.abi)
+
+      // estimate gas
+      const feeData = await provider.getFeeData()
+      const encodedFunctionData = simpleAccountFactoryContract.interface.encodeFunctionData('createAccount', [state.selectedSnapKeyringAccount.address, 0]);
+      const estimateGasAmount = await estimateGas(
+        state.selectedSnapKeyringAccount.address,
+        simpleAccountFactoryContract.address,
+        encodedFunctionData,
+      );
+
+      // send transaction
+      setStatus(Stage.UserConfirmation);
+      const txHash = await getMMProvider().request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: state.selectedSnapKeyringAccount.address,
+            to: simpleAccountFactoryContract.address,
+            value: 0,
+            gasLimit: estimateGasAmount.toHexString(),
+            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toHexString() ?? BigNumber.from(0).toHexString(),
+            maxFeePerGas: feeData.maxFeePerGas?.toHexString() ?? BigNumber.from(0).toHexString(),
+            data: encodedFunctionData,
+          }
+        ],
+      }) as string
+
+      // show success message
+      setSuccessMessage(`Transaction send to deploy smart account.`);
+      setStatus(Stage.Success);
+      notify('Transaction sent (txHash)', 'Check wallet activity for details.', txHash)
+      await getSmartAccount(state.selectedSnapKeyringAccount.id);
+    } catch (e) {
+      setFailMessage(e.message);
+      setStatus(Stage.Failed);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     try {
       e.preventDefault();
@@ -285,7 +349,7 @@ export const EthereumTransactionModalComponent = ({
      //  TODO: Send userOp
 
       setStatus(Stage.Success);
-      setSuccessMessage(`${amount} ETH successfully depoisted to entry point contract.`);
+      setSuccessMessage(`${amount} ETH successfully deposited to entry point contract.`);
       // TODO: Add activity
       // await getAccountActivity(state.selectedSnapKeyringAccount.id);
       await getSmartAccount(state.selectedSnapKeyringAccount.id);
@@ -311,6 +375,13 @@ export const EthereumTransactionModalComponent = ({
 
   const renderStage = () => {
     switch (status) {
+      case Stage.Deploy:
+        return (
+          <div>
+            <p>Smart account to deploy: {state.scAccount.address}</p>
+            <SimpleButton disabled={state.scAccount.isAccountDeployed ? true : false} text='Submit' onClick={(e: any) => {handleDeploySubmit(e)}}></SimpleButton>
+          </div>
+        );
       case Stage.EnterAmount:
         return (
           <FlexCol>
@@ -365,7 +436,7 @@ export const EthereumTransactionModalComponent = ({
             <CommonInputForm
               key={'send-amount'}
               onSubmitClick={handleSubmit}
-              buttonText="Review"
+              buttonText="Submit"
               inputs={[
                 {
                   id: '1',
@@ -407,10 +478,7 @@ export const EthereumTransactionModalComponent = ({
               <FaCheckCircle size={80} color="#32a852" />
             </IconContainer>
             <Status>
-              {transactionType === TransactionType.Deposit
-                ? 'Deposit'
-                : 'Withdraw'}{' '}
-              successfully sent
+              {transactionType} successfully sent
             </Status>
             <Text>{successMessage}</Text>
           </Container>

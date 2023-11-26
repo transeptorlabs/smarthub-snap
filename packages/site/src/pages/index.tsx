@@ -341,7 +341,17 @@ const Index = () => {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   }
-  
+
+  const handleDeployClick = async (e: any) => {
+    try {
+      e.preventDefault();
+      setTransactionType(TransactionType.Deploy)
+      setModalOpenTransaction(true)
+    } catch (e) {
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  }
+
   const handleClearActivity = async (e: any) => {
     try {
       e.preventDefault();
@@ -452,6 +462,7 @@ const Index = () => {
                 <ButtonContainer>
                   {/* TODO: Comment for now until we can support these features */}
                   <SimpleButton text='Deposit' onClick={(e: any) => {handleDepositClick(e)}}></SimpleButton>
+                  <SimpleButton text='Deploy' disabled={state.scAccount.isAccountDeployed ? true : false} onClick={(e: any) => {handleDeployClick(e)}}></SimpleButton>
                   {/* <SimpleButton text='Withdraw' onClick={(e: any) => {handleWithdrawClick(e)}}></SimpleButton> */}
                 </ButtonContainer>
               }}

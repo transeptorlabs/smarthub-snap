@@ -99,6 +99,7 @@ export const ConnectToggle = () => {
 
       if (state.connectedAccounts.length === 0) {
         setChecked(false);
+        dispatch({ type: MetamaskActions.SetIsSelectedSnapKeyringAccount, payload: false });
         return;
       }
       

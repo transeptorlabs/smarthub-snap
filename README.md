@@ -2,16 +2,12 @@
 
 ![Node Version](https://img.shields.io/badge/node-16.x-green)
 [![codecov](https://img.shields.io/codecov/c/github/transeptorlabs/smarthub-snap.svg?style=flat-square)](https://app.codecov.io/gh/transeptorlabs/smarthub-snap)
-![Github workflow build status(main)](https://img.shields.io/github/actions/workflow/status/transeptorlabs/smarthub-snap/main.yml?branch=main)
 
 ## Overview
 
 - **Why**: ERC-4337(aka: Account abstraction) introduces new core components to make managing crypto simple. It has potential, but it can be difficult for developers and users to use all its core components. We have a solution that simplifies interacting with those core components.
 - **What**: SmartHub is a snap that makes it easy for developers and MetaMask wallet users to use ERC-4337 without dealing with its complexity.
-- **How**: The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components. Please take a look at the [SmartHub Snap Architecture page](https://transeptorlabs.io/snap/concepts/architecture).
-
-This is the core repository for the development of the SmartHub
-MetaMask Snap. Roadmap [here](https://hackmd.io/@V00D00-child/SJOnAnxF2#Roadmap)
+- **How**: The snap adds extra features to MetaMask by including RPC methods that work with ERC-4337 core components.
 
 > :warning: **This repository is currently under active development, and contracts/snap is not audited.**
 
